@@ -128,7 +128,6 @@ export default function ChapterReader() {
     if (!contentRef.current?.contains(range.commonAncestorContainer)) return;
 
     const rect = range.getBoundingClientRect();
-    const containerRect = contentRef.current.getBoundingClientRect();
 
     const preSelectionRange = range.cloneRange();
     if (contentRef.current.firstChild) {
@@ -144,8 +143,8 @@ export default function ChapterReader() {
       text,
       startOffset,
       endOffset,
-      x: rect.left - containerRect.left + rect.width / 2,
-      y: rect.top - containerRect.top - 10,
+      x: rect.left + rect.width / 2,
+      y: rect.top + window.scrollY,
     });
   }, []);
 
@@ -392,10 +391,10 @@ export default function ChapterReader() {
           {/* Selection Toolbar */}
           {selection && (
             <div
-              className="absolute z-50 bg-card border border-border rounded-xl shadow-xl p-3 flex flex-col gap-2"
+              className="fixed z-50 bg-card border border-border rounded-xl shadow-xl p-3 flex flex-col gap-2"
               style={{
-                left: `${selection.x}px`,
-                top: `${selection.y - (noteMode ? 170 : 100)}px`,
+                left: `${Math.min(Math.max(selection.x, 140), window.innerWidth - 140)}px`,
+                top: `${selection.y - window.scrollY - (noteMode ? 220 : 120)}px`,
                 transform: "translateX(-50%)",
                 minWidth: "240px",
                 maxWidth: "300px",
