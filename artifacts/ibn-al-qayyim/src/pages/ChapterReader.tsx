@@ -692,12 +692,12 @@ export default function ChapterReader() {
           </div>
         </main>
 
-        {/* Notes Sidebar */}
+        {/* Notes Drawer — overlay on all screen sizes */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/30 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/30 z-30" onClick={() => setSidebarOpen(false)} />
         )}
         <aside
-          className={`${sidebarOpen ? "translate-x-0" : "translate-x-full"} fixed top-14 left-0 z-40 h-[calc(100vh-3.5rem)] w-80 bg-card border-l border-border flex flex-col overflow-hidden shadow-2xl transition-transform duration-300 md:translate-x-0 md:static md:h-auto md:shadow-none md:border-l md:top-auto`}
+          className={`${sidebarOpen ? "translate-x-0" : "translate-x-full"} fixed top-14 left-0 z-40 h-[calc(100vh-3.5rem)] w-80 bg-card border-l border-border flex flex-col overflow-hidden shadow-2xl transition-transform duration-300`}
         >
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex gap-1">
