@@ -1,5 +1,5 @@
 import { Link, useParams } from "wouter";
-import { useGetBook, useListChapters } from "@workspace/api-client-react";
+import { useGetBook, useListChapters } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import { ChevronLeft, BookOpen, List } from "lucide-react";
 

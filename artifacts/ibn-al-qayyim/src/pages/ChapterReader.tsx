@@ -17,7 +17,7 @@ import {
   getListHighlightsQueryKey,
   getListNotesQueryKey,
   getListCommentsQueryKey,
-} from "@workspace/api-client-react";
+} from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import { getSessionId } from "@/lib/session";

@@ -1,5 +1,5 @@
 import { Link, useSearch } from "wouter";
-import { useListBooks, useListCategories } from "@workspace/api-client-react";
+import { useListBooks, useListCategories } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import { BookOpen } from "lucide-react";
 

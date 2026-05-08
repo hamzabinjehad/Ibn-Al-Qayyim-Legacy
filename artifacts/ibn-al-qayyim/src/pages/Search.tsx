@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearch, useLocation } from "wouter";
-import { useSearchTexts } from "@workspace/api-client-react";
+import { useSearchTexts } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import { Search as SearchIcon, BookOpen } from "lucide-react";
 

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useGetStats, useListCategories, useListBooks } from "@workspace/api-client-react";
+import { useGetStats, useListCategories, useListBooks } from "@/lib/api";
 import { BookOpen, Search, Star, MessageSquare, PenLine, Highlighter } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useState } from "react";
