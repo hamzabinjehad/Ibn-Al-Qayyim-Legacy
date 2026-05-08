@@ -48,6 +48,7 @@ interface SelectionState {
   endOffset: number;
   x: number;
   y: number;
+  yBottom: number;
 }
 
 type Tab = "notes" | "comments";
@@ -145,6 +146,7 @@ export default function ChapterReader() {
       endOffset,
       x: rect.left + rect.width / 2,
       y: rect.top,
+      yBottom: rect.bottom,
     });
   }, []);
 
@@ -405,15 +407,20 @@ export default function ChapterReader() {
           {selection && (
             <div
               className="fixed z-50 bg-card border border-border rounded-xl shadow-xl p-3 flex flex-col gap-2"
-              style={{
-                left: `${Math.min(Math.max(selection.x, 140), window.innerWidth - 140)}px`,
-                top: selection.y > (noteMode ? 240 : 140)
-                  ? `${selection.y - (noteMode ? 230 : 130)}px`
-                  : `${selection.y + 30}px`,
-                transform: "translateX(-50%)",
-                minWidth: "240px",
-                maxWidth: "300px",
-              }}
+              style={(() => {
+                const toolbarH = noteMode ? 240 : 130;
+                const clampedX = Math.min(Math.max(selection.x, 140), window.innerWidth - 140);
+                const showAbove = selection.y > toolbarH + 20;
+                return {
+                  left: `${clampedX}px`,
+                  top: showAbove
+                    ? `${selection.y - toolbarH - 8}px`
+                    : `${selection.yBottom + 8}px`,
+                  transform: "translateX(-50%)",
+                  minWidth: "240px",
+                  maxWidth: "300px",
+                };
+              })()}
             >
               {!noteMode ? (
                 <>
@@ -697,7 +704,7 @@ export default function ChapterReader() {
           <div className="fixed inset-0 bg-black/30 z-30" onClick={() => setSidebarOpen(false)} />
         )}
         <aside
-          className={`${sidebarOpen ? "translate-x-0" : "translate-x-full"} fixed top-14 left-0 z-40 h-[calc(100vh-3.5rem)] w-80 bg-card border-l border-border flex flex-col overflow-hidden shadow-2xl transition-transform duration-300`}
+          className={`${sidebarOpen ? "translate-x-0" : "translate-x-full"} fixed top-14 right-0 z-40 h-[calc(100vh-3.5rem)] w-80 bg-card border-r border-border flex flex-col overflow-hidden shadow-2xl transition-transform duration-300`}
         >
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex gap-1">
