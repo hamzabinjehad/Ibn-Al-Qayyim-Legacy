@@ -144,7 +144,7 @@ export default function ChapterReader() {
       startOffset,
       endOffset,
       x: rect.left + rect.width / 2,
-      y: rect.top + window.scrollY,
+      y: rect.top,
     });
   }, []);
 
@@ -152,6 +152,19 @@ export default function ChapterReader() {
     document.addEventListener("mouseup", handleTextSelection);
     return () => document.removeEventListener("mouseup", handleTextSelection);
   }, [handleTextSelection]);
+
+  // إغلاق النافذة عند التمرير
+  useEffect(() => {
+    const handleScroll = () => {
+      if (selection) {
+        setSelection(null);
+        setNoteMode(false);
+        setInlineNote("");
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [selection]);
 
   useEffect(() => {
     if (noteMode && inlineNoteRef.current) {
@@ -394,7 +407,9 @@ export default function ChapterReader() {
               className="fixed z-50 bg-card border border-border rounded-xl shadow-xl p-3 flex flex-col gap-2"
               style={{
                 left: `${Math.min(Math.max(selection.x, 140), window.innerWidth - 140)}px`,
-                top: `${selection.y - window.scrollY - (noteMode ? 220 : 120)}px`,
+                top: selection.y > (noteMode ? 240 : 140)
+                  ? `${selection.y - (noteMode ? 230 : 130)}px`
+                  : `${selection.y + 30}px`,
                 transform: "translateX(-50%)",
                 minWidth: "240px",
                 maxWidth: "300px",
