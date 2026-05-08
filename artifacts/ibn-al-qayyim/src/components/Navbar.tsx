@@ -28,9 +28,12 @@ export default function Navbar() {
     });
   };
 
+  const isActive = (path: string) =>
+    path === "/" ? location === "/" : location.startsWith(path);
+
   const linkClass = (path: string) =>
     `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${
-      location === path
+      isActive(path)
         ? "bg-primary text-primary-foreground"
         : "text-foreground/70 hover:text-foreground hover:bg-muted"
     }`;

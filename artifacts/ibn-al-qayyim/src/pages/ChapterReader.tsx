@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import {
   useGetChapter,
@@ -75,6 +75,8 @@ export default function ChapterReader() {
   const [replyAuthor, setReplyAuthor] = useState("");
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const inlineNoteRef = useRef<HTMLTextAreaElement>(null);
 
@@ -111,6 +113,13 @@ export default function ChapterReader() {
     queryClient.invalidateQueries({ queryKey: getListNotesQueryKey({ chapterId: chapterIdNum, sessionId }) });
   const invalidateComments = () =>
     queryClient.invalidateQueries({ queryKey: getListCommentsQueryKey({ chapterId: chapterIdNum }) });
+
+  const readingTimeMinutes = useMemo(() => {
+    if (!chapter?.content) return null;
+    const wordCount = chapter.content.trim().split(/\s+/).length;
+    const minutes = Math.ceil(wordCount / 180);
+    return minutes;
+  }, [chapter?.content]);
 
   // Prev/Next chapter navigation
   const sortedChapters = chapters ? [...chapters].sort((a, b) => a.orderIndex - b.orderIndex) : [];
@@ -155,7 +164,7 @@ export default function ChapterReader() {
     return () => document.removeEventListener("mouseup", handleTextSelection);
   }, [handleTextSelection]);
 
-  // إغلاق النافذة عند التمرير
+  // إغلاق النافذة عند التمرير + تتبع مسار القراءة
   useEffect(() => {
     const handleScroll = () => {
       if (selection) {
@@ -163,6 +172,10 @@ export default function ChapterReader() {
         setNoteMode(false);
         setInlineNote("");
       }
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0);
+      setShowBackToTop(scrollTop > 400);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -349,6 +362,14 @@ export default function ChapterReader() {
     <div className="min-h-screen bg-background text-foreground" dir="rtl">
       <Navbar />
 
+      {/* Reading progress bar */}
+      <div className="fixed top-14 left-0 right-0 z-40 h-1 bg-border">
+        <div
+          className="h-full bg-primary transition-all duration-150 ease-out"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       <div className="flex max-w-7xl mx-auto relative">
         {/* Main Content */}
         <main className="flex-1 min-w-0 px-4 md:px-8 py-8">
@@ -362,7 +383,7 @@ export default function ChapterReader() {
           </div>
 
           {/* Header row */}
-          <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+          <div className="flex items-center justify-between mb-2 gap-4 flex-wrap">
             <h1 className="text-2xl font-bold text-foreground">{chapter?.titleAr}</h1>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -373,6 +394,9 @@ export default function ChapterReader() {
               الملاحظات ({notes?.length ?? 0})
             </button>
           </div>
+          {readingTimeMinutes !== null && (
+            <p className="text-xs text-muted-foreground mb-6">وقت القراءة التقديري: {readingTimeMinutes} دقيقة</p>
+          )}
 
           {/* Chapter navigation — top */}
           {sortedChapters.length > 1 && (
@@ -698,6 +722,17 @@ export default function ChapterReader() {
             </div>
           </div>
         </main>
+
+        {/* Back to top */}
+        {showBackToTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="fixed bottom-6 left-6 z-50 w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+            aria-label="العودة إلى الأعلى"
+          >
+            <ChevronUp className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Notes Drawer — overlay on all screen sizes */}
         {sidebarOpen && (

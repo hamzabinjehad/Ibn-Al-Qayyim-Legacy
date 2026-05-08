@@ -60,10 +60,21 @@ export default function BookDetail() {
         {/* Book Header */}
         <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-8">
           <div
-            className="h-40 flex items-center justify-center relative"
+            className="h-40 flex items-center justify-center relative overflow-hidden"
             style={{ backgroundColor: book.coverColor }}
           >
-            <BookOpen className="w-16 h-16 text-white/50" />
+            <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <pattern id="pat-detail" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+                  <polygon points="12,1 23,6.5 23,17.5 12,23 1,17.5 1,6.5" fill="none" stroke="white" strokeWidth="0.7"/>
+                  <circle cx="12" cy="12" r="2.5" fill="none" stroke="white" strokeWidth="0.5"/>
+                  <line x1="12" y1="1" x2="12" y2="5" stroke="white" strokeWidth="0.4"/>
+                  <line x1="12" y1="19" x2="12" y2="23" stroke="white" strokeWidth="0.4"/>
+                </pattern>
+              </defs>
+              <rect width="200" height="160" fill="url(#pat-detail)"/>
+            </svg>
+            <BookOpen className="w-16 h-16 text-white/50 relative z-10" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
           <div className="p-6">

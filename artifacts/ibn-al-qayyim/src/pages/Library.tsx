@@ -68,10 +68,19 @@ export default function Library() {
                 data-testid={`card-book-${book.id}`}
               >
                 <div
-                  className="h-28 relative flex items-center justify-center"
+                  className="h-28 relative flex items-center justify-center overflow-hidden"
                   style={{ backgroundColor: book.coverColor }}
                 >
-                  <BookOpen className="w-10 h-10 text-white/60" />
+                  <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 80 80" preserveAspectRatio="xMidYMid slice">
+                    <defs>
+                      <pattern id={`pat-lib-${book.id}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <polygon points="10,1 19,5.5 19,14.5 10,19 1,14.5 1,5.5" fill="none" stroke="white" strokeWidth="0.6"/>
+                        <circle cx="10" cy="10" r="2" fill="none" stroke="white" strokeWidth="0.4"/>
+                      </pattern>
+                    </defs>
+                    <rect width="80" height="80" fill={`url(#pat-lib-${book.id})`}/>
+                  </svg>
+                  <BookOpen className="w-10 h-10 text-white/60 relative z-10" />
                   <div className="absolute bottom-0 left-0 right-0 h-px bg-white/20" />
                 </div>
                 <div className="p-5">

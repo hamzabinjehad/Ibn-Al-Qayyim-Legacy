@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { chaptersTable, booksTable } from "@workspace/db";
-import { eq, ilike, sql } from "drizzle-orm";
+import { and, eq, ilike, sql } from "drizzle-orm";
 import { SearchTextsQueryParams } from "@workspace/api-zod";
 
 export const searchRouter = Router();
@@ -15,6 +15,10 @@ searchRouter.get("/search", async (req, res) => {
 
     const query = `%${params.q}%`;
 
+    const whereClause = params.bookId
+      ? and(eq(chaptersTable.bookId, params.bookId), ilike(chaptersTable.content, query))
+      : ilike(chaptersTable.content, query);
+
     const chapters = await db
       .select({
         chapterId: chaptersTable.id,
@@ -25,11 +29,7 @@ searchRouter.get("/search", async (req, res) => {
       })
       .from(chaptersTable)
       .innerJoin(booksTable, eq(chaptersTable.bookId, booksTable.id))
-      .where(
-        params.bookId
-          ? eq(chaptersTable.bookId, params.bookId)
-          : ilike(chaptersTable.content, query)
-      );
+      .where(whereClause);
 
     const results = chapters
       .filter((c) =>

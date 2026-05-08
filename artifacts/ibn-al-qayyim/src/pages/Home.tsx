@@ -139,10 +139,19 @@ export default function Home() {
               data-testid={`card-book-${book.id}`}
             >
               <div
-                className="h-32 flex items-end p-4"
+                className="h-32 flex items-end p-4 relative overflow-hidden"
                 style={{ backgroundColor: book.coverColor }}
               >
-                <div className="w-full h-px bg-white/30" />
+                <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 80 80" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <pattern id={`pat-home-${book.id}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                      <polygon points="10,1 19,5.5 19,14.5 10,19 1,14.5 1,5.5" fill="none" stroke="white" strokeWidth="0.6"/>
+                      <circle cx="10" cy="10" r="2" fill="none" stroke="white" strokeWidth="0.4"/>
+                    </pattern>
+                  </defs>
+                  <rect width="80" height="80" fill={`url(#pat-home-${book.id})`}/>
+                </svg>
+                <div className="w-full h-px bg-white/30 relative z-10" />
               </div>
               <div className="p-4">
                 <p className="text-xs text-muted-foreground mb-1">{book.category}</p>

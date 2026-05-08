@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { booksTable, chaptersTable } from "@workspace/db";
+import { booksTable, chaptersTable, highlightsTable, notesTable, commentsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import {
   ListBooksQueryParams,
@@ -109,24 +109,22 @@ booksRouter.get("/chapters/:chapterId", async (req, res) => {
 
 booksRouter.get("/stats", async (_req, res) => {
   try {
-    const [totalBooks] = await db
-      .select({ count: sql<number>`cast(count(*) as int)` })
-      .from(booksTable);
-
-    const [totalChapters] = await db
-      .select({ count: sql<number>`cast(count(*) as int)` })
-      .from(chaptersTable);
-
-    const categories = await db
-      .selectDistinct({ category: booksTable.category })
-      .from(booksTable);
+    const [[totalBooks], [totalChapters], [totalHighlights], [totalNotes], [totalComments], categories] =
+      await Promise.all([
+        db.select({ count: sql<number>`cast(count(*) as int)` }).from(booksTable),
+        db.select({ count: sql<number>`cast(count(*) as int)` }).from(chaptersTable),
+        db.select({ count: sql<number>`cast(count(*) as int)` }).from(highlightsTable),
+        db.select({ count: sql<number>`cast(count(*) as int)` }).from(notesTable),
+        db.select({ count: sql<number>`cast(count(*) as int)` }).from(commentsTable),
+        db.selectDistinct({ category: booksTable.category }).from(booksTable),
+      ]);
 
     res.json({
       totalBooks: totalBooks?.count ?? 0,
       totalChapters: totalChapters?.count ?? 0,
-      totalHighlights: 0,
-      totalNotes: 0,
-      totalComments: 0,
+      totalHighlights: totalHighlights?.count ?? 0,
+      totalNotes: totalNotes?.count ?? 0,
+      totalComments: totalComments?.count ?? 0,
       categories: categories.length,
     });
   } catch (err) {
