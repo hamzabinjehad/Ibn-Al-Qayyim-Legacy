@@ -88,16 +88,21 @@ export default function Home() {
         <section className="py-10 border-b border-border bg-muted/30">
           <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { label: "الكتب", value: stats.totalBooks, icon: BookOpen },
-              { label: "الفصول", value: stats.totalChapters, icon: Star },
-              { label: "التظليلات", value: stats.totalHighlights, icon: Highlighter },
-              { label: "التعليقات", value: stats.totalComments, icon: MessageSquare },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="flex flex-col items-center gap-2" data-testid={`stat-${label}`}>
-                <Icon className="w-6 h-6 text-primary" />
+              { label: "الكتب", value: stats.totalBooks, icon: BookOpen, href: "/library" },
+              { label: "الفصول", value: stats.totalChapters, icon: Star, href: "/library" },
+              { label: "التظليلات", value: stats.totalHighlights, icon: Highlighter, href: "/profile" },
+              { label: "التعليقات", value: stats.totalComments, icon: MessageSquare, href: "/profile" },
+            ].map(({ label, value, icon: Icon, href }) => (
+              <Link
+                key={label}
+                href={href}
+                className="flex flex-col items-center gap-2 group cursor-pointer"
+                data-testid={`stat-${label}`}
+              >
+                <Icon className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
                 <p className="text-3xl font-bold text-foreground">{value}</p>
-                <p className="text-sm text-muted-foreground">{label}</p>
-              </div>
+                <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{label}</p>
+              </Link>
             ))}
           </div>
         </section>

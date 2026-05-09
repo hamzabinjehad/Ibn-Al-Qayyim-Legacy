@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { highlightsTable, notesTable, commentsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { highlightsTable, notesTable, commentsTable, chaptersTable, booksTable } from "@workspace/db";
+import { eq, and, desc, sql } from "drizzle-orm";
 import {
   ListHighlightsQueryParams,
   CreateHighlightBody,
@@ -184,5 +184,83 @@ annotationsRouter.delete("/comments/:commentId", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     res.status(400).json({ error: "Invalid request" });
+  }
+});
+
+annotationsRouter.get("/profile/highlights", async (req, res) => {
+  try {
+    const sessionId = req.query.sessionId as string;
+    if (!sessionId) return res.status(400).json({ error: "sessionId required" });
+    const rows = await db
+      .select({
+        id: highlightsTable.id,
+        chapterId: highlightsTable.chapterId,
+        selectedText: highlightsTable.selectedText,
+        color: highlightsTable.color,
+        createdAt: highlightsTable.createdAt,
+        chapterTitleAr: chaptersTable.titleAr,
+        bookId: chaptersTable.bookId,
+        bookTitleAr: booksTable.titleAr,
+      })
+      .from(highlightsTable)
+      .innerJoin(chaptersTable, eq(highlightsTable.chapterId, chaptersTable.id))
+      .innerJoin(booksTable, eq(chaptersTable.bookId, booksTable.id))
+      .where(eq(highlightsTable.sessionId, sessionId))
+      .orderBy(desc(highlightsTable.createdAt));
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+annotationsRouter.get("/profile/notes", async (req, res) => {
+  try {
+    const sessionId = req.query.sessionId as string;
+    if (!sessionId) return res.status(400).json({ error: "sessionId required" });
+    const rows = await db
+      .select({
+        id: notesTable.id,
+        chapterId: notesTable.chapterId,
+        content: notesTable.content,
+        selectedText: notesTable.selectedText,
+        createdAt: notesTable.createdAt,
+        updatedAt: notesTable.updatedAt,
+        chapterTitleAr: chaptersTable.titleAr,
+        bookId: chaptersTable.bookId,
+        bookTitleAr: booksTable.titleAr,
+      })
+      .from(notesTable)
+      .innerJoin(chaptersTable, eq(notesTable.chapterId, chaptersTable.id))
+      .innerJoin(booksTable, eq(chaptersTable.bookId, booksTable.id))
+      .where(eq(notesTable.sessionId, sessionId))
+      .orderBy(desc(notesTable.createdAt));
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+annotationsRouter.get("/profile/comments", async (req, res) => {
+  try {
+    const rows = await db
+      .select({
+        id: commentsTable.id,
+        chapterId: commentsTable.chapterId,
+        authorName: commentsTable.authorName,
+        content: commentsTable.content,
+        parentId: commentsTable.parentId,
+        createdAt: commentsTable.createdAt,
+        chapterTitleAr: chaptersTable.titleAr,
+        bookId: chaptersTable.bookId,
+        bookTitleAr: booksTable.titleAr,
+      })
+      .from(commentsTable)
+      .innerJoin(chaptersTable, eq(commentsTable.chapterId, chaptersTable.id))
+      .innerJoin(booksTable, eq(chaptersTable.bookId, booksTable.id))
+      .where(sql`${commentsTable.parentId} is null`)
+      .orderBy(desc(commentsTable.createdAt));
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Internal error" });
   }
 });

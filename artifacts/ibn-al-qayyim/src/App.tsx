@@ -8,6 +8,7 @@ import Library from "@/pages/Library";
 import BookDetail from "@/pages/BookDetail";
 import ChapterReader from "@/pages/ChapterReader";
 import Search from "@/pages/Search";
+import Profile from "@/pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/book/:bookId" component={BookDetail} />
       <Route path="/book/:bookId/chapter/:chapterId" component={ChapterReader} />
       <Route path="/search" component={Search} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

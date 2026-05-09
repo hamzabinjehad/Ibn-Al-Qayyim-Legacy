@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, Search, Library, Home, Moon, Sun } from "lucide-react";
+import { BookOpen, Search, Library, Home, Moon, Sun, User } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function Navbar() {
@@ -58,6 +58,10 @@ export default function Navbar() {
           <Link href="/search" className={linkClass("/search")} data-testid="nav-search">
             <Search className="w-4 h-4" />
             <span className="hidden sm:inline">البحث</span>
+          </Link>
+          <Link href="/profile" className={linkClass("/profile")} data-testid="nav-profile">
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">مكتبتي</span>
           </Link>
           <button
             onClick={toggleDark}
