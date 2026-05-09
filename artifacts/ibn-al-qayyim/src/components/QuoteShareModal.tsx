@@ -25,6 +25,37 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
+function fitTextToArea(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxHeight: number,
+  startFontSize: number,
+  minFontSize: number,
+  fontFamily: string
+): { lines: string[]; fontSize: number; lineH: number } {
+  let fontSize = startFontSize;
+  while (fontSize >= minFontSize) {
+    ctx.font = `400 ${fontSize}px ${fontFamily}`;
+    const lines = wrapText(ctx, text, maxWidth);
+    const lineH = fontSize * 1.65;
+    if (lines.length * lineH <= maxHeight) {
+      return { lines, fontSize, lineH };
+    }
+    fontSize -= 2;
+  }
+  ctx.font = `400 ${minFontSize}px ${fontFamily}`;
+  const lineH = minFontSize * 1.65;
+  const maxLines = Math.floor(maxHeight / lineH);
+  let lines = wrapText(ctx, text, maxWidth);
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    const last = lines[maxLines - 1];
+    lines[maxLines - 1] = last.length > 4 ? last.slice(0, -3) + "..." : last;
+  }
+  return { lines, fontSize: minFontSize, lineH };
+}
+
 export default function QuoteShareModal({ text, bookTitle, chapterTitle, onClose }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -41,17 +72,18 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, onClose
     const ctx = canvas.getContext("2d")!;
     ctx.direction = "rtl";
 
+    const FONT = "'Amiri', 'Noto Naskh Arabic', serif";
+    const gold = "#c9a84c";
+    const goldFaint = "rgba(201,168,76,0.15)";
+    const goldMid = "rgba(201,168,76,0.5)";
+    const cream = "#f7f0e0";
+
     const bg = ctx.createLinearGradient(0, 0, W, H);
     bg.addColorStop(0, "#0d1b12");
     bg.addColorStop(0.5, "#1a3022");
     bg.addColorStop(1, "#0d1b12");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
-
-    const gold = "#c9a84c";
-    const goldFaint = "rgba(201,168,76,0.18)";
-    const goldMid = "rgba(201,168,76,0.5)";
-    const cream = "#f7f0e0";
 
     ctx.strokeStyle = gold;
     ctx.lineWidth = 3;
@@ -60,65 +92,74 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, onClose
     ctx.lineWidth = 1;
     ctx.strokeRect(44, 44, W - 88, H - 88);
 
+    const HEADER_END = 244;
+    const FOOTER_START = H - 214;
+    const TEXT_AREA_H = FOOTER_START - HEADER_END - 20;
+    const TEXT_MAX_W = W - 200;
+
     ctx.textAlign = "center";
     ctx.fillStyle = gold;
-    ctx.font = `bold 56px 'Amiri', 'Noto Naskh Arabic', serif`;
-    ctx.fillText("✦", W / 2, 116);
+    ctx.font = `bold 50px ${FONT}`;
+    ctx.fillText("✦", W / 2, 110);
 
-    ctx.font = `400 30px 'Amiri', 'Noto Naskh Arabic', serif`;
+    ctx.font = `400 28px ${FONT}`;
     ctx.fillStyle = gold;
-    ctx.fillText(bookTitle, W / 2, 170);
+    ctx.fillText(bookTitle, W / 2, 162);
 
-    ctx.font = `300 23px 'Amiri', 'Noto Naskh Arabic', serif`;
+    ctx.font = `300 22px ${FONT}`;
     ctx.fillStyle = goldMid;
-    ctx.fillText(chapterTitle, W / 2, 208);
+    ctx.fillText(chapterTitle, W / 2, 200);
 
-    ctx.strokeStyle = goldMid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(100, 234);
-    ctx.lineTo(W - 100, 234);
-    ctx.stroke();
+    const drawHRule = (y: number) => {
+      ctx.strokeStyle = goldMid;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(90, y);
+      ctx.lineTo(W - 90, y);
+      ctx.stroke();
+    };
+    drawHRule(HEADER_END);
+    drawHRule(FOOTER_START);
 
-    ctx.font = `bold 140px 'Amiri', 'Noto Naskh Arabic', serif`;
+    ctx.font = `bold 130px ${FONT}`;
     ctx.fillStyle = goldFaint;
     ctx.textAlign = "right";
-    ctx.fillText("»", W - 70, 360);
+    ctx.fillText("»", W - 64, HEADER_END + 120);
 
-    ctx.font = `400 42px 'Amiri', 'Noto Naskh Arabic', serif`;
-    ctx.fillStyle = cream;
-    ctx.textAlign = "center";
-    const lineH = 68;
-    const lines = wrapText(ctx, text, W - 220);
+    const { lines, lineH } = fitTextToArea(
+      ctx,
+      text,
+      TEXT_MAX_W,
+      TEXT_AREA_H,
+      42,
+      18,
+      FONT
+    );
+
     const totalH = lines.length * lineH;
-    const midY = (H - 300) / 2 + 240;
-    const startY = midY - totalH / 2;
-    lines.forEach((line, i) => ctx.fillText(line, W / 2, startY + i * lineH));
+    const textStartY = HEADER_END + (TEXT_AREA_H - totalH) / 2 + lineH * 0.85;
 
-    ctx.font = `bold 140px 'Amiri', 'Noto Naskh Arabic', serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = cream;
+    lines.forEach((line, i) => ctx.fillText(line, W / 2, textStartY + i * lineH));
+
+    ctx.font = `bold 130px ${FONT}`;
     ctx.fillStyle = goldFaint;
     ctx.textAlign = "left";
-    ctx.fillText("«", 70, startY + totalH + 20);
-
-    ctx.strokeStyle = goldMid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(100, H - 210);
-    ctx.lineTo(W - 100, H - 210);
-    ctx.stroke();
+    ctx.fillText("«", 64, textStartY + totalH - lineH * 0.2);
 
     ctx.textAlign = "center";
-    ctx.font = `bold 34px 'Amiri', 'Noto Naskh Arabic', serif`;
+    ctx.font = `bold 30px ${FONT}`;
     ctx.fillStyle = gold;
-    ctx.fillText("— ابن القيم الجوزية رحمه الله —", W / 2, H - 168);
+    ctx.fillText("— ابن القيم الجوزية رحمه الله —", W / 2, FOOTER_START + 52);
 
-    ctx.font = `300 22px 'Amiri', 'Noto Naskh Arabic', serif`;
+    ctx.font = `300 20px ${FONT}`;
     ctx.fillStyle = goldMid;
-    ctx.fillText("موروث ابن القيم", W / 2, H - 122);
+    ctx.fillText("موروث ابن القيم", W / 2, FOOTER_START + 92);
 
-    ctx.font = `bold 44px 'Amiri', 'Noto Naskh Arabic', serif`;
+    ctx.font = `bold 38px ${FONT}`;
     ctx.fillStyle = gold;
-    ctx.fillText("✦", W / 2, H - 74);
+    ctx.fillText("✦", W / 2, FOOTER_START + 140);
 
     setImageDataUrl(canvas.toDataURL("image/png"));
   }, [text, bookTitle, chapterTitle]);
