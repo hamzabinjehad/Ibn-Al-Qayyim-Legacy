@@ -33,7 +33,9 @@ import {
   ChevronUp,
   BookOpen,
   StickyNote,
+  Share2,
 } from "lucide-react";
+import QuoteShareModal from "@/components/QuoteShareModal";
 
 const HIGHLIGHT_COLORS = [
   { value: "#FEF08A", label: "أصفر" },
@@ -62,6 +64,7 @@ export default function ChapterReader() {
   const queryClient = useQueryClient();
 
   const [selection, setSelection] = useState<SelectionState | null>(null);
+  const [shareQuote, setShareQuote] = useState<string | null>(null);
   const [noteMode, setNoteMode] = useState(false);
   const [inlineNote, setInlineNote] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("notes");
@@ -466,7 +469,7 @@ export default function ChapterReader() {
                       />
                     ))}
                   </div>
-                  <div className="border-t border-border pt-2">
+                  <div className="border-t border-border pt-2 flex flex-col gap-1.5">
                     <button
                       onClick={() => setNoteMode(true)}
                       className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 w-full font-medium"
@@ -474,6 +477,18 @@ export default function ChapterReader() {
                     >
                       <StickyNote className="w-3.5 h-3.5" />
                       إضافة ملاحظة على هذا النص
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShareQuote(selection.text);
+                        setSelection(null);
+                        window.getSelection()?.removeAllRanges();
+                      }}
+                      className="flex items-center gap-2 text-xs text-amber-600 hover:text-amber-500 w-full font-medium"
+                      data-testid="button-share-quote"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      مشاركة هذا الاقتباس
                     </button>
                   </div>
                 </>
@@ -850,6 +865,15 @@ export default function ChapterReader() {
           </div>
         </aside>
       </div>
+
+      {shareQuote && (
+        <QuoteShareModal
+          text={shareQuote}
+          bookTitle={book?.titleAr ?? "بدائع التفسير"}
+          chapterTitle={chapter?.titleAr ?? ""}
+          onClose={() => setShareQuote(null)}
+        />
+      )}
     </div>
   );
 }
