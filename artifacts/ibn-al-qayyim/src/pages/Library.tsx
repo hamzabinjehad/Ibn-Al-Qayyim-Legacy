@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useSearch } from "wouter";
 import { useListBooks, useListCategories } from "@/lib/api";
 import Navbar from "@/components/Navbar";
-import { BookOpen, Search } from "lucide-react";
+import { BookOpen, ChevronLeft, Search, SlidersHorizontal } from "lucide-react";
 
 const CATEGORY_COLORS: Record<string, string> = {
   "التزكية والسلوك": "#B45309",
@@ -53,34 +53,50 @@ export default function Library() {
 
       <div className="max-w-6xl mx-auto px-4 py-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-1">المكتبة الكاملة</h1>
-          <p className="text-muted-foreground text-sm">
-            جميع مؤلفات الإمام ابن القيم رحمه الله
+        <div className="reader-surface soft-panel rounded-3xl p-6 md:p-7 mb-6">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+            <div>
+              <p className="text-sm text-primary font-semibold mb-2">المكتبة الكاملة</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">كل مؤلفات ابن القيم في مكان واحد</h1>
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
+                صف الكتب حسب الموضوع أو ابحث باسم الكتاب، ثم انتقل مباشرة إلى الفهرس والفصول.
+              </p>
+            </div>
             {books && (
-              <span className="mr-1.5 text-primary font-medium">
-                ({books.length} كتاب)
-              </span>
+              <div className="grid grid-cols-2 gap-3 min-w-[13rem]">
+                <div className="rounded-2xl bg-card/80 border border-border/70 p-4">
+                  <p className="text-2xl font-bold text-primary">{books.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">كتاب ظاهر</p>
+                </div>
+                <div className="rounded-2xl bg-card/80 border border-border/70 p-4">
+                  <p className="text-2xl font-bold text-primary">{filtered?.length ?? 0}</p>
+                  <p className="text-xs text-muted-foreground mt-1">نتيجة مطابقة</p>
+                </div>
+              </div>
             )}
-          </p>
+          </div>
         </div>
 
         {/* Search + Category filters */}
-        <div className="flex flex-col gap-4 mb-8">
+        <div className="sticky top-20 z-20 reader-surface soft-panel rounded-2xl p-3 flex flex-col gap-3 mb-8">
           {/* Local search */}
-          <div className="relative max-w-sm">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <div className="relative">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               placeholder="ابحث عن كتاب..."
-              className="w-full pr-9 pl-4 py-2 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className="w-full pr-10 pl-4 py-3 rounded-xl border border-border bg-card/85 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </div>
 
           {/* Category chips */}
           <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              تصفية
+            </span>
             <Link
               href="/library"
               className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
@@ -113,7 +129,7 @@ export default function Library() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card animate-pulse h-52" />
+              <div key={i} className="rounded-2xl border border-border bg-card animate-pulse h-56" />
             ))}
           </div>
         ) : (
@@ -127,12 +143,12 @@ export default function Library() {
                 <Link
                   href={`/book/${book.id}`}
                   key={book.id}
-                  className="group flex flex-col rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/40 transition-all duration-200"
+                  className="group soft-panel flex flex-col rounded-2xl bg-card/90 overflow-hidden hover:border-primary/45 transition-all duration-200"
                   data-testid={`card-book-${book.id}`}
                 >
                   {/* Cover */}
                   <div
-                    className="h-24 relative flex items-center justify-center overflow-hidden shrink-0"
+                    className="h-28 relative flex items-center justify-center overflow-hidden shrink-0"
                     style={{ backgroundColor: book.coverColor }}
                   >
                     <svg
@@ -155,12 +171,12 @@ export default function Library() {
                       </defs>
                       <rect width="80" height="80" fill={`url(#pat-lib-${book.id})`} />
                     </svg>
-                    <BookOpen className="w-8 h-8 text-white/50 relative z-10 group-hover:text-white/70 transition-colors" />
+                    <BookOpen className="w-9 h-9 text-white/55 relative z-10 group-hover:text-white/80 transition-colors" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   </div>
 
                   {/* Info */}
-                  <div className="flex flex-col flex-1 p-4 gap-2">
+                  <div className="flex flex-col flex-1 p-4 gap-2.5">
                     {/* Category badge */}
                     <span
                       className="self-start text-[11px] px-2 py-0.5 rounded-full text-white font-medium leading-none"
@@ -170,7 +186,7 @@ export default function Library() {
                     </span>
 
                     {/* Title */}
-                    <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                    <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
                       {title}
                     </h3>
 
@@ -182,12 +198,13 @@ export default function Library() {
                     )}
 
                     {/* Footer */}
-                    <div className="mt-auto pt-2 border-t border-border/50 flex items-center justify-between">
+                    <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
                         {book.chapterCount} فصل
                       </span>
-                      <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                        اقرأ ←
+                      <span className="text-xs text-primary font-semibold inline-flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                        اقرأ
+                        <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
                       </span>
                     </div>
                   </div>
@@ -198,9 +215,10 @@ export default function Library() {
         )}
 
         {!isLoading && filtered?.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center py-20 reader-surface soft-panel rounded-3xl">
             <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-muted-foreground">لا توجد كتب تطابق بحثك</p>
+            <p className="text-foreground font-semibold">لا توجد كتب تطابق بحثك</p>
+            <p className="text-sm text-muted-foreground mt-1">جرّب كلمة أقصر أو أزل التصنيف المحدد.</p>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Naskh+Arabic:wght@400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Harmattan:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400..700&family=Scheherazade+New:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -76,61 +76,60 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Deep warm amber and parchment tones */
-  --background: 40 40% 96%; /* Parchment */
-  --foreground: 24 60% 12%; /* Very dark amber/brown */
+  --background: 44 38% 96%;
+  --foreground: 218 35% 14%;
 
-  --border: 35 30% 80%;
-  --input: 35 30% 80%;
-  --ring: 25 70% 30%;
+  --border: 39 25% 82%;
+  --input: 39 25% 82%;
+  --ring: 168 55% 26%;
 
-  --card: 42 45% 98%;
-  --card-foreground: 24 60% 12%;
-  --card-border: 35 30% 85%;
+  --card: 48 54% 99%;
+  --card-foreground: 218 35% 14%;
+  --card-border: 42 28% 86%;
 
-  --popover: 42 45% 98%;
-  --popover-foreground: 24 60% 12%;
-  --popover-border: 35 30% 85%;
+  --popover: 48 54% 99%;
+  --popover-foreground: 218 35% 14%;
+  --popover-border: 42 28% 86%;
 
-  --primary: 25 70% 30%;
-  --primary-foreground: 40 40% 96%;
+  --primary: 168 52% 24%;
+  --primary-foreground: 48 54% 98%;
 
-  --secondary: 35 25% 85%;
-  --secondary-foreground: 24 60% 12%;
+  --secondary: 215 30% 91%;
+  --secondary-foreground: 218 35% 18%;
 
-  --muted: 40 20% 90%;
-  --muted-foreground: 24 30% 40%;
+  --muted: 42 28% 91%;
+  --muted-foreground: 217 18% 40%;
 
-  --accent: 35 60% 50%;
-  --accent-foreground: 40 40% 96%;
+  --accent: 35 70% 47%;
+  --accent-foreground: 48 54% 98%;
 
   --destructive: 0 70% 40%;
   --destructive-foreground: 40 40% 96%;
 
-  --chart-1: 25 70% 30%;
-  --chart-2: 35 60% 50%;
-  --chart-3: 15 50% 45%;
-  --chart-4: 45 40% 60%;
-  --chart-5: 20 60% 35%;
+  --chart-1: 168 52% 24%;
+  --chart-2: 35 70% 47%;
+  --chart-3: 221 42% 35%;
+  --chart-4: 150 38% 42%;
+  --chart-5: 337 42% 44%;
 
-  --sidebar: 40 40% 94%;
-  --sidebar-foreground: 24 60% 12%;
-  --sidebar-border: 35 30% 85%;
-  --sidebar-primary: 25 70% 30%;
-  --sidebar-primary-foreground: 40 40% 96%;
-  --sidebar-accent: 35 25% 85%;
-  --sidebar-accent-foreground: 24 60% 12%;
-  --sidebar-ring: 25 70% 30%;
+  --sidebar: 44 38% 94%;
+  --sidebar-foreground: 218 35% 14%;
+  --sidebar-border: 42 28% 86%;
+  --sidebar-primary: 168 52% 24%;
+  --sidebar-primary-foreground: 48 54% 98%;
+  --sidebar-accent: 215 30% 91%;
+  --sidebar-accent-foreground: 218 35% 18%;
+  --sidebar-ring: 168 55% 26%;
 
-  --app-font-sans: 'Amiri', 'Noto Naskh Arabic', serif;
+  --app-font-sans: 'Noto Naskh Arabic', 'Harmattan', serif;
   --app-font-serif: 'Amiri', 'Noto Naskh Arabic', serif;
   --app-font-mono: monospace;
   --radius: 0.5rem;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 rgb(30 41 59 / 0.05);
+  --shadow: 0 10px 30px -24px rgb(15 23 42 / 0.5);
+  --shadow-md: 0 18px 42px -28px rgb(15 23 42 / 0.55);
+  --shadow-lg: 0 24px 70px -36px rgb(15 23 42 / 0.65);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
@@ -148,51 +147,50 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Reading by firelight */
-  --background: 24 40% 8%;
-  --foreground: 35 40% 85%;
+  --background: 218 34% 9%;
+  --foreground: 43 36% 88%;
 
-  --border: 24 30% 20%;
-  --input: 24 30% 20%;
-  --ring: 35 60% 50%;
+  --border: 214 26% 20%;
+  --input: 214 26% 20%;
+  --ring: 160 48% 58%;
 
-  --card: 24 35% 10%;
-  --card-foreground: 35 40% 85%;
-  --card-border: 24 30% 20%;
+  --card: 218 32% 12%;
+  --card-foreground: 43 36% 88%;
+  --card-border: 214 26% 20%;
 
-  --popover: 24 35% 10%;
-  --popover-foreground: 35 40% 85%;
-  --popover-border: 24 30% 20%;
+  --popover: 218 32% 12%;
+  --popover-foreground: 43 36% 88%;
+  --popover-border: 214 26% 20%;
 
-  --primary: 35 60% 50%;
-  --primary-foreground: 24 40% 8%;
+  --primary: 160 48% 58%;
+  --primary-foreground: 218 34% 9%;
 
-  --secondary: 24 30% 15%;
-  --secondary-foreground: 35 40% 85%;
+  --secondary: 218 25% 18%;
+  --secondary-foreground: 43 36% 88%;
 
-  --muted: 24 20% 15%;
-  --muted-foreground: 35 20% 60%;
+  --muted: 218 25% 16%;
+  --muted-foreground: 42 20% 66%;
 
-  --accent: 25 70% 30%;
-  --accent-foreground: 35 40% 85%;
+  --accent: 35 74% 55%;
+  --accent-foreground: 218 34% 9%;
 
   --destructive: 0 60% 50%;
   --destructive-foreground: 35 40% 85%;
 
-  --chart-1: 35 60% 50%;
-  --chart-2: 25 70% 30%;
-  --chart-3: 15 50% 45%;
-  --chart-4: 45 40% 60%;
-  --chart-5: 20 60% 35%;
+  --chart-1: 160 48% 58%;
+  --chart-2: 35 74% 55%;
+  --chart-3: 221 45% 64%;
+  --chart-4: 150 42% 56%;
+  --chart-5: 337 48% 62%;
 
-  --sidebar: 24 40% 8%;
-  --sidebar-foreground: 35 40% 85%;
-  --sidebar-border: 24 30% 20%;
-  --sidebar-primary: 35 60% 50%;
-  --sidebar-primary-foreground: 24 40% 8%;
-  --sidebar-accent: 24 30% 15%;
-  --sidebar-accent-foreground: 35 40% 85%;
-  --sidebar-ring: 35 60% 50%;
+  --sidebar: 218 34% 9%;
+  --sidebar-foreground: 43 36% 88%;
+  --sidebar-border: 214 26% 20%;
+  --sidebar-primary: 160 48% 58%;
+  --sidebar-primary-foreground: 218 34% 9%;
+  --sidebar-accent: 218 25% 18%;
+  --sidebar-accent-foreground: 43 36% 88%;
+  --sidebar-ring: 160 48% 58%;
 }
 
 @layer base {
@@ -202,10 +200,38 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at top right, hsl(var(--primary) / 0.08), transparent 28rem),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted) / 0.35));
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.32);
+  }
+
+  :focus-visible {
+    outline: 3px solid hsl(var(--ring) / 0.35);
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
+  .reader-surface {
+    background:
+      linear-gradient(135deg, hsl(var(--card) / 0.98), hsl(var(--muted) / 0.55)),
+      hsl(var(--card));
+  }
+
+  .soft-panel {
+    border: 1px solid hsl(var(--border) / 0.8);
+    box-shadow: var(--shadow);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }

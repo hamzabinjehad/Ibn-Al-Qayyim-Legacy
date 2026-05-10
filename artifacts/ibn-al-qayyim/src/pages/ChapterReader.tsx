@@ -550,7 +550,7 @@ export default function ChapterReader() {
       <Navbar />
 
       {/* Reading progress bar */}
-      <div className="fixed top-14 left-0 right-0 z-40 h-1 bg-border">
+      <div className="fixed top-16 left-0 right-0 z-40 h-1 bg-border">
         <div
           className="h-full bg-primary transition-all duration-150 ease-out"
           style={{ width: `${scrollProgress}%` }}
@@ -1120,7 +1120,7 @@ export default function ChapterReader() {
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30" onClick={() => setSidebarOpen(false)} />
         )}
         <aside
-          className={`${sidebarOpen ? "translate-x-0" : "translate-x-full"} fixed top-14 right-0 z-40 h-[calc(100vh-3.5rem)] w-[22rem] bg-card border-l border-border flex flex-col overflow-hidden shadow-2xl transition-transform duration-300 ease-in-out`}
+          className={`${sidebarOpen ? "translate-x-0" : "translate-x-full"} fixed top-16 right-0 z-40 h-[calc(100vh-4rem)] w-full max-w-[22rem] bg-card border-l border-border flex flex-col overflow-hidden shadow-2xl transition-transform duration-300 ease-in-out`}
           dir="rtl"
         >
           {/* Sidebar Header */}

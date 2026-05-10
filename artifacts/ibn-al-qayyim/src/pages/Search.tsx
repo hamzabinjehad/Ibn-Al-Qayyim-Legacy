@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { Link, useSearch, useLocation } from "wouter";
 import { useSearchTexts } from "@/lib/api";
 import Navbar from "@/components/Navbar";
-import { Search as SearchIcon, BookOpen } from "lucide-react";
+import { BookOpen, ChevronLeft, Search as SearchIcon } from "lucide-react";
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 export default function Search() {
   const searchStr = useSearch();
@@ -25,7 +29,7 @@ export default function Search() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
+    if (query.trim().length > 1) {
       setLocation(`/search?q=${encodeURIComponent(query.trim())}`);
       setSubmittedQ(query.trim());
     }
@@ -36,20 +40,30 @@ export default function Search() {
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold mb-6">البحث في النصوص</h1>
+        <div className="reader-surface soft-panel rounded-3xl p-6 md:p-7 mb-6">
+          <p className="text-sm text-primary font-semibold mb-2">بحث نصي شامل</p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">ابحث داخل نصوص المؤلفات</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            اكتب عبارة من كلمتين أو أكثر للحصول على مواضعها، ثم افتح الفصل مباشرة من النتيجة.
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 mb-8">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث في كتب ابن القيم..."
-            className="flex-1 px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            data-testid="input-search"
-          />
+        <form onSubmit={handleSubmit} className="reader-surface soft-panel rounded-2xl p-2 flex flex-col sm:flex-row gap-2 mb-8">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="مثال: منزلة الصبر"
+              className="w-full pr-12 pl-4 py-3 rounded-xl bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
+              data-testid="input-search"
+            />
+          </div>
           <button
             type="submit"
-            className="px-5 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium flex items-center gap-2"
+            className="px-5 py-3 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={query.trim().length < 2}
             data-testid="button-search-submit"
           >
             <SearchIcon className="w-4 h-4" />
@@ -74,19 +88,22 @@ export default function Search() {
 
         {results && results.length > 0 && (
           <div>
-            <p className="text-sm text-muted-foreground mb-4">
-              {results.length} نتيجة للبحث عن &quot;{submittedQ}&quot;
+            <p className="text-sm text-muted-foreground mb-4 flex items-center justify-between gap-3">
+              <span>{results.length} نتيجة للبحث عن &quot;{submittedQ}&quot;</span>
+              <Link href="/library" className="text-primary font-semibold hover:underline">تصفح المكتبة</Link>
             </p>
             <div className="space-y-4">
               {results.map((result) => (
                 <Link
                   href={`/book/${result.bookId}/chapter/${result.chapterId}`}
                   key={result.chapterId}
-                  className="block rounded-xl border border-border bg-card p-5 hover:border-primary hover:shadow-sm transition-all group"
+                  className="block soft-panel rounded-2xl bg-card/90 p-5 hover:border-primary/50 transition-all group"
                   data-testid={`result-chapter-${result.chapterId}`}
                 >
                   <div className="flex items-start gap-3">
-                    <BookOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5" />
+                    </span>
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">{result.bookTitle}</p>
                       <h3 className="font-bold text-foreground group-hover:text-primary transition-colors mb-2">
@@ -96,12 +113,15 @@ export default function Search() {
                         className="text-sm text-muted-foreground leading-relaxed line-clamp-3"
                         dangerouslySetInnerHTML={{
                           __html: result.snippet.replace(
-                            new RegExp(`(${submittedQ})`, "gi"),
+                            new RegExp(`(${escapeRegExp(submittedQ)})`, "gi"),
                             '<mark class="bg-yellow-200 dark:bg-yellow-900/60 text-foreground rounded px-0.5">$1</mark>'
                           ),
                         }}
                       />
-                      <p className="text-xs text-primary mt-2">{result.matchCount} تطابق</p>
+                      <p className="text-xs text-primary mt-3 inline-flex items-center gap-1 font-semibold">
+                        {result.matchCount} تطابق
+                        <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
+                      </p>
                     </div>
                   </div>
                 </Link>
@@ -111,9 +131,10 @@ export default function Search() {
         )}
 
         {!submittedQ && (
-          <div className="text-center py-16 text-muted-foreground">
+          <div className="reader-surface soft-panel rounded-3xl text-center py-16 text-muted-foreground">
             <SearchIcon className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p className="text-lg">ابدأ بكتابة كلمة للبحث في نصوص ابن القيم</p>
+            <p className="text-lg text-foreground font-semibold">ابدأ بكتابة عبارة للبحث</p>
+            <p className="text-sm mt-1">ستظهر النتائج هنا مع اسم الكتاب والفصل وعدد التطابقات.</p>
           </div>
         )}
       </div>

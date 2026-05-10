@@ -1,6 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Search, Library, Home, Moon, Sun, User } from "lucide-react";
-import { useState, useEffect } from "react";
+import { BookOpen, Home, Library, Moon, Search, Sun, User } from "lucide-react";
 
 export default function Navbar() {
   const [location] = useLocation();
@@ -15,15 +15,10 @@ export default function Navbar() {
   }, []);
 
   const toggleDark = () => {
-    setDark((d) => {
-      const next = !d;
-      if (next) {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      }
+    setDark((current) => {
+      const next = !current;
+      document.documentElement.classList.toggle("dark", next);
+      localStorage.setItem("theme", next ? "dark" : "light");
       return next;
     });
   };
@@ -32,21 +27,26 @@ export default function Navbar() {
     path === "/" ? location === "/" : location.startsWith(path);
 
   const linkClass = (path: string) =>
-    `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${
+    `flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
       isActive(path)
-        ? "bg-primary text-primary-foreground"
-        : "text-foreground/70 hover:text-foreground hover:bg-muted"
+        ? "bg-primary text-primary-foreground shadow-sm"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted"
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 cursor-pointer">
-          <BookOpen className="w-5 h-5 text-primary" />
-          <span className="font-bold text-lg text-foreground">موروث ابن القيم</span>
+    <nav className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/88 backdrop-blur-xl">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+        <Link href="/" className="flex items-center gap-3 min-w-0 cursor-pointer">
+          <span className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+            <BookOpen className="w-5 h-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-bold text-base sm:text-lg text-foreground truncate">موروث ابن القيم</span>
+            <span className="hidden sm:block text-xs text-muted-foreground -mt-0.5">مكتبة قراءة وبحث وتعليق</span>
+          </span>
         </Link>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto">
           <Link href="/" className={linkClass("/")} data-testid="nav-home">
             <Home className="w-4 h-4" />
             <span className="hidden sm:inline">الرئيسية</span>
@@ -65,7 +65,7 @@ export default function Navbar() {
           </Link>
           <button
             onClick={toggleDark}
-            className="p-2 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
+            className="w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center shrink-0"
             data-testid="toggle-dark-mode"
             aria-label="تبديل الوضع الليلي"
           >

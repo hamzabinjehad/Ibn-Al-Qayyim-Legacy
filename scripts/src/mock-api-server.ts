@@ -196,7 +196,9 @@ function notFound(res: ServerResponse) {
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   try {
     const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
-    const path = url.pathname.replace(/^\/api/, "");
+    const path = url.pathname
+      .replace(/^\/api/, "")
+      .replace(/^\/annotations(?=\/(?:highlights|notes|comments|profile)(?:\/|$))/, "");
     const method = req.method ?? "GET";
 
     // CORS preflight
@@ -289,8 +291,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
     // ── Annotations ───────────────────────────────────────────────────────────
 
-    // GET /annotations/highlights
-    if (method === "GET" && path === "/annotations/highlights") {
+    // GET /highlights
+    if (method === "GET" && path === "/highlights") {
       const chapterId = parseInt(url.searchParams.get("chapterId") ?? "0");
       const sessionId = url.searchParams.get("sessionId");
       const result = annHighlights.filter(
@@ -299,8 +301,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, result);
     }
 
-    // POST /annotations/highlights
-    if (method === "POST" && path === "/annotations/highlights") {
+    // POST /highlights
+    if (method === "POST" && path === "/highlights") {
       const body = await readBody(req);
       const hl: StoredHighlight = {
         id: nextHlId++,
@@ -316,8 +318,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, hl, 201);
     }
 
-    // DELETE /annotations/highlights/:id
-    const hlIdMatch = path.match(/^\/annotations\/highlights\/(\d+)$/);
+    // DELETE /highlights/:id
+    const hlIdMatch = path.match(/^\/highlights\/(\d+)$/);
     if (method === "DELETE" && hlIdMatch) {
       const id = parseInt(hlIdMatch[1]);
       const idx = annHighlights.findIndex((h) => h.id === id);
@@ -325,8 +327,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return noContent(res);
     }
 
-    // GET /annotations/notes
-    if (method === "GET" && path === "/annotations/notes") {
+    // GET /notes
+    if (method === "GET" && path === "/notes") {
       const chapterId = parseInt(url.searchParams.get("chapterId") ?? "0");
       const sessionId = url.searchParams.get("sessionId");
       const result = annNotes.filter(
@@ -335,8 +337,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, result);
     }
 
-    // POST /annotations/notes
-    if (method === "POST" && path === "/annotations/notes") {
+    // POST /notes
+    if (method === "POST" && path === "/notes") {
       const body = await readBody(req);
       const note: StoredNote = {
         id: nextNoteId++,
@@ -351,8 +353,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, note, 201);
     }
 
-    // PUT or DELETE /annotations/notes/:id
-    const noteIdMatch = path.match(/^\/annotations\/notes\/(\d+)$/);
+    // PUT or DELETE /notes/:id
+    const noteIdMatch = path.match(/^\/notes\/(\d+)$/);
     if (noteIdMatch) {
       const id = parseInt(noteIdMatch[1]);
       if (method === "PUT") {
@@ -370,8 +372,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       }
     }
 
-    // GET /annotations/comments
-    if (method === "GET" && path === "/annotations/comments") {
+    // GET /comments
+    if (method === "GET" && path === "/comments") {
       const chapterId = parseInt(url.searchParams.get("chapterId") ?? "0");
       const topLevel = annComments.filter((c) => c.chapterId === chapterId && !c.parentId);
       const replies = annComments.filter((c) => c.chapterId === chapterId && c.parentId);
@@ -382,8 +384,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, threaded);
     }
 
-    // POST /annotations/comments
-    if (method === "POST" && path === "/annotations/comments") {
+    // POST /comments
+    if (method === "POST" && path === "/comments") {
       const body = await readBody(req);
       const comment: StoredComment = {
         id: nextCommentId++,
@@ -397,8 +399,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, { ...comment, replies: [] }, 201);
     }
 
-    // DELETE /annotations/comments/:id
-    const commentIdMatch = path.match(/^\/annotations\/comments\/(\d+)$/);
+    // DELETE /comments/:id
+    const commentIdMatch = path.match(/^\/comments\/(\d+)$/);
     if (method === "DELETE" && commentIdMatch) {
       const id = parseInt(commentIdMatch[1]);
       const idx = annComments.findIndex((c) => c.id === id);
@@ -406,8 +408,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return noContent(res);
     }
 
-    // GET /annotations/profile/highlights
-    if (method === "GET" && path === "/annotations/profile/highlights") {
+    // GET /profile/highlights
+    if (method === "GET" && path === "/profile/highlights") {
       const sessionId = url.searchParams.get("sessionId");
       if (!sessionId) return json(res, { error: "sessionId required" }, 400);
       const result = annHighlights
@@ -425,8 +427,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, result);
     }
 
-    // GET /annotations/profile/notes
-    if (method === "GET" && path === "/annotations/profile/notes") {
+    // GET /profile/notes
+    if (method === "GET" && path === "/profile/notes") {
       const sessionId = url.searchParams.get("sessionId");
       if (!sessionId) return json(res, { error: "sessionId required" }, 400);
       const result = annNotes
@@ -444,8 +446,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return json(res, result);
     }
 
-    // GET /annotations/profile/comments
-    if (method === "GET" && path === "/annotations/profile/comments") {
+    // GET /profile/comments
+    if (method === "GET" && path === "/profile/comments") {
       const result = annComments
         .filter((c) => !c.parentId)
         .map((c) => {
