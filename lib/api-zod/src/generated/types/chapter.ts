@@ -13,4 +13,8 @@ export interface Chapter {
   titleAr: string;
   content: string;
   orderIndex: number;
+  /** Hierarchy level — 1=باب, 2=فصل, 3+=فصل فرعي */
+  level: number;
+  /** Parent chapter id (null for top-level بوابان) */
+  parentId?: number | null;
 }

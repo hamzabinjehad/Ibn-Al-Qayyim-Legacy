@@ -65,6 +65,11 @@ export const ListChaptersResponseItem = zod.object({
   titleAr: zod.string(),
   content: zod.string(),
   orderIndex: zod.number(),
+  level: zod.number().describe("Hierarchy level — 1=باب, 2=فصل, 3+=فصل فرعي"),
+  parentId: zod
+    .number()
+    .nullish()
+    .describe("Parent chapter id (null for top-level بوابان)"),
 });
 export const ListChaptersResponse = zod.array(ListChaptersResponseItem);
 
@@ -82,6 +87,11 @@ export const GetChapterResponse = zod.object({
   titleAr: zod.string(),
   content: zod.string(),
   orderIndex: zod.number(),
+  level: zod.number().describe("Hierarchy level — 1=باب, 2=فصل, 3+=فصل فرعي"),
+  parentId: zod
+    .number()
+    .nullish()
+    .describe("Parent chapter id (null for top-level بوابان)"),
 });
 
 /**

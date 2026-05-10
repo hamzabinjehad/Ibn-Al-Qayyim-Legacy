@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -17,8 +18,10 @@ export const chaptersTable = pgTable("chapters", {
   bookId: integer("book_id").notNull().references(() => booksTable.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   titleAr: text("title_ar").notNull(),
-  content: text("content").notNull(),
+  content: text("content").notNull().default(""),
   orderIndex: integer("order_index").notNull().default(0),
+  level: integer("level").notNull().default(1),
+  parentId: integer("parent_id").references((): AnyPgColumn => chaptersTable.id, { onDelete: "set null" }),
 });
 
 export const insertBookSchema = createInsertSchema(booksTable).omit({ id: true, createdAt: true });
