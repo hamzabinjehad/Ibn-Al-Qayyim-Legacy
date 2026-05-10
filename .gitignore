@@ -47,3 +47,8 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# local agent/editor state and run logs
+.claude/settings.local.json
+vite-dev*.log
+attached_assets/

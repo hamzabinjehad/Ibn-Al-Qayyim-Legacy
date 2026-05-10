@@ -417,6 +417,13 @@ components:
           type: string
         orderIndex:
           type: integer
+        level:
+          type: integer
+          description: Hierarchy level — 1=باب, 2=فصل, 3+=فصل فرعي
+        parentId:
+          type: integer
+          nullable: true
+          description: Parent chapter id (null for top-level بوابان)
       required:
         - id
         - bookId
@@ -424,6 +431,7 @@ components:
         - titleAr
         - content
         - orderIndex
+        - level
 
     Highlight:
       type: object

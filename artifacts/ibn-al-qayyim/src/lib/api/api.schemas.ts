@@ -27,6 +27,10 @@ export interface Chapter {
   titleAr: string;
   content: string;
   orderIndex: number;
+  /** Hierarchy level - 1=bab, 2=fasl, 3+=nested fasl */
+  level: number;
+  /** Parent chapter id (null for top-level chapters) */
+  parentId?: number | null;
 }
 
 export interface Highlight {

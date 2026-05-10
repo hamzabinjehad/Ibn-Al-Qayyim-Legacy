@@ -1,7 +1,131 @@
+import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { useGetBook, useListChapters } from "@/lib/api";
+import type { Chapter } from "@/lib/api";
 import Navbar from "@/components/Navbar";
-import { ChevronLeft, BookOpen, List } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronUp, BookOpen, List, BookMarked } from "lucide-react";
+
+// ─── Hierarchy helpers ────────────────────────────────────────────────────────
+
+interface ChapterNode extends Chapter {
+  children: ChapterNode[];
+}
+
+function buildTree(chapters: Chapter[]): ChapterNode[] {
+  const sorted = [...chapters].sort((a, b) => a.orderIndex - b.orderIndex);
+
+  // If all chapters are level 1 (flat/legacy data), return them as-is at root
+  const hasHierarchy = sorted.some((c) => c.level > 1);
+  if (!hasHierarchy) {
+    return sorted.map((c) => ({ ...c, children: [] }));
+  }
+
+  const nodeMap = new Map<number, ChapterNode>();
+  sorted.forEach((c) => nodeMap.set(c.id, { ...c, children: [] }));
+
+  const roots: ChapterNode[] = [];
+  sorted.forEach((c) => {
+    const node = nodeMap.get(c.id)!;
+    if (c.parentId && nodeMap.has(c.parentId)) {
+      nodeMap.get(c.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  return roots;
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function FaslRow({ chapter, bookId }: { chapter: ChapterNode; bookId: number }) {
+  return (
+    <Link
+      href={`/book/${bookId}/chapter/${chapter.id}`}
+      className="flex items-center justify-between px-4 py-3 rounded-lg border border-border/60 bg-card hover:border-primary hover:bg-primary/5 transition-all group"
+    >
+      <div className="flex items-center gap-3">
+        <span className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary shrink-0 transition-colors" />
+        <span className="text-sm text-foreground group-hover:text-primary transition-colors">
+          {chapter.titleAr}
+        </span>
+      </div>
+      <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary rotate-180 shrink-0 transition-colors" />
+    </Link>
+  );
+}
+
+function BabRow({ node, bookId, index }: { node: ChapterNode; bookId: number; index: number }) {
+  const [open, setOpen] = useState(index === 0);
+  const hasFasls = node.children.length > 0;
+  const isFaslItself = node.level >= 2;
+
+  // A level-2+ node with no children is itself a clickable فصل
+  if (isFaslItself && !hasFasls) {
+    return <FaslRow chapter={node} bookId={bookId} />;
+  }
+
+  // Top-level باب that is itself readable (no children) — direct link
+  if (!hasFasls) {
+    return (
+      <Link
+        href={`/book/${bookId}/chapter/${node.id}`}
+        className="flex items-center justify-between px-5 py-4 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all group"
+      >
+        <div className="flex items-center gap-4">
+          <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0">
+            {index + 1}
+          </span>
+          <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+            {node.titleAr}
+          </span>
+        </div>
+        <ChevronLeft className="w-4 h-4 text-muted-foreground group-hover:text-primary rotate-180 transition-colors" />
+      </Link>
+    );
+  }
+
+  // باب with فصول — collapsible section
+  return (
+    <div className="rounded-xl border border-border overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-card hover:bg-muted/50 transition-colors text-right"
+      >
+        <div className="flex items-center gap-4">
+          <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0">
+            {index + 1}
+          </span>
+          <div>
+            <p className="font-semibold text-foreground">{node.titleAr}</p>
+            {node.title && (
+              <p className="text-xs text-muted-foreground">{node.title}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {node.children.length} فصل
+          </span>
+          {open ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          )}
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-border bg-muted/20 px-4 py-3 space-y-2">
+          {node.children.map((child) => (
+            <FaslRow key={child.id} chapter={child} bookId={bookId} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BookDetail() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -45,6 +169,9 @@ export default function BookDetail() {
     );
   }
 
+  const tree = chapters ? buildTree(chapters) : [];
+  const totalFasls = chapters?.filter((c) => !chapters.some((p) => p.parentId === c.id)).length ?? 0;
+
   return (
     <div className="min-h-screen bg-background text-foreground" dir="rtl">
       <Navbar />
@@ -86,19 +213,25 @@ export default function BookDetail() {
                 <h1 className="text-3xl font-bold text-foreground mb-1">{book.titleAr}</h1>
                 <p className="text-sm text-muted-foreground">{book.title}</p>
               </div>
-              <div className="text-center bg-muted rounded-xl p-4 min-w-[80px]">
-                <p className="text-2xl font-bold text-primary">{book.chapterCount}</p>
-                <p className="text-xs text-muted-foreground mt-1">فصل</p>
+              <div className="flex gap-3">
+                <div className="text-center bg-muted rounded-xl p-4 min-w-[70px]">
+                  <p className="text-2xl font-bold text-primary">{tree.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">باب</p>
+                </div>
+                <div className="text-center bg-muted rounded-xl p-4 min-w-[70px]">
+                  <p className="text-2xl font-bold text-primary">{totalFasls}</p>
+                  <p className="text-xs text-muted-foreground mt-1">فصل</p>
+                </div>
               </div>
             </div>
             <p className="mt-4 text-muted-foreground leading-relaxed">{book.description}</p>
           </div>
         </div>
 
-        {/* Chapters */}
+        {/* Table of Contents */}
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <List className="w-5 h-5 text-primary" />
+            <BookMarked className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-bold text-foreground">فهرس الكتاب</h2>
           </div>
 
@@ -108,28 +241,10 @@ export default function BookDetail() {
                 <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : chapters && chapters.length > 0 ? (
+          ) : tree.length > 0 ? (
             <div className="space-y-2">
-              {chapters.map((chapter, idx) => (
-                <Link
-                  href={`/book/${id}/chapter/${chapter.id}`}
-                  key={chapter.id}
-                  className="flex items-center justify-between px-5 py-4 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all group"
-                  data-testid={`chapter-item-${chapter.id}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <p className="font-medium text-foreground group-hover:text-primary transition-colors">
-                        {chapter.titleAr}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{chapter.title}</p>
-                    </div>
-                  </div>
-                  <ChevronLeft className="w-4 h-4 text-muted-foreground group-hover:text-primary rotate-180 transition-colors" />
-                </Link>
+              {tree.map((node, idx) => (
+                <BabRow key={node.id} node={node} bookId={id} index={idx} />
               ))}
             </div>
           ) : (

@@ -116,7 +116,8 @@ annotationsRouter.put("/notes/:noteId", async (req, res) => {
       .returning();
 
     if (!note) {
-      return res.status(404).json({ error: "Note not found" });
+      res.status(404).json({ error: "Note not found" });
+      return;
     }
     res.json(note);
   } catch (err) {
@@ -190,7 +191,10 @@ annotationsRouter.delete("/comments/:commentId", async (req, res) => {
 annotationsRouter.get("/profile/highlights", async (req, res) => {
   try {
     const sessionId = req.query.sessionId as string;
-    if (!sessionId) return res.status(400).json({ error: "sessionId required" });
+    if (!sessionId) {
+      res.status(400).json({ error: "sessionId required" });
+      return;
+    }
     const rows = await db
       .select({
         id: highlightsTable.id,
@@ -216,7 +220,10 @@ annotationsRouter.get("/profile/highlights", async (req, res) => {
 annotationsRouter.get("/profile/notes", async (req, res) => {
   try {
     const sessionId = req.query.sessionId as string;
-    if (!sessionId) return res.status(400).json({ error: "sessionId required" });
+    if (!sessionId) {
+      res.status(400).json({ error: "sessionId required" });
+      return;
+    }
     const rows = await db
       .select({
         id: notesTable.id,

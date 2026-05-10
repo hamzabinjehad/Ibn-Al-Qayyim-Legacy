@@ -54,7 +54,8 @@ booksRouter.get("/books/:bookId", async (req, res) => {
       .where(eq(booksTable.id, bookId));
 
     if (!book) {
-      return res.status(404).json({ error: "Book not found" });
+      res.status(404).json({ error: "Book not found" });
+      return;
     }
 
     const [chapterCount] = await db
@@ -98,7 +99,8 @@ booksRouter.get("/chapters/:chapterId", async (req, res) => {
       .where(eq(chaptersTable.id, chapterId));
 
     if (!chapter) {
-      return res.status(404).json({ error: "Chapter not found" });
+      res.status(404).json({ error: "Chapter not found" });
+      return;
     }
 
     res.json(chapter);
