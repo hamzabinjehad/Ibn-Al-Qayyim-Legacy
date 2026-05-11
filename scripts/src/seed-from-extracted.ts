@@ -101,8 +101,10 @@ async function seedBook(extracted: ExtractedBook, colorIndex: number): Promise<v
 
   if (existing.length > 0) {
     bookId = existing[0]!.id;
-    // Clear old chapters
     await db.delete(chaptersTable).where(eq(chaptersTable.bookId, bookId));
+    await db.update(booksTable)
+      .set({ pageCount: extracted.pages.length })
+      .where(eq(booksTable.id, bookId));
   } else {
     const [inserted] = await db
       .insert(booksTable)
@@ -112,6 +114,7 @@ async function seedBook(extracted: ExtractedBook, colorIndex: number): Promise<v
         description: `من مؤلفات الإمام ابن قيم الجوزية رحمه الله. المصدر: turath.io`,
         category,
         coverColor,
+        pageCount: extracted.pages.length,
       })
       .returning({ id: booksTable.id });
     bookId = inserted!.id;

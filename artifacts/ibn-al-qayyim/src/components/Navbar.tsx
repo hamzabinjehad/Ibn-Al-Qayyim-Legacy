@@ -1,27 +1,10 @@
-import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { BookOpen, Home, Library, Moon, Search, Sun, User } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function Navbar() {
   const [location] = useLocation();
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme");
-    if (saved === "dark") {
-      setDark(true);
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
-
-  const toggleDark = () => {
-    setDark((current) => {
-      const next = !current;
-      document.documentElement.classList.toggle("dark", next);
-      localStorage.setItem("theme", next ? "dark" : "light");
-      return next;
-    });
-  };
+  const { dark, toggle: toggleDark } = useTheme();
 
   const isActive = (path: string) =>
     path === "/" ? location === "/" : location.startsWith(path);

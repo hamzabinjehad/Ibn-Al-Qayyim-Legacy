@@ -16,6 +16,7 @@ export interface Book {
   description: string;
   category: string;
   chapterCount: number;
+  pageCount: number;
   coverColor: string;
   createdAt: string;
 }

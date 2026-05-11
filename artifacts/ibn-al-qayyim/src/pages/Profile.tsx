@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { customFetch } from "@/lib/api/custom-fetch";
+import { useTheme } from "@/hooks/useTheme";
 
 type Tab = "gallery" | "notes" | "comments";
 
@@ -51,25 +52,6 @@ interface ProfileComment {
   bookTitleAr: string;
 }
 
-function useTheme() {
-  const [dark, setDark] = useState(
-    () => document.documentElement.classList.contains("dark")
-  );
-  const toggle = () => {
-    setDark((d) => {
-      const next = !d;
-      if (next) {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      }
-      return next;
-    });
-  };
-  return { dark, toggle };
-}
 
 function EmptyState({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (

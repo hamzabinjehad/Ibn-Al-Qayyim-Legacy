@@ -21,6 +21,8 @@ tags:
     description: Reader comments
   - name: search
     description: Search operations
+  - name: translations
+    description: Book translations
 
 paths:
   /healthz:
@@ -97,6 +99,29 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Chapter"
+
+  /books/{bookId}/translations:
+    get:
+      operationId: listTranslations
+      tags: [translations]
+      summary: List translations for a book
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of translations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Translation"
+        "404":
+          description: Book not found
 
   /chapters/{chapterId}:
     get:
@@ -387,6 +412,8 @@ components:
           type: string
         chapterCount:
           type: integer
+        pageCount:
+          type: integer
         coverColor:
           type: string
         createdAt:
@@ -399,6 +426,7 @@ components:
         - description
         - category
         - chapterCount
+        - pageCount
         - coverColor
         - createdAt
 
@@ -638,3 +666,39 @@ components:
       required:
         - name
         - count
+
+    Translation:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookId:
+          type: integer
+        language:
+          type: string
+        languageCode:
+          type: string
+        title:
+          type: string
+        translatorName:
+          type: string
+          nullable: true
+        publisher:
+          type: string
+          nullable: true
+        publishYear:
+          type: integer
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - bookId
+        - language
+        - languageCode
+        - title
+        - createdAt

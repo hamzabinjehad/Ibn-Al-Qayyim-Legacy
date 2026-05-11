@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useGetStats, useListCategories, useListBooks } from "@/lib/api";
-import { BookOpen, Search, Star, MessageSquare, PenLine, Highlighter } from "lucide-react";
+import { AlertTriangle, BookOpen, Search, Star, MessageSquare, PenLine, Highlighter } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useState } from "react";
 
@@ -35,9 +35,9 @@ export default function Home() {
   const [searchQ, setSearchQ] = useState("");
   const [, setLocation] = useLocation();
 
-  const { data: stats } = useGetStats();
-  const { data: categories } = useListCategories();
-  const { data: books } = useListBooks();
+  const { data: stats, isError: statsError, refetch: refetchStats } = useGetStats();
+  const { data: categories, isError: categoriesError, refetch: refetchCategories } = useListCategories();
+  const { data: books, isError: booksError, refetch: refetchBooks } = useListBooks();
 
   const featuredBooks = books?.slice(0, 4) ?? [];
 
@@ -84,36 +84,49 @@ export default function Home() {
       </section>
 
       {/* Stats */}
-      {stats && (
-        <section className="py-10 border-b border-border bg-muted/30">
-          <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {[
-              { label: "الكتب", value: stats.totalBooks, icon: BookOpen, href: "/library" },
-              { label: "الفصول", value: stats.totalChapters, icon: Star, href: "/library" },
-              { label: "التظليلات", value: stats.totalHighlights, icon: Highlighter, href: "/profile" },
-              { label: "التعليقات", value: stats.totalComments, icon: MessageSquare, href: "/profile" },
-            ].map(({ label, value, icon: Icon, href }) => (
-              <Link
-                key={label}
-                href={href}
-                className="flex flex-col items-center gap-2 group cursor-pointer"
-                data-testid={`stat-${label}`}
-              >
-                <Icon className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-                <p className="text-3xl font-bold text-foreground">{value}</p>
-                <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{label}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <section className="py-10 border-b border-border bg-muted/30">
+        <div className="max-w-5xl mx-auto px-4">
+          {statsError ? (
+            <div className="flex flex-col items-center gap-3 py-4 text-muted-foreground">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <p className="text-sm">تعذّر تحميل الإحصائيات</p>
+              <button onClick={() => refetchStats()} className="text-xs text-primary hover:underline">إعادة المحاولة</button>
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-3 gap-6 text-center">
+              {[
+                { label: "الكتب", value: stats.totalBooks, icon: BookOpen, href: "/library" },
+                { label: "التظليلات", value: stats.totalHighlights, icon: Highlighter, href: "/profile" },
+                { label: "التعليقات", value: stats.totalComments, icon: MessageSquare, href: "/profile" },
+              ].map(({ label, value, icon: Icon, href }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  className="flex flex-col items-center gap-2 group cursor-pointer"
+                  data-testid={`stat-${label}`}
+                >
+                  <Icon className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                  <p className="text-3xl font-bold text-foreground">{value}</p>
+                  <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{label}</p>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </section>
 
       {/* Categories */}
-      {categories && categories.length > 0 && (
-        <section className="py-12 px-4 max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6 text-foreground">التصنيفات</h2>
+      <section className="py-12 px-4 max-w-5xl mx-auto">
+        <h2 className="text-2xl font-bold mb-6 text-foreground">التصنيفات</h2>
+        {categoriesError ? (
+          <div className="flex items-center gap-3 text-muted-foreground text-sm">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>تعذّر تحميل التصنيفات.</span>
+            <button onClick={() => refetchCategories()} className="text-primary hover:underline">إعادة المحاولة</button>
+          </div>
+        ) : (
           <div className="flex flex-wrap gap-3">
-            {categories.map((cat) => (
+            {categories?.map((cat) => (
               <Link
                 key={cat.name}
                 href={`/library?category=${encodeURIComponent(cat.name)}`}
@@ -124,8 +137,8 @@ export default function Home() {
               </Link>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Featured Books */}
       <section className="py-12 px-4 max-w-5xl mx-auto">
@@ -135,6 +148,13 @@ export default function Home() {
             عرض الكل
           </Link>
         </div>
+        {booksError && (
+          <div className="flex items-center gap-3 text-muted-foreground text-sm mb-4">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>تعذّر تحميل الكتب.</span>
+            <button onClick={() => refetchBooks()} className="text-primary hover:underline">إعادة المحاولة</button>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {featuredBooks.map((book) => (
             <Link
@@ -164,7 +184,7 @@ export default function Home() {
                   {book.titleAr}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{book.description}</p>
-                <p className="text-xs text-primary mt-2">{book.chapterCount} فصل</p>
+                <p className="text-xs text-primary mt-2">{book.pageCount} صفحة</p>
               </div>
             </Link>
           ))}

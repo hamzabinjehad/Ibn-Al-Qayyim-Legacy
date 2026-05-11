@@ -28,6 +28,7 @@ export const ListBooksResponseItem = zod.object({
   description: zod.string(),
   category: zod.string(),
   chapterCount: zod.number(),
+  pageCount: zod.number(),
   coverColor: zod.string(),
   createdAt: zod.coerce.date(),
 });
@@ -47,6 +48,7 @@ export const GetBookResponse = zod.object({
   description: zod.string(),
   category: zod.string(),
   chapterCount: zod.number(),
+  pageCount: zod.number(),
   coverColor: zod.string(),
   createdAt: zod.coerce.date(),
 });
@@ -72,6 +74,27 @@ export const ListChaptersResponseItem = zod.object({
     .describe("Parent chapter id (null for top-level بوابان)"),
 });
 export const ListChaptersResponse = zod.array(ListChaptersResponseItem);
+
+/**
+ * @summary List translations for a book
+ */
+export const ListTranslationsParams = zod.object({
+  bookId: zod.coerce.number(),
+});
+
+export const ListTranslationsResponseItem = zod.object({
+  id: zod.number(),
+  bookId: zod.number(),
+  language: zod.string(),
+  languageCode: zod.string(),
+  title: zod.string(),
+  translatorName: zod.string().nullish(),
+  publisher: zod.string().nullish(),
+  publishYear: zod.number().nullish(),
+  url: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListTranslationsResponse = zod.array(ListTranslationsResponseItem);
 
 /**
  * @summary Get a chapter with full content

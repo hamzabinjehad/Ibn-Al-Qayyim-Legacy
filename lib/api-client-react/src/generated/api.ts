@@ -35,6 +35,7 @@ import type {
   NoteUpdate,
   SearchResult,
   SearchTextsParams,
+  Translation,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -45,13 +46,6 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-type LooseQueryOptions<TQueryFnData, TError, TData> = Omit<
-  UseQueryOptions<TQueryFnData, TError, TData>,
-  "queryKey" | "queryFn"
-> & {
-  queryKey?: QueryKey;
-};
 
 /**
  * @summary Health check
@@ -77,7 +71,7 @@ export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -112,7 +106,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -167,7 +161,7 @@ export const getListBooksQueryOptions = <
 >(
   params?: ListBooksParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listBooks>>,
       TError,
       TData
@@ -205,7 +199,7 @@ export function useListBooks<
 >(
   params?: ListBooksParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listBooks>>,
       TError,
       TData
@@ -249,7 +243,7 @@ export const getGetBookQueryOptions = <
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
   },
 ) => {
@@ -286,7 +280,7 @@ export function useGetBook<
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -326,7 +320,7 @@ export const getListChaptersQueryOptions = <
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listChapters>>,
       TError,
       TData
@@ -369,7 +363,7 @@ export function useListChapters<
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listChapters>>,
       TError,
       TData
@@ -378,6 +372,94 @@ export function useListChapters<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListChaptersQueryOptions(bookId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List translations for a book
+ */
+export const getListTranslationsUrl = (bookId: number) => {
+  return `/api/books/${bookId}/translations`;
+};
+
+export const listTranslations = async (
+  bookId: number,
+  options?: RequestInit,
+): Promise<Translation[]> => {
+  return customFetch<Translation[]>(getListTranslationsUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTranslationsQueryKey = (bookId: number) => {
+  return [`/api/books/${bookId}/translations`] as const;
+};
+
+export const getListTranslationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTranslations>>,
+  TError = ErrorType<void>,
+>(
+  bookId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTranslations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTranslationsQueryKey(bookId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTranslations>>
+  > = ({ signal }) => listTranslations(bookId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!bookId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTranslations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTranslationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTranslations>>
+>;
+export type ListTranslationsQueryError = ErrorType<void>;
+
+/**
+ * @summary List translations for a book
+ */
+
+export function useListTranslations<
+  TData = Awaited<ReturnType<typeof listTranslations>>,
+  TError = ErrorType<void>,
+>(
+  bookId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTranslations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTranslationsQueryOptions(bookId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -413,7 +495,7 @@ export const getGetChapterQueryOptions = <
 >(
   chapterId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof getChapter>>,
       TError,
       TData
@@ -456,7 +538,7 @@ export function useGetChapter<
 >(
   chapterId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof getChapter>>,
       TError,
       TData
@@ -512,7 +594,7 @@ export const getListHighlightsQueryOptions = <
 >(
   params: ListHighlightsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listHighlights>>,
       TError,
       TData
@@ -550,7 +632,7 @@ export function useListHighlights<
 >(
   params: ListHighlightsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listHighlights>>,
       TError,
       TData
@@ -776,7 +858,7 @@ export const getListNotesQueryOptions = <
 >(
   params: ListNotesParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listNotes>>,
       TError,
       TData
@@ -814,7 +896,7 @@ export function useListNotes<
 >(
   params: ListNotesParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listNotes>>,
       TError,
       TData
@@ -1127,7 +1209,7 @@ export const getListCommentsQueryOptions = <
 >(
   params: ListCommentsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listComments>>,
       TError,
       TData
@@ -1165,7 +1247,7 @@ export function useListComments<
 >(
   params: ListCommentsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listComments>>,
       TError,
       TData
@@ -1391,7 +1473,7 @@ export const getSearchTextsQueryOptions = <
 >(
   params: SearchTextsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof searchTexts>>,
       TError,
       TData
@@ -1429,7 +1511,7 @@ export function useSearchTexts<
 >(
   params: SearchTextsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof searchTexts>>,
       TError,
       TData
@@ -1470,7 +1552,7 @@ export const getGetStatsQueryOptions = <
   TData = Awaited<ReturnType<typeof getStats>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
   request?: SecondParameter<typeof customFetch>;
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
@@ -1501,7 +1583,7 @@ export function useGetStats<
   TData = Awaited<ReturnType<typeof getStats>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStatsQueryOptions(options);
@@ -1537,7 +1619,7 @@ export const getListCategoriesQueryOptions = <
   TData = Awaited<ReturnType<typeof listCategories>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof listCategories>>,
     TError,
     TData
@@ -1572,7 +1654,7 @@ export function useListCategories<
   TData = Awaited<ReturnType<typeof listCategories>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof listCategories>>,
     TError,
     TData

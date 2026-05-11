@@ -16,6 +16,7 @@ export interface Book {
   description: string;
   category: string;
   chapterCount: number;
+  pageCount: number;
   coverColor: string;
   createdAt: string;
 }
@@ -112,6 +113,19 @@ export interface LibraryStats {
 export interface Category {
   name: string;
   count: number;
+}
+
+export interface Translation {
+  id: number;
+  bookId: number;
+  language: string;
+  languageCode: string;
+  title: string;
+  translatorName?: string | null;
+  publisher?: string | null;
+  publishYear?: number | null;
+  url?: string | null;
+  createdAt: string;
 }
 
 export type ListBooksParams = {

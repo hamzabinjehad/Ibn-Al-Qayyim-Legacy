@@ -3,7 +3,7 @@ import { Link, useParams } from "wouter";
 import { useGetBook, useListChapters } from "@/lib/api";
 import type { Chapter } from "@/lib/api";
 import Navbar from "@/components/Navbar";
-import { ChevronLeft, ChevronDown, ChevronUp, BookOpen, List, BookMarked } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronDown, ChevronUp, BookOpen, BookMarked } from "lucide-react";
 
 // ─── Hierarchy helpers ────────────────────────────────────────────────────────
 
@@ -37,87 +37,71 @@ function buildTree(chapters: Chapter[]): ChapterNode[] {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function FaslRow({ chapter, bookId }: { chapter: ChapterNode; bookId: number }) {
-  return (
-    <Link
-      href={`/book/${bookId}/chapter/${chapter.id}`}
-      className="flex items-center justify-between px-4 py-3 rounded-lg border border-border/60 bg-card hover:border-primary hover:bg-primary/5 transition-all group"
-    >
-      <div className="flex items-center gap-3">
-        <span className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary shrink-0 transition-colors" />
-        <span className="text-sm text-foreground group-hover:text-primary transition-colors">
-          {chapter.titleAr}
-        </span>
-      </div>
-      <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary rotate-180 shrink-0 transition-colors" />
-    </Link>
-  );
-}
+function TreeNode({
+  node,
+  bookId,
+  depth = 0,
+  index,
+}: {
+  node: ChapterNode;
+  bookId: number;
+  depth?: number;
+  index?: number;
+}) {
+  const [open, setOpen] = useState(depth === 0);
+  const isLeaf = node.children.length === 0;
+  const isRoot = depth === 0;
 
-function BabRow({ node, bookId, index }: { node: ChapterNode; bookId: number; index: number }) {
-  const [open, setOpen] = useState(index === 0);
-  const hasFasls = node.children.length > 0;
-  const isFaslItself = node.level >= 2;
-
-  // A level-2+ node with no children is itself a clickable فصل
-  if (isFaslItself && !hasFasls) {
-    return <FaslRow chapter={node} bookId={bookId} />;
-  }
-
-  // Top-level باب that is itself readable (no children) — direct link
-  if (!hasFasls) {
+  if (isLeaf) {
     return (
       <Link
         href={`/book/${bookId}/chapter/${node.id}`}
-        className="flex items-center justify-between px-5 py-4 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all group"
+        className={`flex items-center justify-between px-4 py-3 rounded-lg border border-border/60 bg-card hover:border-primary hover:bg-primary/5 transition-all group${depth > 0 ? " mr-4" : ""}`}
       >
-        <div className="flex items-center gap-4">
-          <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0">
-            {index + 1}
-          </span>
-          <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+        <div className="flex items-center gap-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary shrink-0 transition-colors" />
+          <span className="text-sm text-foreground group-hover:text-primary transition-colors">
             {node.titleAr}
           </span>
         </div>
-        <ChevronLeft className="w-4 h-4 text-muted-foreground group-hover:text-primary rotate-180 transition-colors" />
+        <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary rotate-180 shrink-0 transition-colors" />
       </Link>
     );
   }
 
-  // باب with فصول — collapsible section
   return (
-    <div className="rounded-xl border border-border overflow-hidden">
+    <div
+      className={
+        isRoot
+          ? "rounded-xl border border-border overflow-hidden"
+          : "rounded-lg border border-border/60 overflow-hidden mr-4"
+      }
+    >
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-5 py-4 bg-card hover:bg-muted/50 transition-colors text-right"
       >
         <div className="flex items-center gap-4">
-          <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0">
-            {index + 1}
-          </span>
-          <div>
-            <p className="font-semibold text-foreground">{node.titleAr}</p>
-            {node.title && (
-              <p className="text-xs text-muted-foreground">{node.title}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {node.children.length} فصل
-          </span>
-          {open ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          {isRoot && index !== undefined && (
+            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0">
+              {index + 1}
+            </span>
           )}
+          <span className={isRoot ? "font-semibold text-foreground" : "text-sm font-medium text-foreground"}>
+            {node.titleAr}
+          </span>
         </div>
+        {open ? (
+          <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+        )}
       </button>
 
       {open && (
-        <div className="border-t border-border bg-muted/20 px-4 py-3 space-y-2">
-          {node.children.map((child) => (
-            <FaslRow key={child.id} chapter={child} bookId={bookId} />
+        <div className="border-t border-border bg-muted/20 px-3 py-3 space-y-2">
+          {node.children.map((child, i) => (
+            <TreeNode key={child.id} node={child} bookId={bookId} depth={depth + 1} index={i} />
           ))}
         </div>
       )}
@@ -131,10 +115,10 @@ export default function BookDetail() {
   const { bookId } = useParams<{ bookId: string }>();
   const id = parseInt(bookId);
 
-  const { data: book, isLoading: loadingBook } = useGetBook(id, {
+  const { data: book, isLoading: loadingBook, isError: bookError } = useGetBook(id, {
     query: { enabled: !!id },
   });
-  const { data: chapters, isLoading: loadingChapters } = useListChapters(id, {
+  const { data: chapters, isLoading: loadingChapters, isError: chaptersError } = useListChapters(id, {
     query: { enabled: !!id },
   });
 
@@ -155,6 +139,22 @@ export default function BookDetail() {
     );
   }
 
+  if (bookError) {
+    return (
+      <div className="min-h-screen bg-background" dir="rtl">
+        <Navbar />
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+          <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
+          <p className="text-foreground font-semibold text-lg mb-1">تعذّر تحميل الكتاب</p>
+          <p className="text-muted-foreground text-sm mb-6">تحقق من اتصالك بالإنترنت وحاول مجدداً.</p>
+          <Link href="/library" className="inline-flex px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+            العودة إلى المكتبة
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!book) {
     return (
       <div className="min-h-screen bg-background" dir="rtl">
@@ -170,7 +170,6 @@ export default function BookDetail() {
   }
 
   const tree = chapters ? buildTree(chapters) : [];
-  const totalFasls = chapters?.filter((c) => !chapters.some((p) => p.parentId === c.id)).length ?? 0;
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir="rtl">
@@ -213,16 +212,6 @@ export default function BookDetail() {
                 <h1 className="text-3xl font-bold text-foreground mb-1">{book.titleAr}</h1>
                 <p className="text-sm text-muted-foreground">{book.title}</p>
               </div>
-              <div className="flex gap-3">
-                <div className="text-center bg-muted rounded-xl p-4 min-w-[70px]">
-                  <p className="text-2xl font-bold text-primary">{tree.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1">باب</p>
-                </div>
-                <div className="text-center bg-muted rounded-xl p-4 min-w-[70px]">
-                  <p className="text-2xl font-bold text-primary">{totalFasls}</p>
-                  <p className="text-xs text-muted-foreground mt-1">فصل</p>
-                </div>
-              </div>
             </div>
             <p className="mt-4 text-muted-foreground leading-relaxed">{book.description}</p>
           </div>
@@ -235,7 +224,13 @@ export default function BookDetail() {
             <h2 className="text-xl font-bold text-foreground">فهرس الكتاب</h2>
           </div>
 
-          {loadingChapters ? (
+          {chaptersError ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+              <p className="text-sm font-medium text-foreground">تعذّر تحميل الفهرس</p>
+              <p className="text-xs">تحقق من اتصالك وحاول تحديث الصفحة.</p>
+            </div>
+          ) : loadingChapters ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />
@@ -244,7 +239,7 @@ export default function BookDetail() {
           ) : tree.length > 0 ? (
             <div className="space-y-2">
               {tree.map((node, idx) => (
-                <BabRow key={node.id} node={node} bookId={id} index={idx} />
+                <TreeNode key={node.id} node={node} bookId={id} depth={0} index={idx} />
               ))}
             </div>
           ) : (

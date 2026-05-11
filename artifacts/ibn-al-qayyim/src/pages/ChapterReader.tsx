@@ -779,7 +779,7 @@ export default function ChapterReader() {
                   </div>
 
                   {/* Color swatches */}
-                  <div className="flex gap-2 justify-center py-0.5">
+                  <div className={`flex gap-2 justify-center py-0.5 ${createHighlight.isPending ? "pointer-events-none opacity-50" : ""}`}>
                     {HIGHLIGHT_COLORS.map((c) => (
                       <button
                         key={c.value}
@@ -1051,7 +1051,7 @@ export default function ChapterReader() {
                           <button onClick={() => setReplyTo(null)} className="text-xs text-muted-foreground hover:text-foreground">إلغاء</button>
                           <button
                             onClick={() => handleReply(comment.id)}
-                            disabled={!replyText.trim() || !replyAuthor.trim()}
+                            disabled={!replyText.trim() || !replyAuthor.trim() || createComment.isPending}
                             className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded hover:opacity-90 disabled:opacity-50"
                             data-testid={`button-submit-reply-${comment.id}`}
                           >
