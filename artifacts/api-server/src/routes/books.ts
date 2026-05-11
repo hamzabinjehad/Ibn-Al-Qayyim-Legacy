@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { booksTable, chaptersTable, highlightsTable, notesTable, commentsTable } from "@workspace/db";
+import { booksTable, chaptersTable, highlightsTable, notesTable, commentsTable, translationsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import {
   ListBooksQueryParams,
   GetBookParams,
   ListChaptersParams,
   GetChapterParams,
+  ListTranslationsParams,
 } from "@workspace/api-zod";
 
 export const booksRouter = Router();
@@ -83,6 +84,34 @@ booksRouter.get("/books/:bookId/chapters", async (req, res) => {
 
     res.json(chapters);
   } catch (err) {
+    res.status(400).json({ error: "Invalid request" });
+  }
+});
+
+booksRouter.get("/books/:bookId/translations", async (req, res) => {
+  try {
+    const { bookId } = ListTranslationsParams.parse({
+      bookId: parseInt(req.params.bookId),
+    });
+
+    const [book] = await db
+      .select({ id: booksTable.id })
+      .from(booksTable)
+      .where(eq(booksTable.id, bookId));
+
+    if (!book) {
+      res.status(404).json({ error: "Book not found" });
+      return;
+    }
+
+    const translations = await db
+      .select()
+      .from(translationsTable)
+      .where(eq(translationsTable.bookId, bookId))
+      .orderBy(translationsTable.language);
+
+    res.json(translations);
+  } catch {
     res.status(400).json({ error: "Invalid request" });
   }
 });

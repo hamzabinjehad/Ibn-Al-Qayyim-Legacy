@@ -35,6 +35,7 @@ import type {
   NoteUpdate,
   SearchResult,
   SearchTextsParams,
+  Translation,
 } from "./api.schemas";
 
 import { customFetch } from "./custom-fetch";
@@ -1580,6 +1581,94 @@ export function useListCategories<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List translations for a book
+ */
+export const getListTranslationsUrl = (bookId: number) => {
+  return `/api/books/${bookId}/translations`;
+};
+
+export const listTranslations = async (
+  bookId: number,
+  options?: RequestInit,
+): Promise<Translation[]> => {
+  return customFetch<Translation[]>(getListTranslationsUrl(bookId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTranslationsQueryKey = (bookId: number) => {
+  return [`/api/books/${bookId}/translations`] as const;
+};
+
+export const getListTranslationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTranslations>>,
+  TError = ErrorType<void>,
+>(
+  bookId: number,
+  options?: {
+    query?: LooseQueryOptions<
+      Awaited<ReturnType<typeof listTranslations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTranslationsQueryKey(bookId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTranslations>>
+  > = ({ signal }) => listTranslations(bookId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!bookId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTranslations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTranslationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTranslations>>
+>;
+export type ListTranslationsQueryError = ErrorType<void>;
+
+/**
+ * @summary List translations for a book
+ */
+
+export function useListTranslations<
+  TData = Awaited<ReturnType<typeof listTranslations>>,
+  TError = ErrorType<void>,
+>(
+  bookId: number,
+  options?: {
+    query?: LooseQueryOptions<
+      Awaited<ReturnType<typeof listTranslations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTranslationsQueryOptions(bookId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

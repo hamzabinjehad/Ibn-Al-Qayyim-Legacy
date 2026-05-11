@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
-import { useGetBook, useListChapters } from "@/lib/api";
-import type { Chapter } from "@/lib/api";
+import { useGetBook, useListChapters, useListTranslations } from "@/lib/api";
+import type { Chapter, Translation } from "@/lib/api";
 import Navbar from "@/components/Navbar";
-import { AlertTriangle, ChevronLeft, ChevronDown, ChevronUp, BookOpen, BookMarked } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronDown, ChevronUp, BookOpen, BookMarked, Languages, ExternalLink } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // ─── Hierarchy helpers ────────────────────────────────────────────────────────
 
@@ -109,6 +113,103 @@ function TreeNode({
   );
 }
 
+// ─── Translations Sheet ───────────────────────────────────────────────────────
+
+const FLAG_MAP: Record<string, string> = {
+  en: "🇬🇧", fr: "🇫🇷", de: "🇩🇪", tr: "🇹🇷",
+  ur: "🇵🇰", id: "🇮🇩", ms: "🇲🇾", nl: "🇳🇱",
+  es: "🇪🇸", ru: "🇷🇺", bn: "🇧🇩",
+};
+
+function TranslationCard({ t }: { t: Translation }) {
+  const flag = FLAG_MAP[t.languageCode] ?? "🌐";
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-2xl" aria-hidden="true">{flag}</span>
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground text-sm leading-snug">{t.title}</p>
+            <Badge variant="outline" className="mt-1 text-xs">{t.language}</Badge>
+          </div>
+        </div>
+        {t.url && (
+          <a href={t.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <ExternalLink className="w-3 h-3" />
+              قراءة
+            </Button>
+          </a>
+        )}
+      </div>
+      {(t.translatorName || t.publisher || t.publishYear) && (
+        <div className="text-xs text-muted-foreground space-y-0.5 pt-1 border-t border-border/50">
+          {t.translatorName && <p>المترجم: <span className="text-foreground">{t.translatorName}</span></p>}
+          {t.publisher && <p>الناشر: <span className="text-foreground">{t.publisher}</span></p>}
+          {t.publishYear && <p>سنة النشر: <span className="text-foreground">{t.publishYear}</span></p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TranslationsSheet({
+  bookId,
+  open,
+  onOpenChange,
+}: {
+  bookId: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: translations, isLoading, isError } = useListTranslations(bookId, {
+    query: { enabled: open && !!bookId },
+  });
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col" dir="rtl">
+        <SheetHeader className="pb-4 border-b border-border">
+          <SheetTitle className="flex items-center gap-2 text-right">
+            <Languages className="w-5 h-5 text-primary" />
+            الترجمات المتاحة
+          </SheetTitle>
+          <SheetDescription className="text-right">
+            الترجمات المنشورة لهذا الكتاب بلغات مختلفة
+          </SheetDescription>
+        </SheetHeader>
+        <ScrollArea className="flex-1 mt-4">
+          {isLoading ? (
+            <div className="space-y-3 px-1">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground px-1">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+              <p className="text-sm font-medium text-foreground">تعذّر تحميل الترجمات</p>
+              <p className="text-xs text-center">تحقق من اتصالك وحاول تحديث الصفحة.</p>
+            </div>
+          ) : translations && translations.length > 0 ? (
+            <div className="space-y-3 px-1 pb-4">
+              {translations.map((t) => (
+                <TranslationCard key={t.id} t={t} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground px-1">
+              <Languages className="w-10 h-10 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-foreground">لا توجد ترجمات متاحة بعد</p>
+              <p className="text-xs text-center">لم تُرصد ترجمات لهذا الكتاب حتى الآن.</p>
+            </div>
+          )}
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BookDetail() {
@@ -121,6 +222,7 @@ export default function BookDetail() {
   const { data: chapters, isLoading: loadingChapters, isError: chaptersError } = useListChapters(id, {
     query: { enabled: !!id },
   });
+  const [translationsOpen, setTranslationsOpen] = useState(false);
 
   if (loadingBook) {
     return (
@@ -214,6 +316,12 @@ export default function BookDetail() {
               </div>
             </div>
             <p className="mt-4 text-muted-foreground leading-relaxed">{book.description}</p>
+            <div className="mt-5 pt-4 border-t border-border/50">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setTranslationsOpen(true)}>
+                <Languages className="w-4 h-4" />
+                الترجمات
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -247,6 +355,8 @@ export default function BookDetail() {
           )}
         </div>
       </div>
+
+      <TranslationsSheet bookId={id} open={translationsOpen} onOpenChange={setTranslationsOpen} />
     </div>
   );
 }

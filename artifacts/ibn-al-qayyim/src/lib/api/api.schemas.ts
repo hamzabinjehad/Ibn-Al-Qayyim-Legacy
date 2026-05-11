@@ -28,9 +28,9 @@ export interface Chapter {
   titleAr: string;
   content: string;
   orderIndex: number;
-  /** Hierarchy level - 1=bab, 2=fasl, 3+=nested fasl */
+  /** Hierarchy level — 1=باب, 2=فصل, 3+=فصل فرعي */
   level: number;
-  /** Parent chapter id (null for top-level chapters) */
+  /** Parent chapter id (null for top-level بوابان) */
   parentId?: number | null;
 }
 
@@ -113,6 +113,19 @@ export interface LibraryStats {
 export interface Category {
   name: string;
   count: number;
+}
+
+export interface Translation {
+  id: number;
+  bookId: number;
+  language: string;
+  languageCode: string;
+  title: string;
+  translatorName?: string | null;
+  publisher?: string | null;
+  publishYear?: number | null;
+  url?: string | null;
+  createdAt: string;
 }
 
 export type ListBooksParams = {
