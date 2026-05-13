@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Naskh+Arabic:wght@400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Aref+Ruqaa+Ink:wght@400;700&family=Noto+Naskh+Arabic:wght@400..700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -101,6 +101,7 @@
   --app-font-sans: 'Noto Naskh Arabic', system-ui, sans-serif;
   --app-font-serif: 'Amiri', 'Noto Naskh Arabic', serif;
   --app-font-display: 'Amiri', 'Noto Naskh Arabic', serif;
+  --app-font-thuluth: 'Aref Ruqaa Ink', 'Amiri', 'Noto Naskh Arabic', serif;
   --app-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --radius: 0.5rem;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
@@ -238,8 +239,8 @@
     overflow: hidden;
     width: 100%;
     background:
-      radial-gradient(circle at 50% 18%, rgb(255 226 150 / 0.13), transparent 32%),
-      linear-gradient(145deg, #17140f 0%, #050505 52%, #1b1710 100%) !important;
+      radial-gradient(circle at 50% 18%, rgb(255 226 150 / 0.16), transparent 31%),
+      linear-gradient(145deg, #17140f 0%, #050505 54%, #211b10 100%) !important;
     box-shadow:
       inset 0 0 0 1px rgb(255 255 255 / 0.05),
       inset 0 0 42px rgb(0 0 0 / 0.72),
@@ -334,10 +335,13 @@
   }
 
   .book-cover-title {
-    font-family: var(--app-font-serif);
+    font-family: var(--app-font-thuluth);
     color: #f4d990;
-    line-height: 1.45;
-    text-shadow: 0 1px 0 rgb(0 0 0 / 0.55);
+    line-height: 1.9;
+    text-shadow:
+      0 1px 0 rgb(0 0 0 / 0.72),
+      0 0 18px rgb(244 217 144 / 0.16);
+    text-wrap: balance;
   }
 
   .book-cover-frame {
@@ -378,11 +382,11 @@
   }
 
   .book-cover-top-rule {
-    top: 27%;
+    top: 18%;
   }
 
   .book-cover-bottom-rule {
-    bottom: 20%;
+    bottom: 18%;
   }
 
   .book-cover-top-rule::after,
@@ -396,25 +400,6 @@
     transform: translate(-50%, -50%) rotate(45deg);
     border: 1px solid rgb(244 217 144 / 0.72);
     background: #111;
-  }
-
-  .book-cover-author,
-  .book-cover-edition {
-    position: absolute;
-    left: 1.4rem;
-    right: 1.4rem;
-    color: rgb(244 217 144 / 0.68);
-    font-family: var(--app-font-serif);
-    font-size: 0.66rem;
-    line-height: 1.4;
-  }
-
-  .book-cover-author {
-    top: 16%;
-  }
-
-  .book-cover-edition {
-    bottom: 11%;
   }
 
   .page-surface {

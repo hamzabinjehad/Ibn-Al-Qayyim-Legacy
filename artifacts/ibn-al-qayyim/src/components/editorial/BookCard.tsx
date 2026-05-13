@@ -3,8 +3,8 @@ import { Bookmark, FileText } from "lucide-react";
 import type { BookSummary } from "@/lib/static-library";
 import BookCover from "@/components/BookCover";
 
-export function BookCard({ book }: { book: BookSummary }) {
-  const progress = 11 + ((book.id * 7) % 32);
+export function BookCard({ book, progress }: { book: BookSummary; progress?: number }) {
+  const roundedProgress = typeof progress === "number" ? Math.round(progress) : null;
   return (
     <Link
       href={`/book/${book.id}`}
@@ -29,12 +29,14 @@ export function BookCard({ book }: { book: BookSummary }) {
           {book.chapterCount} فصل / {book.pageCount} صفحة
         </p>
       </div>
-      <div className="mt-4 flex items-center gap-3">
-        <span className="text-xs text-muted-foreground tabular-nums">{progress}%</span>
-        <div className="h-px flex-1 bg-border">
-          <div className="h-px bg-foreground" style={{ width: `${progress}%` }} />
+      {roundedProgress !== null && (
+        <div className="mt-4 flex items-center gap-3">
+          <span className="text-xs text-muted-foreground tabular-nums">{roundedProgress}%</span>
+          <div className="h-px flex-1 bg-border">
+            <div className="h-px bg-foreground" style={{ width: `${roundedProgress}%` }} />
+          </div>
         </div>
-      </div>
+      )}
     </Link>
   );
 }

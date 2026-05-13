@@ -4,6 +4,7 @@ import { Grid2X2, List, Search as SearchIcon } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { BookCard, BookRow } from "@/components/editorial/BookCard";
 import { EmptyState, ErrorState, LoadingState } from "@/components/editorial/DataState";
+import { useLocalLibrary } from "@/lib/local-library";
 import { useStaticBooks, useStaticCategories } from "@/lib/static-library";
 
 function normalize(value: string) {
@@ -23,6 +24,14 @@ export default function Library() {
 
   const { data: books, isLoading, isError, refetch } = useStaticBooks(selectedCategory || undefined);
   const { data: categories } = useStaticCategories();
+  const { positions } = useLocalLibrary();
+  const progressByBookId = useMemo(() => {
+    const progress = new Map<number, number>();
+    positions.forEach((position) => {
+      if (!progress.has(position.bookId)) progress.set(position.bookId, position.progress);
+    });
+    return progress;
+  }, [positions]);
 
   const filteredBooks = useMemo(() => {
     if (!books) return [];
@@ -146,7 +155,7 @@ export default function Library() {
             ) : view === "grid" ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredBooks.map((book) => (
-                  <BookCard book={book} key={book.id} />
+                  <BookCard book={book} key={book.id} progress={progressByBookId.get(book.id)} />
                 ))}
               </div>
             ) : (

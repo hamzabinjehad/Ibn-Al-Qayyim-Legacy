@@ -5,7 +5,7 @@
  */
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 const PORT = 3001;
 const OUTPUT_DIR = join(process.cwd(), "output", "ibn-qayyim");
@@ -41,46 +41,89 @@ type MockChapter = {
 let books: MockBook[] = [];
 let chapters: MockChapter[] = [];
 
+async function collectJsonFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) return collectJsonFiles(fullPath);
+      if (entry.isFile() && entry.name !== "index.json" && entry.name.endsWith(".json")) return [fullPath];
+      return [];
+    }),
+  );
+
+  return files.flat();
+}
+
+function collectPages(data: unknown): Array<{ text: string; page?: number }> {
+  const pages: Array<{ text: string; page?: number }> = [];
+
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) {
+      if (value.some((item) => item && typeof item === "object" && typeof (item as { text?: unknown }).text === "string")) {
+        for (const item of value) {
+          if (!item || typeof item !== "object") continue;
+          const page = item as { page?: unknown; text?: unknown };
+          if (typeof page.text === "string") {
+            pages.push({
+              page: typeof page.page === "number" ? page.page : undefined,
+              text: page.text,
+            });
+          }
+        }
+        return;
+      }
+
+      for (const item of value) visit(item);
+      return;
+    }
+
+    if (!value || typeof value !== "object") return;
+    for (const child of Object.values(value)) visit(child);
+  };
+
+  visit(data);
+  return pages;
+}
+
 async function loadData() {
   try {
-    const files = await readdir(OUTPUT_DIR);
-    const jsonFiles = files.filter((f) => f !== "index.json" && f.endsWith(".json"));
+    const jsonFiles = await collectJsonFiles(OUTPUT_DIR);
 
     let bookId = 1;
     let chapterId = 1;
 
     for (const file of jsonFiles) {
       try {
-        const raw = await readFile(join(OUTPUT_DIR, file), "utf-8");
+        const raw = await readFile(file, "utf-8");
         const data = JSON.parse(raw);
 
         const coverColor = COVER_COLORS[(bookId - 1) % COVER_COLORS.length]!;
-        const chapterCount = data.index?.length ?? 0;
+        const pages = collectPages(data);
+        const chapterCount = pages.length;
+        const title = typeof data.title === "string" ? data.title : basename(file, ".json");
+        const category = typeof data.category === "string" ? data.category : basename(dirname(file));
 
         books.push({
           id: bookId,
-          title: data.title,
-          titleAr: data.title,
+          title,
+          titleAr: title,
           description: data.index?.[0]?.title ?? "كتاب من تراث الإمام ابن القيم",
-          category: guessCategory(data.title),
+          category,
           coverColor,
           createdAt: data.extracted_at,
           chapterCount,
         });
 
-        for (let i = 0; i < (data.index ?? []).length; i++) {
-          const heading = data.index[i];
-          const headingPages = (data.pages ?? []).filter((p: any) =>
-            p.headings?.includes(heading.title)
-          );
-          const content = headingPages.map((p: any) => p.text).join("\n\n") || heading.title;
-
+        for (let i = 0; i < pages.length; i++) {
+          const page = pages[i]!;
+          const chapterTitle = `ØµÙØ­Ø© ${page.page ?? i + 1}`;
           chapters.push({
             id: chapterId++,
             bookId,
-            title: heading.title,
-            titleAr: heading.title,
-            content: content.slice(0, 50000),
+            title: chapterTitle,
+            titleAr: chapterTitle,
+            content: page.text.slice(0, 50000),
             orderIndex: i,
             level: 1,
             parentId: null,

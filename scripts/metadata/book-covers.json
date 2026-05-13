@@ -1,1 +1,49 @@
-[]
+[
+  {
+    "slug": "روضة-المحبين-ونزهة-المشتاقين-ط-عطاءات-العلم",
+    "coverImageUrl": "/book-covers/rawdat-al-muhibbin-ataat.jpg",
+    "coverImageAlt": "غلاف روضة المحبين ونزهة المشتاقين - طبعة عطاءات العلم",
+    "publisher": "عطاءات العلم",
+    "sourceUrl": "https://www.neelwafurat.com/itempage.aspx?id=sab1542-20001564&search=books",
+    "downloadUrl": "https://www.neelwafurat.com/images/sa/abookstore/covers/carton/1/1542.jpg"
+  },
+  {
+    "slug": "الوابل-الصيب-ط-عطاءات-العلم",
+    "coverImageUrl": "/book-covers/al-wabil-al-sayyib-ataat.jpg",
+    "coverImageAlt": "غلاف الوابل الصيب ورافع الكلم الطيب - طبعة عطاءات العلم",
+    "publisher": "عطاءات العلم",
+    "sourceUrl": "https://www.neelwafurat.com/itempage.aspx?id=lbb141844-102311&search=books",
+    "downloadUrl": "https://www.neelwafurat.com/images/lb/abookstore/covers/hard/141/141844.jpg"
+  },
+  {
+    "slug": "جلاء-الأفهام-ط-عطاءات-العلم",
+    "coverImageUrl": "/book-covers/jala-al-afham-ataat-official.jpg",
+    "coverImageAlt": "غلاف جلاء الأفهام - طبعة عطاءات العلم",
+    "publisher": "عطاءات العلم",
+    "sourceUrl": "https://www.daribnhazm.com/Arabic/Books/ShowBook.aspx?bookid=5368",
+    "downloadUrl": "https://s.turbifycdn.com/aah/yhst-141393827066280/jala-al-afham-fi-fadl-al-salah-ala-khayr-al-anam-78.jpg"
+  },
+  {
+    "slug": "الصلاة-ابن-القيم-ط-عطاءات-العلم",
+    "coverImageUrl": "/book-covers/kitab-al-salah-ataat.jpg",
+    "coverImageAlt": "غلاف كتاب الصلاة - طبعة عطاءات العلم",
+    "publisher": "عطاءات العلم",
+    "sourceUrl": "https://www.neelwafurat.com/itempage.aspx?id=lbb361367-357013&search=books",
+    "downloadUrl": "https://www.neelwafurat.com/images/lb/abookstore/covers/hard/361/361367.jpg"
+  },
+  {
+    "slug": "طريق-الهجرتين-وباب-السعادتين-ط-عطاءات-العلم",
+    "coverImageUrl": "/book-covers/tariq-al-hijratayn-ataat-official.jpg",
+    "coverImageAlt": "غلاف طريق الهجرتين وباب السعادتين - طبعة عطاءات العلم",
+    "publisher": "عطاءات العلم",
+    "sourceUrl": "https://www.daribnhazm.com/Arabic/Books/ShowBook.aspx?bookid=5137"
+  },
+  {
+    "slug": "الروح-ابن-القيم-ط-عطاءات-العلم",
+    "coverImageUrl": "/book-covers/al-ruh-ataat.jpg",
+    "coverImageAlt": "غلاف كتاب الروح - طبعة عطاءات العلم",
+    "publisher": "عطاءات العلم",
+    "sourceUrl": "https://www.neelwafurat.com/itempage.aspx?id=lbb368762-365073&search=books",
+    "downloadUrl": "https://www.neelwafurat.com/images/lb/abookstore/covers/hard/368/368762.jpg"
+  }
+]

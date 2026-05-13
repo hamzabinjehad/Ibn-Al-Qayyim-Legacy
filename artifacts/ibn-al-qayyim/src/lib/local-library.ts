@@ -7,6 +7,7 @@ export interface LocalReadingPosition {
   bookTitle: string;
   chapterId: number;
   chapterTitle: string;
+  /** Percentage of the whole book reached from the current chapter/page. */
   progress: number;
   savedAt: number;
   scrollY: number;
@@ -119,6 +120,7 @@ export function useLocalLibrary() {
         ]),
       deleteHighlight: (id: string) => setHighlights((current) => current.filter((item) => item.id !== id)),
       deleteNote: (id: string) => setNotes((current) => current.filter((item) => item.id !== id)),
+      deletePosition: (chapterId: number) => setPositions((current) => current.filter((item) => item.chapterId !== chapterId)),
       highlights,
       notes,
       positions,

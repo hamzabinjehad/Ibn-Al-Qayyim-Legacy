@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 const DATA_BASE = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/library-data`;
+const DATA_BASE_CANDIDATES = Array.from(new Set([DATA_BASE, "/library-data"]));
 
 export interface LibraryManifest {
   author: string;
@@ -90,17 +91,32 @@ export interface LibrarySearchResult {
 const cache = new Map<string, Promise<unknown>>();
 
 function fetchJson<T>(path: string): Promise<T> {
-  const url = `${DATA_BASE}/${path}`;
-  if (!cache.has(url)) {
+  const cacheKey = `library-data:${path}`;
+  if (!cache.has(cacheKey)) {
     cache.set(
-      url,
-      fetch(url).then((response) => {
-        if (!response.ok) throw new Error(`Unable to load ${url}`);
-        return response.json() as Promise<T>;
-      }),
+      cacheKey,
+      (async () => {
+        let lastError: unknown;
+
+        for (const base of DATA_BASE_CANDIDATES) {
+          const url = `${base}/${path}`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              lastError = new Error(`Unable to load ${url}`);
+              continue;
+            }
+            return (await response.json()) as T;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+
+        throw lastError instanceof Error ? lastError : new Error(`Unable to load library data: ${path}`);
+      })(),
     );
   }
-  return cache.get(url)! as Promise<T>;
+  return cache.get(cacheKey)! as Promise<T>;
 }
 
 function normalizeArabic(value: string): string {

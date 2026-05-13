@@ -14,7 +14,7 @@
  *   - content = pages whose first heading matches this entry's title, concatenated.
  */
 
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { db, pool, booksTable, chaptersTable } from "@workspace/db";
@@ -22,6 +22,7 @@ import { eq } from "drizzle-orm";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, "../../output/ibn-qayyim");
+const PUBLIC_DIR = path.join(__dirname, "../../artifacts/ibn-al-qayyim/public");
 const COVER_METADATA_FILE = path.join(__dirname, "../metadata/book-covers.json");
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -111,6 +112,11 @@ function readOptionalJson<T>(filePath: string, fallback: T): T {
   }
 }
 
+function hasLocalCoverFile(cover: BookCoverMetadata | undefined): cover is BookCoverMetadata {
+  if (!cover?.coverImageUrl) return false;
+  return existsSync(path.join(PUBLIC_DIR, cover.coverImageUrl.replace(/^\//, "")));
+}
+
 const coverMetadata = readOptionalJson<BookCoverMetadata[]>(COVER_METADATA_FILE, []);
 const coversBySourceId = new Map(
   coverMetadata
@@ -134,7 +140,8 @@ async function seedBook(extracted: ExtractedBook, colorIndex: number): Promise<v
   const category = inferCategory(extracted.title);
   const coverColor = COVER_COLORS[colorIndex % COVER_COLORS.length]!;
   const edition = extractEdition(extracted.title);
-  const cover = coversBySourceId.get(extracted.source_id) ?? coversBySlug.get(extracted.id);
+  const coverCandidate = coversBySourceId.get(extracted.source_id) ?? coversBySlug.get(extracted.id);
+  const cover = hasLocalCoverFile(coverCandidate) ? coverCandidate : undefined;
 
   // Check if book already exists
   const existing = await db

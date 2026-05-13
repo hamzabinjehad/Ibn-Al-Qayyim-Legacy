@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, BookOpen, FileText, Library, Search } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
@@ -25,7 +25,14 @@ export default function Home() {
   const allBooks = books ?? [];
   const continueBook = latestPosition
     ? books?.find((book) => book.id === latestPosition.bookId)
-    : books?.[0];
+    : undefined;
+  const progressByBookId = useMemo(() => {
+    const progress = new Map<number, number>();
+    positions.forEach((position) => {
+      if (!progress.has(position.bookId)) progress.set(position.bookId, position.progress);
+    });
+    return progress;
+  }, [positions]);
 
   const submitSearch = () => {
     const value = query.trim();
@@ -104,8 +111,8 @@ export default function Home() {
                 <ErrorState retry={() => refetch()} title="تعذر تحميل المكتبة" />
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {allBooks.map((book, index) => (
-                    <LibraryBookCard book={book} index={index} key={book.id} />
+                  {allBooks.map((book) => (
+                    <LibraryBookCard book={book} key={book.id} progress={progressByBookId.get(book.id)} />
                   ))}
                 </div>
               )}
@@ -158,7 +165,7 @@ function ContinueReadingCard({
   const href = latestPosition
     ? `/book/${latestPosition.bookId}/chapter/${latestPosition.chapterId}`
     : `/book/${book.id}`;
-  const progress = latestPosition?.progress ?? 43;
+  const progress = latestPosition?.progress;
 
   return (
     <Link
@@ -174,12 +181,14 @@ function ContinueReadingCard({
           </p>
         </div>
         <div>
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border">
-              <div className="h-px bg-foreground" style={{ width: `${Math.round(progress)}%` }} />
+          {typeof progress === "number" && (
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border">
+                <div className="h-px bg-foreground" style={{ width: `${Math.round(progress)}%` }} />
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">{Math.round(progress)}%</span>
             </div>
-            <span className="text-xs text-muted-foreground tabular-nums">{Math.round(progress)}%</span>
-          </div>
+          )}
           <span className="mt-3 inline-flex h-9 items-center rounded-md border border-border px-3 text-sm">
             مواصلة القراءة
           </span>
@@ -199,8 +208,9 @@ function ContinueReadingCard({
   );
 }
 
-function LibraryBookCard({ book, index }: { book: BookSummary; index: number }) {
-  const progress = [11, 36, 43, 28, 17, 38][index % 6]!;
+function LibraryBookCard({ book, progress }: { book: BookSummary; progress?: number }) {
+  const roundedProgress = typeof progress === "number" ? Math.round(progress) : null;
+
   return (
     <Link
       href={`/book/${book.id}`}
@@ -220,12 +230,14 @@ function LibraryBookCard({ book, index }: { book: BookSummary; index: number }) 
         <h3 className="line-clamp-2 text-base font-semibold leading-7">{book.titleAr}</h3>
         <p className="mt-1 text-xs text-muted-foreground">الإمام ابن قيم الجوزية</p>
       </div>
-      <div className="mt-4 flex items-center gap-3">
-        <span className="text-xs text-muted-foreground tabular-nums">{progress}%</span>
-        <div className="h-px flex-1 bg-border">
-          <div className="h-px bg-foreground" style={{ width: `${progress}%` }} />
+      {roundedProgress !== null && (
+        <div className="mt-4 flex items-center gap-3">
+          <span className="text-xs text-muted-foreground tabular-nums">{roundedProgress}%</span>
+          <div className="h-px flex-1 bg-border">
+            <div className="h-px bg-foreground" style={{ width: `${roundedProgress}%` }} />
+          </div>
         </div>
-      </div>
+      )}
     </Link>
   );
 }

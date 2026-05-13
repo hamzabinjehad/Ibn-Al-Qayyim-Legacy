@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "extract-ibn-qayyim": "tsx ./src/extract-ibn-qayyim.ts",
     "generate-static-library": "tsx ./src/generate-static-library.ts",
+    "import-book-covers": "tsx ./src/import-book-covers.ts",
     "seed-from-extracted": "tsx ./src/seed-from-extracted.ts",
     "mock-api": "tsx ./src/mock-api-server.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"

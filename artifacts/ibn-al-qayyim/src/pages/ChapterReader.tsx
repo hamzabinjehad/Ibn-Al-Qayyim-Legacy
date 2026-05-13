@@ -25,6 +25,7 @@ import QuoteShareModal from "@/components/QuoteShareModal";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getHighlightStyle, HIGHLIGHT_PALETTE } from "@/lib/highlights";
 import { type LocalHighlight, stripHarakat, useLocalLibrary } from "@/lib/local-library";
+import { calculateBookPageProgress } from "@/lib/reading-progress";
 import { type ChapterSummary, useStaticBook, useStaticBookChapter } from "@/lib/static-library";
 
 type ReaderStatus = "copied" | "highlighted" | "noted" | "saved" | null;
@@ -106,12 +107,12 @@ export default function ChapterReader() {
   const [tocOpen, setTocOpen] = useState(false);
   const [selection, setSelection] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
-  const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<ReaderStatus>(null);
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const [shareText, setShareText] = useState<string | null>(null);
   const [highlightColor, setHighlightColor] = useState<HighlightColor>(HIGHLIGHT_PALETTE[0].value);
   const contentRef = useRef<HTMLDivElement>(null);
+  const selectionToolbarRef = useRef<HTMLDivElement>(null);
 
   const body = settings.showHarakat ? chapter?.content ?? "" : stripHarakat(chapter?.content ?? "");
   const fontFamily = settings.fontFamily === "amiri" ? "var(--app-font-serif)" : "var(--app-font-sans)";
@@ -120,6 +121,7 @@ export default function ChapterReader() {
   const currentIndex = chapters.findIndex((item) => item.id === chapterIdNum);
   const prev = currentIndex > 0 ? chapters[currentIndex - 1] : null;
   const next = currentIndex >= 0 ? chapters[currentIndex + 1] : null;
+  const bookProgress = useMemo(() => calculateBookPageProgress(book, chapter), [book, chapter]);
 
   const readingMinutes = useMemo(() => {
     const count = body.trim().split(/\s+/).filter(Boolean).length;
@@ -143,28 +145,16 @@ export default function ChapterReader() {
 
   const saveCurrentPosition = useCallback(() => {
     if (!chapter || !book) return;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const currentProgress = docHeight > 0 ? Math.min(100, (window.scrollY / docHeight) * 100) : 0;
     savePosition({
       bookId: book.id,
       bookTitle: book.titleAr,
       chapterId: chapter.id,
       chapterTitle: chapter.titleAr,
-      progress: currentProgress,
+      progress: bookProgress,
       savedAt: Date.now(),
       scrollY: window.scrollY,
     });
-  }, [book, chapter, savePosition]);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      setProgress(docHeight > 0 ? Math.min(100, (window.scrollY / docHeight) * 100) : 0);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [chapterIdNum]);
+  }, [book, bookProgress, chapter, savePosition]);
 
   useEffect(() => {
     const interval = window.setInterval(saveCurrentPosition, 3000);
@@ -190,6 +180,28 @@ export default function ChapterReader() {
       document.removeEventListener("touchend", onSelection);
     };
   }, []);
+
+  useEffect(() => {
+    if (!selection) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (selectionToolbarRef.current?.contains(event.target as Node)) return;
+      clearSelection();
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY > 0) {
+        clearSelection();
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("wheel", onWheel);
+    };
+  }, [selection]);
 
   const selectionPayload = () => ({
     bookId: book!.id,
@@ -242,17 +254,10 @@ export default function ChapterReader() {
   return (
     <AppShell>
       <div className="fixed left-0 right-0 top-16 z-40 h-px bg-border">
-        <div className="h-full bg-foreground transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-full bg-foreground transition-all" style={{ width: `${bookProgress}%` }} />
       </div>
 
-      <main className="mx-auto grid max-w-7xl gap-0 px-5 pb-36 pt-8 lg:grid-cols-[18rem_minmax(0,52rem)]">
-        <ReaderToc
-          bookId={book.id}
-          chapterId={chapter.id}
-          chapters={chapters}
-          className="hidden lg:block"
-        />
-
+      <main className="mx-auto grid max-w-7xl gap-0 px-5 pb-36 pt-8">
         <article className="min-w-0 border-x border-border bg-background">
           <div className="sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur-xl">
             <div className="flex h-14 items-center justify-between gap-3 px-4">
@@ -285,9 +290,9 @@ export default function ChapterReader() {
               </div>
             </div>
             <div className="flex items-center gap-3 px-4 pb-3 text-xs text-muted-foreground">
-              <span className="tabular-nums">{Math.round(progress)}%</span>
+              <span className="tabular-nums">{Math.round(bookProgress)}%</span>
               <div className="h-px flex-1 bg-border">
-                <div className="h-px bg-foreground" style={{ width: `${progress}%` }} />
+                <div className="h-px bg-foreground" style={{ width: `${bookProgress}%` }} />
               </div>
             </div>
           </div>
@@ -342,7 +347,10 @@ export default function ChapterReader() {
       )}
 
       {selection && (
-        <div className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-lg border border-border bg-background p-3 shadow-lg md:bottom-20">
+        <div
+          ref={selectionToolbarRef}
+          className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-lg border border-border bg-background p-3 shadow-lg md:bottom-20"
+        >
           <div className="flex items-start gap-3">
             <p className="line-clamp-2 flex-1 text-sm leading-6 text-muted-foreground">{selection}</p>
             <button onClick={clearSelection} className="text-muted-foreground hover:text-foreground" aria-label="إغلاق">
@@ -417,13 +425,19 @@ export default function ChapterReader() {
         <QuoteShareModal
           bookTitle={book.titleAr}
           chapterTitle={chapter.titleAr}
+          pageNumber={chapter.page}
+          coverColor={book.coverColor}
           onClose={() => setShareText(null)}
           text={shareText}
         />
       )}
 
       <Sheet open={tocOpen} onOpenChange={setTocOpen}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md" dir="rtl">
+        <SheetContent
+          side="right"
+          className="w-full max-w-full overflow-y-auto sm:max-w-md lg:max-w-lg"
+          dir="rtl"
+        >
           <SheetHeader>
             <SheetTitle>الفهرس</SheetTitle>
           </SheetHeader>

@@ -14,7 +14,7 @@ interface ShareQuote {
 }
 
 export default function Profile() {
-  const { deleteHighlight, deleteNote, highlights, notes, positions } = useLocalLibrary();
+  const { deleteHighlight, deleteNote, deletePosition, highlights, notes, positions } = useLocalLibrary();
   const [shareQuote, setShareQuote] = useState<ShareQuote | null>(null);
 
   return (
@@ -42,20 +42,11 @@ export default function Profile() {
             ) : (
               <div className="space-y-3">
                 {positions.map((position) => (
-                  <Link
-                    href={`/book/${position.bookId}/chapter/${position.chapterId}`}
-                    className="block rounded-lg border border-border p-4 transition-colors hover:border-foreground"
+                  <ReadingPositionItem
                     key={position.chapterId}
-                  >
-                    <p className="text-xs text-muted-foreground">{position.bookTitle}</p>
-                    <h3 className="mt-1 line-clamp-2 font-semibold leading-7">{position.chapterTitle}</h3>
-                    <div className="mt-3 h-px bg-border">
-                      <div className="h-px bg-foreground" style={{ width: `${Math.round(position.progress)}%` }} />
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground tabular-nums">
-                      {Math.round(position.progress)}% / {new Date(position.savedAt).toLocaleDateString("ar-SA")}
-                    </p>
-                  </Link>
+                    onDelete={() => deletePosition(position.chapterId)}
+                    position={position}
+                  />
                 ))}
               </div>
             )}
@@ -133,6 +124,39 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="border-l border-border px-4 py-4 last:border-l-0">
       <p className="text-2xl font-semibold tabular-nums">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function ReadingPositionItem({
+  onDelete,
+  position,
+}: {
+  onDelete: () => void;
+  position: ReturnType<typeof useLocalLibrary>["positions"][number];
+}) {
+  return (
+    <div className="rounded-lg border border-border p-4 transition-colors hover:border-foreground">
+      <div className="flex items-start gap-3">
+        <Link href={`/book/${position.bookId}/chapter/${position.chapterId}`} className="min-w-0 flex-1">
+          <p className="text-xs text-muted-foreground">{position.bookTitle}</p>
+          <h3 className="mt-1 line-clamp-2 font-semibold leading-7">{position.chapterTitle}</h3>
+          <div className="mt-3 h-px bg-border">
+            <div className="h-px bg-foreground" style={{ width: `${Math.round(position.progress)}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+            {Math.round(position.progress)}% / {new Date(position.savedAt).toLocaleDateString("ar-SA")}
+          </p>
+        </Link>
+        <button
+          onClick={onDelete}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-label="حذف المقروءة"
+          type="button"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }

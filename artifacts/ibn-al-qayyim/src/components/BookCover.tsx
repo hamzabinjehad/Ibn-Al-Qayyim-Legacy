@@ -30,8 +30,6 @@ export default function BookCover({
   coverColor,
   coverImageAlt,
   coverImageUrl,
-  editionLabel,
-  publisher,
   title,
   size = "sm",
   badge,
@@ -68,13 +66,11 @@ export default function BookCover({
           <div className="book-cover-top-rule" aria-hidden="true" />
           <div className="book-cover-bottom-rule" aria-hidden="true" />
 
-          <p className="book-cover-author relative z-10">ابن قيم الجوزية</p>
           <h3
             className={`book-cover-title relative z-10 max-w-[85%] font-bold ${TITLE_CLASS[size]} line-clamp-3`}
           >
             {title}
           </h3>
-          <p className="book-cover-edition relative z-10">{editionLabel ?? publisher ?? "موروث ابن القيم"}</p>
         </>
       )}
     </div>
