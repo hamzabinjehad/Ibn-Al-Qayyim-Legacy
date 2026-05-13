@@ -30,6 +30,10 @@ export const ListBooksResponseItem = zod.object({
   chapterCount: zod.number(),
   pageCount: zod.number(),
   coverColor: zod.string(),
+  coverImageUrl: zod.string().nullish(),
+  coverImageAlt: zod.string().nullish(),
+  publisher: zod.string().nullish(),
+  editionLabel: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const ListBooksResponse = zod.array(ListBooksResponseItem);
@@ -50,6 +54,10 @@ export const GetBookResponse = zod.object({
   chapterCount: zod.number(),
   pageCount: zod.number(),
   coverColor: zod.string(),
+  coverImageUrl: zod.string().nullish(),
+  coverImageAlt: zod.string().nullish(),
+  publisher: zod.string().nullish(),
+  editionLabel: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 

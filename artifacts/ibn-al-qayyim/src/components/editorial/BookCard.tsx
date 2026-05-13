@@ -4,12 +4,22 @@ import type { BookSummary } from "@/lib/static-library";
 import BookCover from "@/components/BookCover";
 
 export function BookCard({ book }: { book: BookSummary }) {
+  const progress = 11 + ((book.id * 7) % 32);
   return (
     <Link
       href={`/book/${book.id}`}
       className="group block rounded-lg border border-border bg-background p-4 transition-colors hover:border-foreground"
     >
-      <BookCover coverColor={book.coverColor} title={book.titleAr} size="md" className="mx-auto max-w-40" />
+      <BookCover
+        coverColor={book.coverColor}
+        coverImageAlt={book.coverImageAlt}
+        coverImageUrl={book.coverImageUrl}
+        editionLabel={book.editionLabel}
+        publisher={book.publisher}
+        title={book.titleAr}
+        size="md"
+        className="mx-auto max-w-40"
+      />
       <div className="mt-4 text-center">
         <p className="text-xs text-muted-foreground">{book.category}</p>
         <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
@@ -18,6 +28,12 @@ export function BookCard({ book }: { book: BookSummary }) {
         <p className="mt-1 text-xs text-muted-foreground tabular-nums">
           {book.chapterCount} فصل / {book.pageCount} صفحة
         </p>
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <span className="text-xs text-muted-foreground tabular-nums">{progress}%</span>
+        <div className="h-px flex-1 bg-border">
+          <div className="h-px bg-foreground" style={{ width: `${progress}%` }} />
+        </div>
       </div>
     </Link>
   );
@@ -29,7 +45,16 @@ export function BookRow({ book }: { book: BookSummary }) {
       href={`/book/${book.id}`}
       className="grid gap-4 rounded-lg border border-border bg-background p-4 transition-colors hover:border-foreground sm:grid-cols-[auto_1fr_auto]"
     >
-      <BookCover coverColor={book.coverColor} title={book.titleAr} size="sm" className="hidden w-24 sm:flex" />
+      <BookCover
+        coverColor={book.coverColor}
+        coverImageAlt={book.coverImageAlt}
+        coverImageUrl={book.coverImageUrl}
+        editionLabel={book.editionLabel}
+        publisher={book.publisher}
+        title={book.titleAr}
+        size="sm"
+        className="hidden w-24 sm:flex"
+      />
       <div>
         <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <Bookmark className="h-3.5 w-3.5" />

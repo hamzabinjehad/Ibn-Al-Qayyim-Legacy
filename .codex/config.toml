@@ -1,0 +1,8 @@
+[mcp_servers.supabase]
+args = [
+    "-y",
+    "@supabase/mcp-server-supabase@latest",
+    "--access-token",
+    "sbp_b097c277ba8957b91eb6591a268a3cbd97f999d9",
+]
+command = "npx"

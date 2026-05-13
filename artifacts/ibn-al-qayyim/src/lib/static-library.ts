@@ -22,9 +22,13 @@ export interface BookSummary {
   category: string;
   chapterCount: number;
   coverColor: string;
+  coverImageAlt?: string;
+  coverImageUrl?: string;
   description: string;
+  editionLabel?: string;
   id: number;
   pageCount: number;
+  publisher?: string;
   slug: string;
   sourceId: number;
   title: string;

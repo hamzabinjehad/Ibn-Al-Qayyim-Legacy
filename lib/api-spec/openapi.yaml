@@ -433,6 +433,18 @@ components:
           type: integer
         coverColor:
           type: string
+        coverImageUrl:
+          type: string
+          nullable: true
+        coverImageAlt:
+          type: string
+          nullable: true
+        publisher:
+          type: string
+          nullable: true
+        editionLabel:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time

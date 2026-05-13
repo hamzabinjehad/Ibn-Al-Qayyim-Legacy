@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Home = lazy(() => import("@/pages/Home"));
 const Library = lazy(() => import("@/pages/Library"));
+const ReadingPlan = lazy(() => import("@/pages/ReadingPlan"));
 const BookDetail = lazy(() => import("@/pages/BookDetail"));
 const BookEditions = lazy(() => import("@/pages/BookEditions"));
 const ChapterReader = lazy(() => import("@/pages/ChapterReader"));
@@ -38,6 +39,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/library" component={Library} />
+        <Route path="/reading-plan" component={ReadingPlan} />
         <Route path="/editions/:slug" component={BookEditions} />
         <Route path="/book/:bookId" component={BookDetail} />
         <Route path="/book/:bookId/chapter/:chapterId" component={ChapterReader} />

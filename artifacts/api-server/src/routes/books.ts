@@ -24,7 +24,11 @@ booksRouter.get("/books", async (req, res) => {
         description: booksTable.description,
         category: booksTable.category,
         coverColor: booksTable.coverColor,
+        coverImageAlt: booksTable.coverImageAlt,
+        coverImageUrl: booksTable.coverImageUrl,
+        editionLabel: booksTable.editionLabel,
         pageCount: booksTable.pageCount,
+        publisher: booksTable.publisher,
         createdAt: booksTable.createdAt,
         chapterCount: sql<number>`cast(count(${chaptersTable.id}) as int)`,
       })
@@ -38,7 +42,11 @@ booksRouter.get("/books", async (req, res) => {
         booksTable.description,
         booksTable.category,
         booksTable.coverColor,
+        booksTable.coverImageAlt,
+        booksTable.coverImageUrl,
+        booksTable.editionLabel,
         booksTable.pageCount,
+        booksTable.publisher,
         booksTable.createdAt,
       );
 
@@ -62,7 +70,11 @@ booksRouter.get("/books/:bookId", async (req, res) => {
         description: booksTable.description,
         category: booksTable.category,
         coverColor: booksTable.coverColor,
+        coverImageAlt: booksTable.coverImageAlt,
+        coverImageUrl: booksTable.coverImageUrl,
+        editionLabel: booksTable.editionLabel,
         pageCount: booksTable.pageCount,
+        publisher: booksTable.publisher,
         createdAt: booksTable.createdAt,
         chapterCount: sql<number>`cast(count(${chaptersTable.id}) as int)`,
       })
@@ -76,7 +88,11 @@ booksRouter.get("/books/:bookId", async (req, res) => {
         booksTable.description,
         booksTable.category,
         booksTable.coverColor,
+        booksTable.coverImageAlt,
+        booksTable.coverImageUrl,
+        booksTable.editionLabel,
         booksTable.pageCount,
+        booksTable.publisher,
         booksTable.createdAt,
       );
 

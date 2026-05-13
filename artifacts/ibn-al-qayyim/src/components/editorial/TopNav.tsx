@@ -1,9 +1,18 @@
 import { Link, useLocation } from "wouter";
-import { Bookmark, Library, Menu, Moon, Search, Settings, Sun } from "lucide-react";
+import { Bookmark, Library, Menu, Moon, Route, Search, Settings, Sun, UserRound, type LucideIcon } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
-const NAV_ITEMS = [
-  { href: "/library", label: "المكتبة", icon: Library, match: (p: string) => p.startsWith("/library") || p.startsWith("/book") },
+interface NavItem {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  match: (path: string) => boolean;
+  mobileLabel?: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { href: "/library", label: "المكتبة", icon: Library, match: (p: string) => p.startsWith("/library") || p.startsWith("/book") || p.startsWith("/editions") },
+  { href: "/reading-plan", label: "ترتيب القراءة", mobileLabel: "الخطة", icon: Route, match: (p: string) => p.startsWith("/reading-plan") },
   { href: "/search", label: "البحث", icon: Search, match: (p: string) => p.startsWith("/search") },
   { href: "/profile", label: "الملاحظات", icon: Bookmark, match: (p: string) => p.startsWith("/profile") },
 ];
@@ -14,7 +23,7 @@ export default function TopNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[90rem] items-center gap-4 px-4 sm:px-6">
+      <div className="relative mx-auto flex h-16 max-w-[90rem] items-center gap-4 px-4 sm:px-6">
         <button
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border lg:hidden"
           aria-label="القائمة"
@@ -22,7 +31,10 @@ export default function TopNav() {
           <Menu className="h-4 w-4" />
         </button>
 
-        <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-semibold tracking-tight">
+        <Link
+          href="/"
+          className="shrink-0 whitespace-nowrap text-lg font-semibold tracking-tight md:absolute md:left-1/2 md:-translate-x-1/2"
+        >
           موروث ابن القيم
         </Link>
 
@@ -55,14 +67,14 @@ export default function TopNav() {
           <Link
             href="/profile"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="الإعدادات"
+            aria-label="حسابي"
           >
-            <Settings className="h-4 w-4" />
+            <UserRound className="h-4 w-4" />
           </Link>
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-3 border-t border-border bg-background/95 text-xs text-muted-foreground backdrop-blur-xl md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-5 border-t border-border bg-background/95 text-[0.7rem] text-muted-foreground backdrop-blur-xl md:hidden">
         {NAV_ITEMS.map((item) => {
           const active = item.match(location);
           const Icon = item.icon;
@@ -75,10 +87,17 @@ export default function TopNav() {
               }`}
             >
               <Icon className={`h-5 w-5 ${active ? "fill-foreground/10" : ""}`} />
-              <span>{item.label}</span>
+              <span>{item.mobileLabel ?? item.label}</span>
             </Link>
           );
         })}
+        <button
+          onClick={toggle}
+          className="flex flex-col items-center justify-center gap-1 transition-colors hover:text-foreground"
+        >
+          <Settings className="h-5 w-5" />
+          <span>الإعدادات</span>
+        </button>
       </nav>
     </header>
   );

@@ -1,28 +1,10 @@
 import { Link, useParams } from "wouter";
 import { ArrowLeft, BookMarked, ChevronLeft, FileText, Library } from "lucide-react";
+import BookTocTree from "@/components/BookTocTree";
 import AppShell from "@/components/editorial/AppShell";
 import { ErrorState, LoadingState } from "@/components/editorial/DataState";
 import BookCover from "@/components/BookCover";
-import { type ChapterSummary, useStaticBook } from "@/lib/static-library";
-
-interface ChapterNode extends ChapterSummary {
-  children: ChapterNode[];
-}
-
-function buildTree(chapters: ChapterSummary[]): ChapterNode[] {
-  const nodeMap = new Map<number, ChapterNode>();
-  const roots: ChapterNode[] = [];
-  chapters.forEach((chapter) => nodeMap.set(chapter.id, { ...chapter, children: [] }));
-  chapters.forEach((chapter) => {
-    const node = nodeMap.get(chapter.id)!;
-    if (chapter.parentId && nodeMap.has(chapter.parentId)) {
-      nodeMap.get(chapter.parentId)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-  return roots;
-}
+import { useStaticBook } from "@/lib/static-library";
 
 export default function BookDetail() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -47,8 +29,6 @@ export default function BookDetail() {
     );
   }
 
-  const tree = buildTree(book.chapters);
-
   return (
     <AppShell>
       <main className="mx-auto max-w-[90rem] px-5 pb-24 pt-10 md:pb-16">
@@ -61,7 +41,16 @@ export default function BookDetail() {
         </div>
 
         <section className="grid min-w-0 gap-8 border-b border-border pb-10 lg:grid-cols-[18rem_1fr_16rem]">
-          <BookCover coverColor={book.coverColor} title={book.titleAr} size="lg" className="mx-auto w-full max-w-72" />
+          <BookCover
+            coverColor={book.coverColor}
+            coverImageAlt={book.coverImageAlt}
+            coverImageUrl={book.coverImageUrl}
+            editionLabel={book.editionLabel}
+            publisher={book.publisher}
+            title={book.titleAr}
+            size="lg"
+            className="mx-auto w-full max-w-72"
+          />
           <div className="self-center">
             <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <Library className="h-4 w-4" />
@@ -106,11 +95,7 @@ export default function BookDetail() {
               <BookMarked className="h-5 w-5" />
               <h2 className="text-2xl font-semibold">فهرس الكتاب</h2>
             </div>
-            <div className="space-y-2">
-              {tree.map((node) => (
-                <ChapterNodeView bookId={book.id} key={node.id} node={node} />
-              ))}
-            </div>
+            <BookTocTree bookId={book.id} chapters={book.chapters} />
           </div>
           <aside className="hidden lg:block">
             <div className="sticky top-24 rounded-lg border border-border p-4 text-sm text-muted-foreground">
@@ -122,27 +107,5 @@ export default function BookDetail() {
         </section>
       </main>
     </AppShell>
-  );
-}
-
-function ChapterNodeView({ bookId, node }: { bookId: number; node: ChapterNode }) {
-  const hasChildren = node.children.length > 0;
-  return (
-    <div className={`${node.level === 1 ? "border border-border" : "mr-4 border-r border-border"} rounded-lg`}>
-      <Link
-        href={`/book/${bookId}/chapter/${node.id}`}
-        className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/50"
-      >
-        <span className={`${node.level === 1 ? "font-semibold" : "text-sm"} leading-7`}>{node.titleAr}</span>
-        <span className="text-xs text-muted-foreground tabular-nums">ص {node.page}</span>
-      </Link>
-      {hasChildren && (
-        <div className="space-y-1 border-t border-border p-2">
-          {node.children.map((child) => (
-            <ChapterNodeView bookId={bookId} key={child.id} node={child} />
-          ))}
-        </div>
-      )}
-    </div>
   );
 }

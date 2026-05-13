@@ -15,5 +15,9 @@ export interface Book {
   chapterCount: number;
   pageCount: number;
   coverColor: string;
+  coverImageUrl?: string | null;
+  coverImageAlt?: string | null;
+  publisher?: string | null;
+  editionLabel?: string | null;
   createdAt: Date;
 }

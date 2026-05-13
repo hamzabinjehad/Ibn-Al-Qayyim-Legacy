@@ -1,10 +1,11 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE_DIR = path.resolve(__dirname, "../output/ibn-qayyim");
 const TARGET_DIR = path.resolve(__dirname, "../../artifacts/ibn-al-qayyim/public/library-data");
+const COVER_METADATA_FILE = path.resolve(__dirname, "../metadata/book-covers.json");
 
 interface SourceIndexBook {
   file: string;
@@ -51,14 +52,27 @@ interface BookSummary {
   category: string;
   chapterCount: number;
   coverColor: string;
+  coverImageAlt?: string;
+  coverImageUrl?: string;
   description: string;
+  editionLabel?: string;
   id: number;
   pageCount: number;
+  publisher?: string;
   slug: string;
   sourceId: number;
   title: string;
   titleAr: string;
   volumes: number;
+}
+
+interface BookCoverMetadata {
+  coverImageAlt?: string;
+  coverImageUrl: string;
+  publisher?: string;
+  slug?: string;
+  sourceId?: number;
+  sourceUrl?: string;
 }
 
 interface ChapterSummary {
@@ -122,8 +136,87 @@ function stripEdition(title: string): string {
     .trim();
 }
 
+function extractEdition(title: string): { editionLabel?: string; publisher?: string } {
+  const match = title.match(/\s+-\s+([\u0637\u062A])\s+(.+)$/u);
+  if (!match) return {};
+
+  const labelPrefix = match[1] === "\u0637" ? "\u0637" : "\u062A";
+  const publisher = match[2]?.trim();
+  if (!publisher) return {};
+
+  return {
+    editionLabel: `${labelPrefix} ${publisher}`,
+    publisher,
+  };
+}
+
 function readJson<T>(filePath: string): T {
   return JSON.parse(readFileSync(filePath, "utf8")) as T;
+}
+
+function readOptionalJson<T>(filePath: string, fallback: T): T {
+  try {
+    return readJson<T>(filePath);
+  } catch {
+    return fallback;
+  }
+}
+
+function collectJsonFiles(dir: string): string[] {
+  const entries = readdirSync(dir);
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry);
+    const stat = statSync(fullPath);
+    if (stat.isDirectory()) {
+      files.push(...collectJsonFiles(fullPath));
+    } else if (entry.endsWith(".json")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+function loadSourceIndex(): SourceIndex {
+  const indexPath = path.join(SOURCE_DIR, "index.json");
+  if (existsSync(indexPath)) {
+    return readJson<SourceIndex>(indexPath);
+  }
+
+  const previousBooks = readOptionalJson<BookSummary[]>(path.join(TARGET_DIR, "books.json"), []);
+  const previousOrder = new Map<number | string, number>();
+  previousBooks.forEach((book, index) => {
+    previousOrder.set(book.sourceId, index);
+    previousOrder.set(book.slug, index);
+  });
+
+  const books = collectJsonFiles(SOURCE_DIR)
+    .map((filePath): SourceIndexBook => {
+      const source = readJson<SourceBook>(filePath);
+      return {
+        file: path.relative(SOURCE_DIR, filePath),
+        id: source.id,
+        pages: source.pages?.length ?? 0,
+        source_id: source.source_id,
+        title: source.title,
+        volumes: source.volumes_count,
+      };
+    })
+    .sort((a, b) => {
+      const aOrder = previousOrder.get(a.source_id ?? a.id) ?? previousOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+      const bOrder = previousOrder.get(b.source_id ?? b.id) ?? previousOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+      return aOrder - bOrder || a.title.localeCompare(b.title, "ar");
+    });
+
+  return {
+    author: "ابن قيم الجوزية",
+    books,
+    books_count: books.length,
+    extracted_at: new Date().toISOString(),
+    source: "turath.io",
+  };
 }
 
 function writeJson(filePath: string, value: unknown): void {
@@ -161,7 +254,18 @@ function writeShards<T>(
 }
 
 function main() {
-  const index = readJson<SourceIndex>(path.join(SOURCE_DIR, "index.json"));
+  const index = loadSourceIndex();
+  const coverMetadata = readOptionalJson<BookCoverMetadata[]>(COVER_METADATA_FILE, []);
+  const coversBySourceId = new Map(
+    coverMetadata
+      .filter((item) => typeof item.sourceId === "number")
+      .map((item) => [item.sourceId!, item]),
+  );
+  const coversBySlug = new Map(
+    coverMetadata
+      .filter((item) => item.slug)
+      .map((item) => [item.slug!, item]),
+  );
 
   rmSync(TARGET_DIR, { force: true, recursive: true });
   mkdirSync(path.join(TARGET_DIR, "books"), { recursive: true });
@@ -187,6 +291,8 @@ function main() {
 
     const bookId = bookIndex + 1;
     const category = inferCategory(source.title);
+    const edition = extractEdition(source.title);
+    const cover = coversBySourceId.get(source.source_id) ?? coversBySlug.get(source.id);
     const contentMap = buildContentMap(source.pages);
     const parentStack = new Map<number, number>();
     const chapters: ChapterSummary[] = [];
@@ -226,9 +332,13 @@ function main() {
       category,
       chapterCount: chapters.length,
       coverColor: COVER_COLORS[bookIndex % COVER_COLORS.length]!,
-      description: `من مؤلفات الإمام ابن قيم الجوزية. المصدر: ${source.source}.`,
+      coverImageAlt: cover?.coverImageAlt,
+      coverImageUrl: cover?.coverImageUrl,
+      description: "من مؤلفات الإمام ابن قيم الجوزية.",
+      editionLabel: edition.editionLabel,
       id: bookId,
       pageCount: entry.pages ?? source.pages?.length ?? 0,
+      publisher: cover?.publisher ?? edition.publisher,
       slug: source.id,
       sourceId: source.source_id,
       title: source.title,

@@ -4,15 +4,8 @@ import { ChevronLeft, Layers } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { BookRow } from "@/components/editorial/BookCard";
 import { EmptyState, LoadingState } from "@/components/editorial/DataState";
+import { extractBaseTitle } from "@/lib/book-titles";
 import { useStaticBooks } from "@/lib/static-library";
-
-// Strips edition/publisher suffixes to get the base title of a work.
-export function extractBaseTitle(title: string): string {
-  return title
-    .replace(/\s*=\s*[؀-ۿ\s،؛؟]+/, "")
-    .replace(/\s*-\s*(ط|ت)\s+.+$/, "")
-    .trim();
-}
 
 export default function BookEditions() {
   const { slug } = useParams<{ slug: string }>();

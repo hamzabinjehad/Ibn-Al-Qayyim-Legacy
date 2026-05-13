@@ -22,6 +22,7 @@ import { eq } from "drizzle-orm";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, "../../output/ibn-qayyim");
+const COVER_METADATA_FILE = path.join(__dirname, "../metadata/book-covers.json");
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,15 @@ interface ExtractedBook {
   volumes_count: number;
   index: IndexEntry[];
   pages: PageEntry[];
+}
+
+interface BookCoverMetadata {
+  coverImageAlt?: string;
+  coverImageUrl: string;
+  publisher?: string;
+  slug?: string;
+  sourceId?: number;
+  sourceUrl?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -79,6 +89,40 @@ function buildContentMap(pages: PageEntry[]): Map<string, string> {
   return map;
 }
 
+function extractEdition(title: string): { editionLabel?: string; publisher?: string } {
+  const match = title.match(/\s+-\s+([\u0637\u062A])\s+(.+)$/u);
+  if (!match) return {};
+
+  const labelPrefix = match[1] === "\u0637" ? "\u0637" : "\u062A";
+  const publisher = match[2]?.trim();
+  if (!publisher) return {};
+
+  return {
+    editionLabel: `${labelPrefix} ${publisher}`,
+    publisher,
+  };
+}
+
+function readOptionalJson<T>(filePath: string, fallback: T): T {
+  try {
+    return JSON.parse(readFileSync(filePath, "utf-8")) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+const coverMetadata = readOptionalJson<BookCoverMetadata[]>(COVER_METADATA_FILE, []);
+const coversBySourceId = new Map(
+  coverMetadata
+    .filter((item) => typeof item.sourceId === "number")
+    .map((item) => [item.sourceId!, item]),
+);
+const coversBySlug = new Map(
+  coverMetadata
+    .filter((item) => item.slug)
+    .map((item) => [item.slug!, item]),
+);
+
 // ─── Seed a single book ───────────────────────────────────────────────────────
 
 async function seedBook(extracted: ExtractedBook, colorIndex: number): Promise<void> {
@@ -89,6 +133,8 @@ async function seedBook(extracted: ExtractedBook, colorIndex: number): Promise<v
 
   const category = inferCategory(extracted.title);
   const coverColor = COVER_COLORS[colorIndex % COVER_COLORS.length]!;
+  const edition = extractEdition(extracted.title);
+  const cover = coversBySourceId.get(extracted.source_id) ?? coversBySlug.get(extracted.id);
 
   // Check if book already exists
   const existing = await db
@@ -103,7 +149,13 @@ async function seedBook(extracted: ExtractedBook, colorIndex: number): Promise<v
     bookId = existing[0]!.id;
     await db.delete(chaptersTable).where(eq(chaptersTable.bookId, bookId));
     await db.update(booksTable)
-      .set({ pageCount: extracted.pages.length })
+      .set({
+        coverImageAlt: cover?.coverImageAlt ?? null,
+        coverImageUrl: cover?.coverImageUrl ?? null,
+        editionLabel: edition.editionLabel ?? null,
+        pageCount: extracted.pages.length,
+        publisher: cover?.publisher ?? edition.publisher ?? null,
+      })
       .where(eq(booksTable.id, bookId));
   } else {
     const [inserted] = await db
@@ -114,7 +166,11 @@ async function seedBook(extracted: ExtractedBook, colorIndex: number): Promise<v
         description: `من مؤلفات الإمام ابن قيم الجوزية رحمه الله. المصدر: turath.io`,
         category,
         coverColor,
+        coverImageAlt: cover?.coverImageAlt ?? null,
+        coverImageUrl: cover?.coverImageUrl ?? null,
         pageCount: extracted.pages.length,
+        publisher: cover?.publisher ?? edition.publisher ?? null,
+        editionLabel: edition.editionLabel ?? null,
       })
       .returning({ id: booksTable.id });
     bookId = inserted!.id;

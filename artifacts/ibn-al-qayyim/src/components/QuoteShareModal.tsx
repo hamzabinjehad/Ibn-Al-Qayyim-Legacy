@@ -8,6 +8,27 @@ interface Props {
   onClose: () => void;
 }
 
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Use the legacy path when the browser blocks Clipboard API.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+}
+
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
@@ -197,7 +218,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, onClose
     );
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(shareText);
+    await copyText(shareText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
   };

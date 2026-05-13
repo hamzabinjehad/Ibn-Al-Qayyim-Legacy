@@ -10,6 +10,10 @@ export const booksTable = pgTable("books", {
   description: text("description").notNull(),
   category: text("category").notNull(),
   coverColor: text("cover_color").notNull().default("#8B4513"),
+  coverImageUrl: text("cover_image_url"),
+  coverImageAlt: text("cover_image_alt"),
+  publisher: text("publisher"),
+  editionLabel: text("edition_label"),
   pageCount: integer("page_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

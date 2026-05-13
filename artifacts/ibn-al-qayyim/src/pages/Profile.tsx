@@ -1,11 +1,21 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { BookOpen, Highlighter, StickyNote, Trash2 } from "lucide-react";
+import { BookOpen, Highlighter, Share2, StickyNote, Trash2 } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { EmptyState } from "@/components/editorial/DataState";
+import QuoteShareModal from "@/components/QuoteShareModal";
+import { getHighlightStyle } from "@/lib/highlights";
 import { useLocalLibrary } from "@/lib/local-library";
+
+interface ShareQuote {
+  bookTitle: string;
+  chapterTitle: string;
+  text: string;
+}
 
 export default function Profile() {
   const { deleteHighlight, deleteNote, highlights, notes, positions } = useLocalLibrary();
+  const [shareQuote, setShareQuote] = useState<ShareQuote | null>(null);
 
   return (
     <AppShell>
@@ -64,6 +74,14 @@ export default function Profile() {
                   key={highlight.id}
                   meta={`${highlight.bookTitle} / ${highlight.chapterTitle}`}
                   onDelete={() => deleteHighlight(highlight.id)}
+                  onShare={() =>
+                    setShareQuote({
+                      bookTitle: highlight.bookTitle,
+                      chapterTitle: highlight.chapterTitle,
+                      text: highlight.text,
+                    })
+                  }
+                  highlightColor={highlight.color}
                   text={highlight.text}
                   variant="highlight"
                 />
@@ -82,6 +100,13 @@ export default function Profile() {
                   key={note.id}
                   meta={`${note.bookTitle} / ${note.chapterTitle}`}
                   onDelete={() => deleteNote(note.id)}
+                  onShare={() =>
+                    setShareQuote({
+                      bookTitle: note.bookTitle,
+                      chapterTitle: note.chapterTitle,
+                      text: note.selectedText || note.note,
+                    })
+                  }
                   quote={note.selectedText}
                   text={note.note}
                 />
@@ -90,6 +115,15 @@ export default function Profile() {
           </section>
         </div>
       </main>
+
+      {shareQuote && (
+        <QuoteShareModal
+          bookTitle={shareQuote.bookTitle}
+          chapterTitle={shareQuote.chapterTitle}
+          onClose={() => setShareQuote(null)}
+          text={shareQuote.text}
+        />
+      )}
     </AppShell>
   );
 }
@@ -132,6 +166,8 @@ function SavedItem({
   href,
   meta,
   onDelete,
+  highlightColor,
+  onShare,
   quote,
   text,
   variant,
@@ -139,6 +175,8 @@ function SavedItem({
   href: string;
   meta: string;
   onDelete: () => void;
+  highlightColor?: string;
+  onShare: () => void;
   quote?: string;
   text: string;
   variant?: "highlight";
@@ -151,14 +189,30 @@ function SavedItem({
           <Link href={href} className="text-xs text-muted-foreground hover:text-foreground">
             {meta}
           </Link>
-          {quote && <p className="mt-2 border-r border-border pr-3 text-sm leading-7 text-muted-foreground">{quote}</p>}
-          <p className={`mt-2 text-base leading-8 ${variant === "highlight" ? "reader-highlight rounded-md px-3 py-2" : ""}`}>
+          {quote && <p className="saved-note-quote mt-3 text-sm leading-7">{quote}</p>}
+          <p
+            className={`mt-2 text-base leading-8 ${variant === "highlight" ? "reader-highlight rounded-md px-3 py-2" : ""}`}
+            style={variant === "highlight" && highlightColor ? getHighlightStyle(highlightColor) : undefined}
+          >
             {text}
           </p>
         </div>
-        <button onClick={onDelete} className="text-muted-foreground transition-colors hover:text-foreground" aria-label="حذف">
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            onClick={onShare}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="مشاركة"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="حذف"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
