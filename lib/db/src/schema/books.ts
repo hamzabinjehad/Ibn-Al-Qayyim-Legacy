@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -23,7 +23,10 @@ export const chaptersTable = pgTable("chapters", {
   orderIndex: integer("order_index").notNull().default(0),
   level: integer("level").notNull().default(1),
   parentId: integer("parent_id").references((): AnyPgColumn => chaptersTable.id, { onDelete: "set null" }),
-});
+}, (table) => [
+  index("chapters_book_id_idx").on(table.bookId),
+  index("chapters_book_id_order_idx").on(table.bookId, table.orderIndex),
+]);
 
 export const translationsTable = pgTable("translations", {
   id: serial("id").primaryKey(),

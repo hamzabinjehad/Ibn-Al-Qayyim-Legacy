@@ -16,26 +16,31 @@ booksRouter.get("/books", async (req, res) => {
   try {
     const { category } = ListBooksQueryParams.parse(req.query);
 
-    const allBooks = await db.select().from(booksTable);
-
-    const chapterCounts = await db
+    const books = await db
       .select({
-        bookId: chaptersTable.bookId,
-        count: sql<number>`cast(count(*) as int)`,
+        id: booksTable.id,
+        title: booksTable.title,
+        titleAr: booksTable.titleAr,
+        description: booksTable.description,
+        category: booksTable.category,
+        coverColor: booksTable.coverColor,
+        pageCount: booksTable.pageCount,
+        createdAt: booksTable.createdAt,
+        chapterCount: sql<number>`cast(count(${chaptersTable.id}) as int)`,
       })
-      .from(chaptersTable)
-      .groupBy(chaptersTable.bookId);
-
-    const countMap = new Map(chapterCounts.map((c) => [c.bookId, c.count]));
-
-    let books = allBooks.map((b) => ({
-      ...b,
-      chapterCount: countMap.get(b.id) ?? 0,
-    }));
-
-    if (category) {
-      books = books.filter((b) => b.category === category);
-    }
+      .from(booksTable)
+      .leftJoin(chaptersTable, eq(booksTable.id, chaptersTable.bookId))
+      .where(category ? eq(booksTable.category, category) : undefined)
+      .groupBy(
+        booksTable.id,
+        booksTable.title,
+        booksTable.titleAr,
+        booksTable.description,
+        booksTable.category,
+        booksTable.coverColor,
+        booksTable.pageCount,
+        booksTable.createdAt,
+      );
 
     res.json(books);
   } catch (err) {
@@ -50,21 +55,37 @@ booksRouter.get("/books/:bookId", async (req, res) => {
     });
 
     const [book] = await db
-      .select()
+      .select({
+        id: booksTable.id,
+        title: booksTable.title,
+        titleAr: booksTable.titleAr,
+        description: booksTable.description,
+        category: booksTable.category,
+        coverColor: booksTable.coverColor,
+        pageCount: booksTable.pageCount,
+        createdAt: booksTable.createdAt,
+        chapterCount: sql<number>`cast(count(${chaptersTable.id}) as int)`,
+      })
       .from(booksTable)
-      .where(eq(booksTable.id, bookId));
+      .leftJoin(chaptersTable, eq(booksTable.id, chaptersTable.bookId))
+      .where(eq(booksTable.id, bookId))
+      .groupBy(
+        booksTable.id,
+        booksTable.title,
+        booksTable.titleAr,
+        booksTable.description,
+        booksTable.category,
+        booksTable.coverColor,
+        booksTable.pageCount,
+        booksTable.createdAt,
+      );
 
     if (!book) {
       res.status(404).json({ error: "Book not found" });
       return;
     }
 
-    const [chapterCount] = await db
-      .select({ count: sql<number>`cast(count(*) as int)` })
-      .from(chaptersTable)
-      .where(eq(chaptersTable.bookId, bookId));
-
-    res.json({ ...book, chapterCount: chapterCount?.count ?? 0 });
+    res.json(book);
   } catch (err) {
     res.status(400).json({ error: "Invalid request" });
   }

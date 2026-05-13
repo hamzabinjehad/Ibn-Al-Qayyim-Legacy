@@ -349,6 +349,23 @@ paths:
           in: query
           schema:
             type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [relevance, book]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Search results
@@ -621,17 +638,24 @@ components:
           type: integer
         bookTitle:
           type: string
+        category:
+          type: string
         snippet:
           type: string
         matchCount:
           type: integer
+        matchIn:
+          type: string
+          enum: [title, content, both]
       required:
         - chapterId
         - chapterTitle
         - bookId
         - bookTitle
+        - category
         - snippet
         - matchCount
+        - matchIn
 
     LibraryStats:
       type: object

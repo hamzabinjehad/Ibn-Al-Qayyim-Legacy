@@ -1,222 +1,163 @@
-import { Link, useLocation } from "wouter";
-import { useGetStats, useListCategories, useListBooks } from "@/lib/api";
-import { AlertTriangle, BookOpen, Search, Star, MessageSquare, PenLine, Highlighter } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import { useState } from "react";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  "التزكية والسلوك": "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
-  "السيرة والفقه": "bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-200",
-  "الرقائق والحكم": "bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200",
-  "العقيدة": "bg-purple-100 text-purple-900 dark:bg-purple-900/30 dark:text-purple-200",
-  "الفقه وأصوله": "bg-teal-100 text-teal-900 dark:bg-teal-900/30 dark:text-teal-200",
-};
-
-function IslamicPattern() {
-  return (
-    <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <pattern id="islamic" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-          <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" fill="none" stroke="currentColor" strokeWidth="0.8"/>
-          <polygon points="20,8 32,14 32,26 20,32 8,26 8,14" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-          <circle cx="20" cy="20" r="3" fill="none" stroke="currentColor" strokeWidth="0.6"/>
-          <line x1="20" y1="2" x2="20" y2="8" stroke="currentColor" strokeWidth="0.4"/>
-          <line x1="20" y1="32" x2="20" y2="38" stroke="currentColor" strokeWidth="0.4"/>
-          <line x1="2" y1="20" x2="8" y2="20" stroke="currentColor" strokeWidth="0.4"/>
-          <line x1="32" y1="20" x2="38" y2="20" stroke="currentColor" strokeWidth="0.4"/>
-        </pattern>
-      </defs>
-      <rect width="200" height="200" fill="url(#islamic)"/>
-    </svg>
-  );
-}
+import { Link, useLocation } from "wouter";
+import { ArrowLeft, BookOpen, Clock, Library } from "lucide-react";
+import AppShell from "@/components/editorial/AppShell";
+import { BookCard } from "@/components/editorial/BookCard";
+import { ErrorState, LoadingState } from "@/components/editorial/DataState";
+import SearchBox from "@/components/editorial/SearchBox";
+import SectionHeader from "@/components/editorial/SectionHeader";
+import { useLocalLibrary } from "@/lib/local-library";
+import { useLibraryManifest, useStaticBooks, useStaticCategories } from "@/lib/static-library";
 
 export default function Home() {
-  const [searchQ, setSearchQ] = useState("");
-  const [, setLocation] = useLocation();
+  const [query, setQuery] = useState("");
+  const [, navigate] = useLocation();
+  const { data: manifest } = useLibraryManifest();
+  const { data: books, isLoading, isError, refetch } = useStaticBooks();
+  const { data: categories } = useStaticCategories();
+  const { positions } = useLocalLibrary();
 
-  const { data: stats, isError: statsError, refetch: refetchStats } = useGetStats();
-  const { data: categories, isError: categoriesError, refetch: refetchCategories } = useListCategories();
-  const { data: books, isError: booksError, refetch: refetchBooks } = useListBooks();
-
-  const featuredBooks = books?.slice(0, 4) ?? [];
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQ.trim()) setLocation(`/search?q=${encodeURIComponent(searchQ.trim())}`);
-  };
+  const latestPosition = positions[0];
+  const featuredBooks = books?.slice(0, 8) ?? [];
 
   return (
-    <div className="min-h-screen bg-background text-foreground" dir="rtl">
-      <Navbar />
-
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-primary text-primary-foreground py-24 px-4">
-        <IslamicPattern />
-        <div className="relative max-w-3xl mx-auto text-center">
-          <p className="text-sm uppercase tracking-widest opacity-70 mb-3 font-sans">مكتبة رقمية</p>
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4">
+    <AppShell>
+      <main>
+        <section className="mx-auto max-w-7xl px-5 pb-12 pt-20 text-center md:pb-16 md:pt-24">
+          <h1 className="mx-auto max-w-4xl font-display text-5xl font-bold leading-[1.08] tracking-tight md:text-7xl">
             موروث ابن القيم
           </h1>
-          <p className="text-lg opacity-80 mb-3">
-            الإمام شمس الدين أبو عبد الله محمد بن أبي بكر بن القيم الجوزية
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground md:text-xl">
+            مكتبة رقمية تجمع تراث الإمام ابن القيم رحمه الله تحقيقا وتنظيما وإتاحة.
           </p>
-          <p className="text-sm opacity-60 mb-8">٦٩١ هـ — ٧٥١ هـ</p>
 
-          <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
-            <input
-              type="search"
-              value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="ابحث في كتب ابن القيم..."
-              className="flex-1 px-4 py-3 rounded-lg bg-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 border border-primary-foreground/30 focus:outline-none focus:border-primary-foreground/60"
-              data-testid="input-home-search"
+          <div className="mx-auto mt-9 max-w-3xl">
+            <SearchBox
+              value={query}
+              onChange={setQuery}
+              placeholder="ابحث في الكتب والفصول..."
+              onSubmit={() => navigate(`/search?q=${encodeURIComponent(query.trim())}`)}
             />
-            <button
-              type="submit"
-              className="px-5 py-3 bg-primary-foreground text-primary rounded-lg font-medium hover:opacity-90 transition-opacity"
-              data-testid="button-home-search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-          </form>
-        </div>
-      </section>
+          </div>
 
-      {/* Stats */}
-      <section className="py-10 border-b border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-4">
-          {statsError ? (
-            <div className="flex flex-col items-center gap-3 py-4 text-muted-foreground">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              <p className="text-sm">تعذّر تحميل الإحصائيات</p>
-              <button onClick={() => refetchStats()} className="text-xs text-primary hover:underline">إعادة المحاولة</button>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/library"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              تصفح المكتبة
+            </Link>
+            <Link
+              href="/library"
+              className="inline-flex h-12 items-center gap-2 px-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              تصفح المجموعات
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-[90rem] px-5">
+          <div className="grid overflow-hidden rounded-lg border border-border text-center sm:grid-cols-3 sm:divide-x sm:divide-x-reverse sm:divide-border">
+            <Stat value={manifest?.booksCount ?? "..."} label="كتاب" />
+            <Stat value={manifest?.chaptersCount ?? "..."} label="فصل" />
+            <Stat value={manifest?.categoriesCount ?? "..."} label="تصنيف" />
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-[90rem] px-5 py-12">
+          {latestPosition ? (
+            <Link
+              href={`/book/${latestPosition.bookId}/chapter/${latestPosition.chapterId}`}
+              className="grid gap-5 rounded-lg border border-border p-5 transition-colors hover:border-foreground md:grid-cols-[auto_1fr_auto]"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                <Clock className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">تابع القراءة</p>
+                <h2 className="mt-1 text-xl font-semibold">{latestPosition.chapterTitle}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{latestPosition.bookTitle}</p>
+              </div>
+              <span className="self-center text-sm text-muted-foreground tabular-nums">
+                {Math.round(latestPosition.progress)}%
+              </span>
+            </Link>
+          ) : (
+            <div className="rounded-lg border border-border p-5">
+              <div className="flex items-start gap-4">
+                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                  <BookOpen className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold">ابدأ من المكتبة</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    اختر كتابا وابدأ القراءة، وسنحفظ موضعك محليا في هذا المتصفح.
+                  </p>
+                </div>
+              </div>
             </div>
-          ) : stats ? (
-            <div className="grid grid-cols-3 gap-6 text-center">
-              {[
-                { label: "الكتب", value: stats.totalBooks, icon: BookOpen, href: "/library" },
-                { label: "التظليلات", value: stats.totalHighlights, icon: Highlighter, href: "/profile" },
-                { label: "التعليقات", value: stats.totalComments, icon: MessageSquare, href: "/profile" },
-              ].map(({ label, value, icon: Icon, href }) => (
+          )}
+        </section>
+
+        <section className="mx-auto max-w-[90rem] px-5 py-8">
+          <SectionHeader
+            title="أحدث الكتب"
+            description="واجهة خفيفة للقراءة والبحث تعمل من ملفات ثابتة دون خادم عام."
+            action={
+              <Link
+                href="/library"
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:border-foreground"
+              >
+                عرض جميع الكتب
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            }
+          />
+
+          {isLoading ? (
+            <LoadingState />
+          ) : isError ? (
+            <ErrorState retry={() => refetch()} title="تعذر تحميل المكتبة" />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              {featuredBooks.map((book) => (
+                <BookCard book={book} key={book.id} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="border-t border-border">
+          <div className="mx-auto grid max-w-[90rem] gap-8 px-5 py-14 lg:grid-cols-[18rem_1fr]">
+            <SectionHeader title="التصنيفات" description="تصفح الكتب حسب الموضوع." />
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {categories?.map((category) => (
                 <Link
-                  key={label}
-                  href={href}
-                  className="flex flex-col items-center gap-2 group cursor-pointer"
-                  data-testid={`stat-${label}`}
+                  key={category.name}
+                  href={`/library?category=${encodeURIComponent(category.name)}`}
+                  className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm transition-colors hover:border-foreground"
                 >
-                  <Icon className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-                  <p className="text-3xl font-bold text-foreground">{value}</p>
-                  <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{label}</p>
+                  <span className="inline-flex items-center gap-2">
+                    <Library className="h-4 w-4 text-muted-foreground" />
+                    {category.name}
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">{category.count}</span>
                 </Link>
               ))}
             </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="py-12 px-4 max-w-5xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-foreground">التصنيفات</h2>
-        {categoriesError ? (
-          <div className="flex items-center gap-3 text-muted-foreground text-sm">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>تعذّر تحميل التصنيفات.</span>
-            <button onClick={() => refetchCategories()} className="text-primary hover:underline">إعادة المحاولة</button>
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            {categories?.map((cat) => (
-              <Link
-                key={cat.name}
-                href={`/library?category=${encodeURIComponent(cat.name)}`}
-                className={`px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-opacity hover:opacity-80 ${CATEGORY_COLORS[cat.name] ?? "bg-muted text-muted-foreground"}`}
-                data-testid={`category-${cat.name}`}
-              >
-                {cat.name} ({cat.count})
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+        </section>
+      </main>
+    </AppShell>
+  );
+}
 
-      {/* Featured Books */}
-      <section className="py-12 px-4 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-foreground">من أبرز مؤلفاته</h2>
-          <Link href="/library" className="text-sm text-primary hover:underline" data-testid="link-view-all-books">
-            عرض الكل
-          </Link>
-        </div>
-        {booksError && (
-          <div className="flex items-center gap-3 text-muted-foreground text-sm mb-4">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>تعذّر تحميل الكتب.</span>
-            <button onClick={() => refetchBooks()} className="text-primary hover:underline">إعادة المحاولة</button>
-          </div>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {featuredBooks.map((book) => (
-            <Link
-              href={`/book/${book.id}`}
-              key={book.id}
-              className="group block rounded-xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-              data-testid={`card-book-${book.id}`}
-            >
-              <div
-                className="h-32 flex items-end p-4 relative overflow-hidden"
-                style={{ backgroundColor: book.coverColor }}
-              >
-                <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 80 80" preserveAspectRatio="xMidYMid slice">
-                  <defs>
-                    <pattern id={`pat-home-${book.id}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                      <polygon points="10,1 19,5.5 19,14.5 10,19 1,14.5 1,5.5" fill="none" stroke="white" strokeWidth="0.6"/>
-                      <circle cx="10" cy="10" r="2" fill="none" stroke="white" strokeWidth="0.4"/>
-                    </pattern>
-                  </defs>
-                  <rect width="80" height="80" fill={`url(#pat-home-${book.id})`}/>
-                </svg>
-                <div className="w-full h-px bg-white/30 relative z-10" />
-              </div>
-              <div className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">{book.category}</p>
-                <h3 className="font-bold text-foreground text-base leading-snug group-hover:text-primary transition-colors">
-                  {book.titleAr}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{book.description}</p>
-                <p className="text-xs text-primary mt-2">{book.pageCount} صفحة</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-14 px-4 bg-muted/30 border-t border-border">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-10 text-foreground">ميزات الموقع</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { icon: BookOpen, title: "قراءة شاملة", desc: "اقرأ جميع مؤلفات ابن القيم كاملةً بنصوصها الأصيلة" },
-              { icon: Highlighter, title: "تظليل النصوص", desc: "ظلِّل ما شئت من النصوص وارجع إليها في أي وقت" },
-              { icon: PenLine, title: "الملاحظات والتعليقات", desc: "أضف ملاحظاتك الخاصة وشارك في النقاش مع القراء" },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex flex-col items-center gap-3 text-center">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-bold text-lg text-foreground">{title}</h3>
-                <p className="text-sm text-muted-foreground">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <footer className="py-8 text-center text-sm text-muted-foreground border-t border-border">
-        <p>موروث ابن القيم &mdash; مكتبة رقمية تعليمية</p>
-        <p className="mt-1 text-xs">رحمه الله رحمةً واسعة</p>
-      </footer>
+function Stat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="py-5">
+      <span className="block text-2xl font-semibold tabular-nums md:text-3xl">{value}</span>
+      <span className="mt-1 block text-sm text-muted-foreground">{label}</span>
     </div>
   );
 }

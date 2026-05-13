@@ -254,6 +254,10 @@ export const DeleteCommentParams = zod.object({
 export const SearchTextsQueryParams = zod.object({
   q: zod.coerce.string(),
   bookId: zod.coerce.number().optional(),
+  category: zod.coerce.string().optional(),
+  sortBy: zod.enum(["relevance", "book"]).optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const SearchTextsResponseItem = zod.object({
@@ -261,8 +265,10 @@ export const SearchTextsResponseItem = zod.object({
   chapterTitle: zod.string(),
   bookId: zod.number(),
   bookTitle: zod.string(),
+  category: zod.string(),
   snippet: zod.string(),
   matchCount: zod.number(),
+  matchIn: zod.enum(["title", "content", "both"]),
 });
 export const SearchTextsResponse = zod.array(SearchTextsResponseItem);
 

@@ -23,5 +23,7 @@ export * from "./note";
 export * from "./noteCreate";
 export * from "./noteUpdate";
 export * from "./searchResult";
+export * from "./searchResultMatchIn";
 export * from "./searchTextsParams";
+export * from "./searchTextsSortBy";
 export * from "./translation";

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { highlightsTable, notesTable, commentsTable, chaptersTable, booksTable } from "@workspace/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import {
   ListHighlightsQueryParams,
   CreateHighlightBody,
@@ -203,6 +203,7 @@ annotationsRouter.get("/profile/highlights", async (req, res) => {
         color: highlightsTable.color,
         createdAt: highlightsTable.createdAt,
         chapterTitleAr: chaptersTable.titleAr,
+        chapterOrder: chaptersTable.orderIndex,
         bookId: chaptersTable.bookId,
         bookTitleAr: booksTable.titleAr,
       })
@@ -233,6 +234,7 @@ annotationsRouter.get("/profile/notes", async (req, res) => {
         createdAt: notesTable.createdAt,
         updatedAt: notesTable.updatedAt,
         chapterTitleAr: chaptersTable.titleAr,
+        chapterOrder: chaptersTable.orderIndex,
         bookId: chaptersTable.bookId,
         bookTitleAr: booksTable.titleAr,
       })
@@ -264,7 +266,7 @@ annotationsRouter.get("/profile/comments", async (req, res) => {
       .from(commentsTable)
       .innerJoin(chaptersTable, eq(commentsTable.chapterId, chaptersTable.id))
       .innerJoin(booksTable, eq(chaptersTable.bookId, booksTable.id))
-      .where(sql`${commentsTable.parentId} is null`)
+      .where(isNull(commentsTable.parentId))
       .orderBy(desc(commentsTable.createdAt));
     res.json(rows);
   } catch (err) {

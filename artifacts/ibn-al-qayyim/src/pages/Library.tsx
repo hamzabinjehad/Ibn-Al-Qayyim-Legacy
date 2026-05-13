@@ -1,250 +1,164 @@
 import { useMemo, useState } from "react";
 import { Link, useSearch } from "wouter";
-import { useListBooks, useListCategories } from "@/lib/api";
-import Navbar from "@/components/Navbar";
-import { AlertTriangle, BookOpen, ChevronLeft, Layers, Search, SlidersHorizontal } from "lucide-react";
+import { Grid2X2, List, Search as SearchIcon } from "lucide-react";
+import AppShell from "@/components/editorial/AppShell";
+import { BookCard, BookRow } from "@/components/editorial/BookCard";
+import { EmptyState, ErrorState, LoadingState } from "@/components/editorial/DataState";
+import { useStaticBooks, useStaticCategories } from "@/lib/static-library";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "التزكية والسلوك": "#B45309",
-  "السيرة والفقه":   "#15803D",
-  "الرقائق والحكم":  "#1D4ED8",
-  "العقيدة":         "#7E22CE",
-  "الفقه وأصوله":   "#0F766E",
-  "علوم القرآن":    "#B91C1C",
-};
-
-/** Strip edition/publisher suffix to get the display title */
-function baseTitle(title: string): string {
-  return title
-    .replace(/\s*=\s*[؀-ۿ\s،؛؟]+/, "")
-    .replace(/\s*-\s*(ط|ت)\s+.+$/, "")
-    .trim();
+function normalize(value: string) {
+  return value
+    .replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g, "")
+    .replace(/[إأآا]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .toLowerCase();
 }
 
 export default function Library() {
   const search = useSearch();
-  const params = new URLSearchParams(search);
-  const selectedCategory = params.get("category") ?? "";
-  const [localSearch, setLocalSearch] = useState("");
+  const selectedCategory = new URLSearchParams(search).get("category") ?? "";
+  const [query, setQuery] = useState("");
+  const [view, setView] = useState<"grid" | "list">("grid");
 
-  const { data: books, isLoading, isError, refetch } = useListBooks(
-    selectedCategory ? { category: selectedCategory } : {}
-  );
-  const { data: categories } = useListCategories();
+  const { data: books, isLoading, isError, refetch } = useStaticBooks(selectedCategory || undefined);
+  const { data: categories } = useStaticCategories();
 
-  const filtered = books?.filter((b) => {
-    if (!localSearch.trim()) return true;
-    const q = localSearch.toLowerCase();
-    return (
-      b.titleAr.toLowerCase().includes(q) ||
-      baseTitle(b.titleAr).toLowerCase().includes(q)
-    );
-  });
-
-  // Group editions under a single card per unique base title
-  const groups = useMemo(() => {
-    if (!filtered) return [];
-    const map = new Map<string, typeof filtered>();
-    for (const book of filtered) {
-      const key = baseTitle(book.titleAr);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(book);
-    }
-    return Array.from(map.entries()).map(([title, editions]) => ({
-      title,
-      editions,
-      book: editions[0]!,
-    }));
-  }, [filtered]);
+  const filteredBooks = useMemo(() => {
+    if (!books) return [];
+    if (!query.trim()) return books;
+    const q = normalize(query);
+    return books.filter((book) => normalize(`${book.titleAr} ${book.category}`).includes(q));
+  }, [books, query]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground" dir="rtl">
-      <Navbar />
+    <AppShell>
+      <main className="mx-auto max-w-[90rem] px-5 pb-24 pt-12 md:pb-16">
+        <header className="grid gap-6 border-b border-border pb-8 lg:grid-cols-[1fr_auto]">
+          <div>
+            <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl">المكتبة</h1>
+            <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
+              تصفح المؤلفات والفصول في واجهة هادئة تعمل من ملفات ثابتة.
+            </p>
+          </div>
+          <div className="self-end text-sm text-muted-foreground tabular-nums">
+            {filteredBooks.length} كتاب
+            {selectedCategory && <span> / {selectedCategory}</span>}
+          </div>
+        </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-10">
-        {/* Header */}
-        <div className="reader-surface soft-panel rounded-3xl p-6 md:p-7 mb-6">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
-            <div>
-              <p className="text-sm text-primary font-semibold mb-2">المكتبة الكاملة</p>
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">كل مؤلفات ابن القيم في مكان واحد</h1>
-              <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
-                صف الكتب حسب الموضوع أو ابحث باسم الكتاب، ثم انتقل مباشرة إلى الفهرس والفصول.
-              </p>
+        <div className="grid min-w-0 gap-8 pt-8 lg:grid-cols-[17rem_1fr]">
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 rounded-lg border border-border p-3">
+              <Link
+                href="/library"
+                className={`flex items-center justify-between rounded-md px-3 py-2.5 text-sm ${
+                  !selectedCategory ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>كل الكتب</span>
+                <span className="tabular-nums">{books?.length ?? ""}</span>
+              </Link>
+              <div className="my-3 h-px bg-border" />
+              <div className="space-y-1">
+                {categories?.map((category) => (
+                  <Link
+                    key={category.name}
+                    href={`/library?category=${encodeURIComponent(category.name)}`}
+                    className={`flex items-center justify-between rounded-md px-3 py-2.5 text-sm ${
+                      selectedCategory === category.name
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>{category.name}</span>
+                    <span className="tabular-nums">{category.count}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
-            {books && (
-              <div className="grid grid-cols-2 gap-3 min-w-[13rem]">
-                <div className="rounded-2xl bg-card/80 border border-border/70 p-4">
-                  <p className="text-2xl font-bold text-primary">{groups.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1">مؤلَّف</p>
+          </aside>
+
+          <section className="min-w-0">
+            <div className="sticky top-16 z-30 mb-7 rounded-lg border border-border bg-background/95 px-3 py-4 backdrop-blur-xl sm:px-4">
+              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <div className="relative">
+                  <SearchIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="ابحث باسم الكتاب أو التصنيف"
+                    className="h-12 w-full rounded-lg border border-border bg-background pr-11 pl-4 text-sm focus:border-foreground focus:outline-none"
+                  />
                 </div>
-                <div className="rounded-2xl bg-card/80 border border-border/70 p-4">
-                  <p className="text-2xl font-bold text-primary">{books.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1">طبعة متاحة</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setView("grid")}
+                    className={`inline-flex h-12 items-center justify-center gap-2 rounded-lg border px-3 text-sm ${
+                      view === "grid" ? "border-foreground" : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    <Grid2X2 className="h-4 w-4" />
+                    بطاقات
+                  </button>
+                  <button
+                    onClick={() => setView("list")}
+                    className={`inline-flex h-12 items-center justify-center gap-2 rounded-lg border px-3 text-sm ${
+                      view === "list" ? "border-foreground" : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    <List className="h-4 w-4" />
+                    قائمة
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Search + Category filters */}
-        <div className="sticky top-20 z-20 reader-surface soft-panel rounded-2xl p-3 flex flex-col gap-3 mb-8">
-          {/* Local search */}
-          <div className="relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder="ابحث عن كتاب..."
-              className="w-full pr-10 pl-4 py-3 rounded-xl border border-border bg-card/85 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-            />
-          </div>
-
-          {/* Category chips */}
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground">
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              تصفية
-            </span>
-            <Link
-              href="/library"
-              className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-                !selectedCategory
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border text-muted-foreground hover:border-primary hover:text-primary"
-              }`}
-              data-testid="filter-all-categories"
-            >
-              الكل
-            </Link>
-            {categories?.map((cat) => (
-              <Link
-                href={`/library?category=${encodeURIComponent(cat.name)}`}
-                key={cat.name}
-                className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-                  selectedCategory === cat.name
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:border-primary hover:text-primary"
-                }`}
-                data-testid={`filter-category-${cat.name}`}
-              >
-                {cat.name} ({cat.count})
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Book grid */}
-        {isError ? (
-          <div className="text-center py-20 reader-surface soft-panel rounded-3xl">
-            <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-            <p className="text-foreground font-semibold">تعذّر تحميل الكتب</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-5">تحقق من اتصالك بالإنترنت وحاول مجدداً.</p>
-            <button
-              onClick={() => refetch()}
-              className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              إعادة المحاولة
-            </button>
-          </div>
-        ) : isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card animate-pulse h-56" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {groups.map(({ title, editions, book }) => {
-              const categoryColor = CATEGORY_COLORS[book.category] ?? "#78716c";
-              const multiEdition = editions.length > 1;
-              const href = multiEdition
-                ? `/editions/${encodeURIComponent(title)}`
-                : `/book/${book.id}`;
-
-              return (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-sm lg:hidden">
                 <Link
-                  href={href}
-                  key={title}
-                  className="group soft-panel flex flex-col rounded-2xl bg-card/90 overflow-hidden hover:border-primary/45 transition-all duration-200"
-                  data-testid={`card-book-${book.id}`}
+                  href="/library"
+                  className={`shrink-0 rounded-lg border px-3 py-2 ${
+                    !selectedCategory ? "border-foreground" : "border-border text-muted-foreground"
+                  }`}
                 >
-                  {/* Cover */}
-                  <div
-                    className="h-28 relative flex items-center justify-center overflow-hidden shrink-0"
-                    style={{ backgroundColor: book.coverColor }}
-                  >
-                    <svg
-                      className="absolute inset-0 w-full h-full opacity-10"
-                      viewBox="0 0 80 80"
-                      preserveAspectRatio="xMidYMid slice"
-                    >
-                      <defs>
-                        <pattern
-                          id={`pat-lib-${book.id}`}
-                          x="0" y="0" width="20" height="20"
-                          patternUnits="userSpaceOnUse"
-                        >
-                          <polygon
-                            points="10,1 19,5.5 19,14.5 10,19 1,14.5 1,5.5"
-                            fill="none" stroke="white" strokeWidth="0.6"
-                          />
-                          <circle cx="10" cy="10" r="2" fill="none" stroke="white" strokeWidth="0.4" />
-                        </pattern>
-                      </defs>
-                      <rect width="80" height="80" fill={`url(#pat-lib-${book.id})`} />
-                    </svg>
-                    <BookOpen className="w-9 h-9 text-white/55 relative z-10 group-hover:text-white/80 transition-colors" />
-                    {multiEdition && (
-                      <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
-                        <Layers className="w-3 h-3" />
-                        {editions.length} طبعات
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex flex-col flex-1 p-4 gap-2.5">
-                    {/* Category badge */}
-                    <span
-                      className="self-start text-[11px] px-2 py-0.5 rounded-full text-white font-medium leading-none"
-                      style={{ backgroundColor: categoryColor }}
-                    >
-                      {book.category}
-                    </span>
-
-                    {/* Title */}
-                    <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
-                      {title}
-                    </h3>
-
-                    {/* Footer */}
-                    <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {multiEdition ? `${editions.length} طبعات` : `${book.pageCount} صفحة`}
-                      </span>
-                      <span className="text-xs text-primary font-semibold inline-flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                        {multiEdition ? "اختر الطبعة" : "اقرأ"}
-                        <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
-                      </span>
-                    </div>
-                  </div>
+                  الكل
                 </Link>
-              );
-            })}
-          </div>
-        )}
+                {categories?.map((category) => (
+                  <Link
+                    key={category.name}
+                    href={`/library?category=${encodeURIComponent(category.name)}`}
+                    className={`shrink-0 rounded-lg border px-3 py-2 ${
+                      selectedCategory === category.name ? "border-foreground" : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    {category.name}
+                    <span className="mr-2 tabular-nums">({category.count})</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
 
-        {!isLoading && groups.length === 0 && (
-          <div className="text-center py-20 reader-surface soft-panel rounded-3xl">
-            <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-foreground font-semibold">لا توجد كتب تطابق بحثك</p>
-            <p className="text-sm text-muted-foreground mt-1">جرّب كلمة أقصر أو أزل التصنيف المحدد.</p>
-          </div>
-        )}
-      </div>
-    </div>
+            {isLoading ? (
+              <LoadingState />
+            ) : isError ? (
+              <ErrorState retry={() => refetch()} title="تعذر تحميل المكتبة" />
+            ) : filteredBooks.length === 0 ? (
+              <EmptyState title="لا توجد نتائج" description="جرب كلمة أقصر أو أزل التصنيف المحدد." />
+            ) : view === "grid" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredBooks.map((book) => (
+                  <BookCard book={book} key={book.id} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredBooks.map((book) => (
+                  <BookRow book={book} key={book.id} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+    </AppShell>
   );
 }

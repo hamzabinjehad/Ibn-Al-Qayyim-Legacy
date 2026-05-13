@@ -47,13 +47,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-type LooseQueryOptions<TQueryFnData, TError, TData> = Omit<
-  UseQueryOptions<TQueryFnData, TError, TData>,
-  "queryKey" | "queryFn"
-> & {
-  queryKey?: QueryKey;
-};
-
 /**
  * @summary Health check
  */
@@ -78,7 +71,7 @@ export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -113,7 +106,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -168,7 +161,7 @@ export const getListBooksQueryOptions = <
 >(
   params?: ListBooksParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listBooks>>,
       TError,
       TData
@@ -206,7 +199,7 @@ export function useListBooks<
 >(
   params?: ListBooksParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listBooks>>,
       TError,
       TData
@@ -250,7 +243,7 @@ export const getGetBookQueryOptions = <
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
   },
 ) => {
@@ -287,7 +280,7 @@ export function useGetBook<
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getBook>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -327,7 +320,7 @@ export const getListChaptersQueryOptions = <
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listChapters>>,
       TError,
       TData
@@ -370,7 +363,7 @@ export function useListChapters<
 >(
   bookId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listChapters>>,
       TError,
       TData
@@ -502,7 +495,7 @@ export const getGetChapterQueryOptions = <
 >(
   chapterId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof getChapter>>,
       TError,
       TData
@@ -545,7 +538,7 @@ export function useGetChapter<
 >(
   chapterId: number,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof getChapter>>,
       TError,
       TData
@@ -601,7 +594,7 @@ export const getListHighlightsQueryOptions = <
 >(
   params: ListHighlightsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listHighlights>>,
       TError,
       TData
@@ -639,7 +632,7 @@ export function useListHighlights<
 >(
   params: ListHighlightsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listHighlights>>,
       TError,
       TData
@@ -865,7 +858,7 @@ export const getListNotesQueryOptions = <
 >(
   params: ListNotesParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listNotes>>,
       TError,
       TData
@@ -903,7 +896,7 @@ export function useListNotes<
 >(
   params: ListNotesParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listNotes>>,
       TError,
       TData
@@ -1216,7 +1209,7 @@ export const getListCommentsQueryOptions = <
 >(
   params: ListCommentsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listComments>>,
       TError,
       TData
@@ -1254,7 +1247,7 @@ export function useListComments<
 >(
   params: ListCommentsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof listComments>>,
       TError,
       TData
@@ -1480,7 +1473,7 @@ export const getSearchTextsQueryOptions = <
 >(
   params: SearchTextsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof searchTexts>>,
       TError,
       TData
@@ -1518,7 +1511,7 @@ export function useSearchTexts<
 >(
   params: SearchTextsParams,
   options?: {
-    query?: LooseQueryOptions<
+    query?: UseQueryOptions<
       Awaited<ReturnType<typeof searchTexts>>,
       TError,
       TData
@@ -1559,7 +1552,7 @@ export const getGetStatsQueryOptions = <
   TData = Awaited<ReturnType<typeof getStats>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
   request?: SecondParameter<typeof customFetch>;
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
@@ -1590,7 +1583,7 @@ export function useGetStats<
   TData = Awaited<ReturnType<typeof getStats>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStatsQueryOptions(options);
@@ -1626,7 +1619,7 @@ export const getListCategoriesQueryOptions = <
   TData = Awaited<ReturnType<typeof listCategories>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof listCategories>>,
     TError,
     TData
@@ -1661,7 +1654,7 @@ export function useListCategories<
   TData = Awaited<ReturnType<typeof listCategories>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: LooseQueryOptions<
+  query?: UseQueryOptions<
     Awaited<ReturnType<typeof listCategories>>,
     TError,
     TData

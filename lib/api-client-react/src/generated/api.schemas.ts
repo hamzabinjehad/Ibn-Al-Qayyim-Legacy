@@ -92,13 +92,24 @@ export interface CommentCreate {
   parentId?: number | null;
 }
 
+export type SearchResultMatchIn =
+  (typeof SearchResultMatchIn)[keyof typeof SearchResultMatchIn];
+
+export const SearchResultMatchIn = {
+  title: "title",
+  content: "content",
+  both: "both",
+} as const;
+
 export interface SearchResult {
   chapterId: number;
   chapterTitle: string;
   bookId: number;
   bookTitle: string;
+  category: string;
   snippet: string;
   matchCount: number;
+  matchIn: SearchResultMatchIn;
 }
 
 export interface LibraryStats {
@@ -149,4 +160,16 @@ export type ListCommentsParams = {
 export type SearchTextsParams = {
   q: string;
   bookId?: number;
+  category?: string;
+  sortBy?: SearchTextsSortBy;
+  limit?: number;
+  offset?: number;
 };
+
+export type SearchTextsSortBy =
+  (typeof SearchTextsSortBy)[keyof typeof SearchTextsSortBy];
+
+export const SearchTextsSortBy = {
+  relevance: "relevance",
+  book: "book",
+} as const;

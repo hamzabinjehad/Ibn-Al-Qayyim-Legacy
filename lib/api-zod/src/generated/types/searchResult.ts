@@ -5,12 +5,15 @@
  * Ibn Al-Qayyim Legacy API
  * OpenAPI spec version: 0.1.0
  */
+import type { SearchResultMatchIn } from "./searchResultMatchIn";
 
 export interface SearchResult {
   chapterId: number;
   chapterTitle: string;
   bookId: number;
   bookTitle: string;
+  category: string;
   snippet: string;
   matchCount: number;
+  matchIn: SearchResultMatchIn;
 }

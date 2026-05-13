@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { chaptersTable } from "./books";
@@ -12,7 +12,10 @@ export const highlightsTable = pgTable("highlights", {
   endOffset: integer("end_offset").notNull(),
   color: text("color").notNull().default("#FFD700"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("highlights_chapter_session_idx").on(table.chapterId, table.sessionId),
+  index("highlights_session_id_idx").on(table.sessionId),
+]);
 
 export const notesTable = pgTable("notes", {
   id: serial("id").primaryKey(),
@@ -22,7 +25,10 @@ export const notesTable = pgTable("notes", {
   selectedText: text("selected_text"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("notes_chapter_session_idx").on(table.chapterId, table.sessionId),
+  index("notes_session_id_idx").on(table.sessionId),
+]);
 
 export const commentsTable = pgTable("comments", {
   id: serial("id").primaryKey(),
@@ -31,7 +37,10 @@ export const commentsTable = pgTable("comments", {
   content: text("content").notNull(),
   parentId: integer("parent_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("comments_chapter_id_idx").on(table.chapterId),
+  index("comments_parent_id_idx").on(table.parentId),
+]);
 
 export const insertHighlightSchema = createInsertSchema(highlightsTable).omit({ id: true, createdAt: true });
 export const insertNoteSchema = createInsertSchema(notesTable).omit({ id: true, createdAt: true, updatedAt: true });

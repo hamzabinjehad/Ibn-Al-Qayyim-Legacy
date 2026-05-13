@@ -5,8 +5,13 @@
  * Ibn Al-Qayyim Legacy API
  * OpenAPI spec version: 0.1.0
  */
+import type { SearchTextsSortBy } from "./searchTextsSortBy";
 
 export type SearchTextsParams = {
   q: string;
   bookId?: number;
+  category?: string;
+  sortBy?: SearchTextsSortBy;
+  limit?: number;
+  offset?: number;
 };
