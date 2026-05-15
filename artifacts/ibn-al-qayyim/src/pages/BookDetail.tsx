@@ -1,8 +1,9 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, BookMarked, ChevronLeft, ExternalLink, Github, MessageSquareWarning, Search } from "lucide-react";
+import { BookMarked, ExternalLink, Github, MessageSquareWarning, Search } from "lucide-react";
 import BookTocTree from "@/components/BookTocTree";
 import AppShell from "@/components/editorial/AppShell";
 import { ErrorState, LoadingState } from "@/components/editorial/DataState";
+import { DirectionalArrow, DirectionalChevron } from "@/components/editorial/DirectionalIcon";
 import PageFrame from "@/components/editorial/PageFrame";
 import BookCover from "@/components/BookCover";
 import { buildSourceEditUrl, buildTranslationIssueUrl } from "@/lib/contribution-links";
@@ -53,15 +54,15 @@ export default function BookDetail() {
           <Link href="/library" className="hover:text-foreground">
             {t("المكتبة")}
           </Link>
-          <ChevronLeft className="h-4 w-4 rotate-180" />
+          <DirectionalChevron className="h-4 w-4" />
           <Link href={`/work/${edition.workId}`} className="line-clamp-1 hover:text-foreground">
             {edition.workTitleAr}
           </Link>
-          <ChevronLeft className="h-4 w-4 rotate-180" />
+          <DirectionalChevron className="h-4 w-4" />
           <span className="line-clamp-1 text-foreground">{edition.titleAr}</span>
         </div>
 
-        <section className="grid min-w-0 gap-8 border-b border-border pb-10 lg:grid-cols-[18rem_1fr]">
+        <section className="grid min-w-0 gap-7 border-b border-border pb-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-center">
           <BookCover
             coverColor={edition.coverColor}
             coverImageAlt={edition.coverImageAlt}
@@ -70,29 +71,29 @@ export default function BookDetail() {
             publisher={edition.publisher}
             title={edition.titleAr}
             size="lg"
-            className="mx-auto w-full max-w-72"
+            className="mx-auto w-full max-w-64"
           />
-          <div className="self-center">
-            <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl">{edition.titleAr}</h1>
-            <div className="mt-7 flex flex-wrap gap-3">
+          <div className="min-w-0 self-center">
+            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">{edition.titleAr}</h1>
+            <div className="mt-6 flex flex-wrap gap-2.5">
               <Link
                 href={`/edition/${edition.id}/section/${edition.defaultSectionId}`}
                 data-tour="book-start-reading"
-                className="inline-flex h-12 items-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground"
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               >
                 {t("ابدأ القراءة")}
-                <ArrowLeft className="h-4 w-4" />
+                <DirectionalArrow className="h-4 w-4" />
               </Link>
               <Link
                 href={`/search?target=book&editionId=${edition.id}`}
-                className="inline-flex h-12 items-center gap-2 rounded-lg border border-border bg-background px-6 text-sm font-semibold transition-colors hover:border-foreground"
+                className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45"
               >
                 {t("البحث داخل الكتاب")}
                 <Search className="h-4 w-4" />
               </Link>
               {correctionIssueUrl && (
                 <a
-                  className="inline-flex h-12 items-center gap-2 rounded-lg border border-border bg-background px-6 text-sm font-semibold transition-colors hover:border-foreground"
+                  className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45"
                   href={correctionIssueUrl}
                   rel="noreferrer"
                   target="_blank"
@@ -103,7 +104,7 @@ export default function BookDetail() {
               )}
               {sourceEditUrl && (
                 <a
-                  className="inline-flex h-12 items-center gap-2 rounded-lg border border-border bg-background px-6 text-sm font-semibold transition-colors hover:border-foreground"
+                  className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45"
                   href={sourceEditUrl}
                   rel="noreferrer"
                   target="_blank"
@@ -117,7 +118,7 @@ export default function BookDetail() {
           </div>
         </section>
 
-        <section className="grid min-w-0 gap-8 pt-10 lg:grid-cols-[1fr_18rem]">
+        <section className="grid min-w-0 gap-8 pt-8 lg:grid-cols-[1fr_18rem]">
           <div className="min-w-0">
             <div className="mb-5 flex items-center gap-2">
               <BookMarked className="h-5 w-5" />

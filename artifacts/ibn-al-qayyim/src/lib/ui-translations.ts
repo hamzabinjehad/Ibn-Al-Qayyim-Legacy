@@ -4,12 +4,12 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "تجاوز إلى المحتوى": "Skip to content",
   "موروث ابن القيم": "Ibn al-Qayyim Legacy",
   "تراث ابن القيم": "Ibn al-Qayyim Legacy",
-  "المكتبة": "Library",
+  المكتبة: "Library",
   "ترتيب القراءة": "Reading Plan",
-  "الخطة": "Plan",
-  "البحث": "Search",
-  "الملاحظات": "Notes",
-  "الدعم": "Support",
+  الخطة: "Plan",
+  البحث: "Search",
+  الملاحظات: "Notes",
+  الدعم: "Support",
   "طريقة استخدام الموقع": "How to use the site",
   "تبديل المظهر": "Toggle theme",
   "التنقل السفلي": "Bottom navigation",
@@ -17,20 +17,23 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "حمّل الموقع للقراءة لاحقاً": "Install the site for later reading",
   "بعد أن جرّبت المكتبة، يمكنك تحميل الموقع ليبقى قريباً ويعمل بسرعة من جهازك.":
     "Now that you have tried the library, install the site so it stays close and opens quickly from your device.",
+  "بعد أن قرأت لبعض الوقت، يمكنك تحميل الموقع ليبقى قريباً ويعمل بسرعة من جهازك.":
+    "After reading for a while, install the site so it stays close and opens quickly from your device.",
   "تحميل الموقع": "Install site",
   "جاري فتح نافذة التحميل": "Opening install prompt...",
   "ليس الآن": "Not now",
   "إغلاق طلب التحميل": "Close install prompt",
-  "اللغة": "Language",
-  "تغيير اللغة، اللغة الحالية: {language}": "Change language, current: {language}",
-  "العربية": "Arabic",
-  "الألمانية": "German",
-  "الإنجليزية": "English",
+  اللغة: "Language",
+  "تغيير اللغة، اللغة الحالية: {language}":
+    "Change language, current: {language}",
+  العربية: "Arabic",
+  الألمانية: "German",
+  الإنجليزية: "English",
   "نسبة القراءة": "Reading progress",
   "ابحث في الكتب والفصول": "Search books and sections",
   "ابحث في المكتبة": "Search the library",
   "ابحث باسم الكتاب": "Search by book title",
-  "بحث": "Search",
+  بحث: "Search",
   "تابع القراءة": "Continue Reading",
   "عرض الكل": "View all",
   "ابدأ من المكتبة": "Start from the library",
@@ -52,20 +55,24 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "جار تحميل الطبعات": "Loading editions",
   "جار البحث": "Searching",
   "طبعة واحدة": "1 edition",
-  "طبعتان": "2 editions",
+  طبعتان: "2 editions",
   "فتح الكتاب": "Open book",
   "فتح الطبعة": "Open edition",
   "طبعة متاحة": "Available edition",
-  "بطاقات": "Cards",
-  "قائمة": "List",
+  بطاقات: "Cards",
+  قائمة: "List",
   "مسح البحث": "Clear search",
   "لا توجد نتائج": "No results",
   "لا توجد كتب لهذه اللغة": "No books in this language",
-  "اختر لغة أخرى من القائمة لعرض الكتب المتاحة لها.": "Choose another language from the menu to view its available books.",
-  "جرب كلمة أقصر أو ابحث باسم آخر للكتاب.": "Try a shorter word or search for another book title.",
-  "جرب عبارة أقصر أو وسّع نطاق البحث.": "Try a shorter phrase or widen the search scope.",
+  "اختر لغة أخرى من القائمة لعرض الكتب المتاحة لها.":
+    "Choose another language from the menu to view its available books.",
+  "جرب كلمة أقصر أو ابحث باسم آخر للكتاب.":
+    "Try a shorter word or search for another book title.",
+  "جرب عبارة أقصر أو وسّع نطاق البحث.":
+    "Try a shorter phrase or widen the search scope.",
   "لا توجد نتائج بعد الفلترة": "No results after filtering",
-  "غيّر نطاق البحث أو موضع المطابقة.": "Change the search scope or match location.",
+  "غيّر نطاق البحث أو موضع المطابقة.":
+    "Change the search scope or match location.",
   "تعذر تحميل العمل": "Could not load the work",
   "الطبعات المتاحة": "Available editions",
   "تعذر تحميل الطبعة": "Could not load the edition",
@@ -78,30 +85,34 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "النص الكامل": "Full text",
   "مقدمة الكتاب": "Book introduction",
   "العودة إلى المكتبة": "Back to library",
-  "افتح الطبعة التي تريد القراءة منها.": "Open the edition you want to read from.",
+  "العودة إلى الكتاب": "Back to book",
+  "الصعود للأعلى": "Back to top",
+  "افتح الطبعة التي تريد القراءة منها.":
+    "Open the edition you want to read from.",
   "لم يعثر على هذا الكتاب": "This book was not found",
   "قد تكون الطبعة مدرجة بعنوان مختلف. يمكنك العودة إلى المكتبة والبحث باسم الكتاب.":
     "The edition may be listed under a different title. Return to the library and search by book title.",
   "تعذر تحميل الفصل": "Could not load the section",
-  "المحتويات": "Contents",
+  المحتويات: "Contents",
   "حفظ موضع القراءة": "Save reading position",
   "نسخ الفصل": "Copy section",
   "البحث داخل هذا القسم": "Search in this section",
-  "لا يوجد نص متاح لهذا الفصل بعد.": "No text is available for this section yet.",
+  "لا يوجد نص متاح لهذا الفصل بعد.":
+    "No text is available for this section yet.",
   "الفصل السابق": "Previous section",
   "الفصل التالي": "Next section",
   "تم النسخ": "Copied",
   "تم حفظ التظليل": "Highlight saved",
   "تم حفظ الملاحظة": "Note saved",
   "تم حفظ الموضع": "Position saved",
-  "إغلاق": "Close",
+  إغلاق: "Close",
   "ملاحظة اختيارية": "Optional note",
   "لون التظليل": "Highlight color",
-  "تظليل": "Highlight",
+  تظليل: "Highlight",
   "حفظ ملاحظة": "Save note",
-  "نسخ": "Copy",
-  "مشاركة": "Share",
-  "مثال": "Example",
+  نسخ: "Copy",
+  مشاركة: "Share",
+  مثال: "Example",
   "إظهار الشريط": "Show toolbar",
   "تصغير الخط": "Decrease font size",
   "تكبير الخط": "Increase font size",
@@ -113,14 +124,14 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "إخفاء الشريط": "Hide toolbar",
   "حواشي الصفحة": "Page footnotes",
   "الانتقال إلى الحاشية {marker}": "Go to footnote {marker}",
-  "الكتاب": "Book",
-  "ص": "p.",
-  "باب": "Chapter",
-  "فصل": "Section",
-  "عنوان": "Heading",
+  الكتاب: "Book",
+  ص: "p.",
+  باب: "Chapter",
+  فصل: "Section",
+  عنوان: "Heading",
   "كل المواضع": "All matches",
-  "العناوين": "Titles",
-  "النصوص": "Texts",
+  العناوين: "Titles",
+  النصوص: "Texts",
   "الأقرب صلة": "Most relevant",
   "حسب الكتاب": "By book",
   "حسب الصفحة": "By page",
@@ -136,7 +147,7 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "خيارات البحث": "Search options",
   "نطاق البحث": "Search scope",
   "اختر كتاباً": "Choose a book",
-  "القسم": "Section",
+  القسم: "Section",
   "اختر قسماً": "Choose a section",
   "موضع المطابقة": "Match location",
   "ترتيب النتائج": "Sort results",
@@ -144,16 +155,18 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "ابدأ بكتابة عبارة": "Start by typing a phrase",
   "سيظهر لك موضع العبارة في الكتب والفصول مع مقتطف مختصر.":
     "You will see where the phrase appears in books and sections with a short excerpt.",
-  "مكتبتي": "My Library",
+  مكتبتي: "My Library",
   "مواضع القراءة والتظليلات والملاحظات محفوظة محليا في هذا المتصفح.":
     "Reading positions, highlights, and notes are saved locally in this browser.",
   "لا يوجد سجل قراءة بعد": "No reading history yet",
   "ابدأ قراءة فصل وسيظهر هنا آخر موضع وصلت إليه.":
     "Start reading a section and your latest position will appear here.",
-  "التظليلات": "Highlights",
-  "حدد نصا في القارئ واحفظه كتظليل.": "Select text in the reader and save it as a highlight.",
+  التظليلات: "Highlights",
+  "حدد نصا في القارئ واحفظه كتظليل.":
+    "Select text in the reader and save it as a highlight.",
   "لا توجد تظليلات": "No highlights",
-  "حدد نصا في القارئ وأضف ملاحظة محلية.": "Select text in the reader and add a local note.",
+  "حدد نصا في القارئ وأضف ملاحظة محلية.":
+    "Select text in the reader and add a local note.",
   "لا توجد ملاحظات": "No notes",
   "تحميل المحفوظات": "Download saved items",
   "افتح التفضيلات لاختيار ما تريد تحميله وطريقة ترتيب الملف.":
@@ -161,9 +174,9 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "تحميل كل التظليلات": "Download all highlights",
   "تحميل كل الملاحظات": "Download all notes",
   "كل الكتب": "all books",
-  "التاريخ": "Date",
+  التاريخ: "Date",
   "النص المحدد": "Selected text",
-  "الملاحظة": "Note",
+  الملاحظة: "Note",
   "لا توجد تظليلات.": "No highlights.",
   "لا توجد ملاحظات.": "No notes.",
   "تظليلات {label}": "Highlights {label}",
@@ -184,41 +197,47 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "الأقدم أولاً": "Oldest first",
   "حسب الكتاب والفصل": "By book and section",
   "حذف المقروءة": "Delete reading position",
-  "حذف": "Delete",
+  حذف: "Delete",
   "مشاركة الاقتباس": "Share quote",
   "شكل البطاقة": "Card style",
   "المقاس والمصدر": "Size and source",
   "إظهار المصدر": "Show source",
   "ألوان البطاقة": "Card colors",
-  "التأكيد": "Accent",
-  "الخلفية": "Background",
+  التأكيد: "Accent",
+  الخلفية: "Background",
   "تحميل الصورة": "Download image",
   "جاري المشاركة...": "Sharing...",
   "مشاركة مباشرة": "Share directly",
   "تم نسخ الصورة": "Image copied",
   "نسخ الصورة": "Copy image",
-  "واتساب": "WhatsApp",
+  واتساب: "WhatsApp",
   "تم نسخ النص": "Text copied",
   "نسخ النص": "Copy text",
   "بطاقة الاقتباس": "Quote card",
   "اقتباس من {bookTitle}": "Quote from {bookTitle}",
-  "ابن القيم الجوزية رحمه الله": "Ibn Qayyim al-Jawziyyah, may Allah have mercy on him",
-  "تعذرت المشاركة المباشرة. يمكنك نسخ النص أو تحميل الصورة.": "Direct sharing failed. You can copy the text or download the image.",
+  "ابن القيم الجوزية رحمه الله":
+    "Ibn Qayyim al-Jawziyyah, may Allah have mercy on him",
+  "تعذرت المشاركة المباشرة. يمكنك نسخ النص أو تحميل الصورة.":
+    "Direct sharing failed. You can copy the text or download the image.",
   "اختيار لون {label}": "Choose {label} color",
   "لون {color}": "Color {color}",
-  "فإن في القلب شعثا لا يلمه إلا الإقبال على الله": "There is a disarray in the heart that only turning to Allah can gather.",
-  "مخطوط": "Manuscript",
-  "ورق هادئ وحدود هندسية للنصوص الطويلة": "Quiet paper and geometric borders for longer texts",
-  "محراب": "Mihrab",
-  "خلفية داكنة وعمق بصري مناسب للمشاركة": "A dark background with visual depth for sharing",
+  "فإن في القلب شعثا لا يلمه إلا الإقبال على الله":
+    "There is a disarray in the heart that only turning to Allah can gather.",
+  مخطوط: "Manuscript",
+  "ورق هادئ وحدود هندسية للنصوص الطويلة":
+    "Quiet paper and geometric borders for longer texts",
+  محراب: "Mihrab",
+  "خلفية داكنة وعمق بصري مناسب للمشاركة":
+    "A dark background with visual depth for sharing",
   "غلاف الكتاب": "Book cover",
-  "يربط البطاقة بلون الكتاب ومصدر الاقتباس": "Connects the card to the book color and quote source",
-  "مربع": "Square",
-  "قصة": "Story",
-  "ذهبي": "Gold",
-  "أخضر": "Green",
-  "أزرق": "Blue",
-  "وردي": "Pink",
+  "يربط البطاقة بلون الكتاب ومصدر الاقتباس":
+    "Connects the card to the book color and quote source",
+  مربع: "Square",
+  قصة: "Story",
+  ذهبي: "Gold",
+  أخضر: "Green",
+  أزرق: "Blue",
+  وردي: "Pink",
   "أهلا بك في موروث ابن القيم": "Welcome to Ibn al-Qayyim Legacy",
   "هذه جولة سريعة توضح كيف تبحث، تفتح كتابا، تنسخ النصوص، وتشارك اقتباسا منسقا كصورة قابلة للتعديل.":
     "This quick tour shows how to search, open a book, copy text, and share a formatted quote as an editable image.",
@@ -230,6 +249,8 @@ const EN_TRANSLATIONS: Record<string, string> = {
     "From the library you can browse available works. Choose a work card to view editions, then open the right edition.",
   "في صفحة الطبعة يظهر زر بدء القراءة. الجولة تستخدم أول طبعة متاحة كمثال حتى ترى المسار كاملا.":
     "On the edition page, the Start reading button appears. The tour uses the first available edition as an example so you can see the whole path.",
+  "في صفحة طبعة الداء والدواء من عطاءات العلم يظهر زر بدء القراءة، ومنها تكمل الجولة داخل القارئ.":
+    "On the Ataat al-Ilm edition page for Al-Daa wa al-Dawa, the Start reading button appears, then the tour continues in the reader.",
   "اقرأ الفصل": "Read the section",
   "هذا هو سطح القراءة. مرر بين الصفحات، وسيحفظ الموقع موضعك محليا في هذا المتصفح.":
     "This is the reader. Scroll through pages and the site will save your place locally in this browser.",
@@ -239,8 +260,10 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "انسخ نصا جاهزا للصق": "Copy text ready to paste",
   "زر النسخ في أعلى القارئ ينسخ نص الفصل مع نسبة المصدر. بعد النسخ يمكنك لصقه في ملاحظاتك، بريدك، أو أي محرر نصوص.":
     "The copy button at the top of the reader copies the section text with its source. You can paste it into notes, email, or any text editor.",
-  "النص المنسوخ يتضمن الكتاب والفصل.": "The copied text includes the book and section.",
-  "استخدمه عندما تريد حفظ الفصل أو جزء كبير منه خارج الموقع.": "Use it when you want to save a section or a larger excerpt outside the site.",
+  "النص المنسوخ يتضمن الكتاب والفصل.":
+    "The copied text includes the book and section.",
+  "استخدمه عندما تريد حفظ الفصل أو جزء كبير منه خارج الموقع.":
+    "Use it when you want to save a section or a larger excerpt outside the site.",
   "حدد جزءا من النص": "Select part of the text",
   "ظلّل عبارة داخل الصفحة كما تفعل في أي قارئ. عند ترك التحديد يظهر شريط أعمال سريع في أسفل الشاشة.":
     "Select a phrase on the page as you would in any reader. When you release the selection, a quick action bar appears at the bottom.",
@@ -261,13 +284,14 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "لم يظهر هذا الموضع بعد. يمكنك المتابعة، وستنتقل الجولة إلى الخطوة التالية.":
     "This target has not appeared yet. You can continue and the tour will move to the next step.",
   "خطوة {current} من {total}": "Step {current} of {total}",
-  "السابق": "Previous",
-  "إنهاء": "Finish",
+  السابق: "Previous",
+  إنهاء: "Finish",
   "ابدأ الجولة": "Start tour",
-  "التالي": "Next",
-  "تخطي": "Skip",
+  التالي: "Next",
+  تخطي: "Skip",
   "الصفحة غير موجودة": "Page not found",
-  "يبدو أن هذه الصفحة لا وجود لها أو أن الرابط خاطئ.": "This page does not exist, or the link is incorrect.",
+  "يبدو أن هذه الصفحة لا وجود لها أو أن الرابط خاطئ.":
+    "This page does not exist, or the link is incorrect.",
   "العودة إلى الرئيسية": "Back to home",
 };
 
@@ -275,12 +299,12 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "تجاوز إلى المحتوى": "Zum Inhalt springen",
   "موروث ابن القيم": "Ibn al-Qayyim Vermächtnis",
   "تراث ابن القيم": "Ibn al-Qayyim Vermächtnis",
-  "المكتبة": "Bibliothek",
+  المكتبة: "Bibliothek",
   "ترتيب القراءة": "Leseplan",
-  "الخطة": "Plan",
-  "البحث": "Suche",
-  "الملاحظات": "Notizen",
-  "الدعم": "Unterstützen",
+  الخطة: "Plan",
+  البحث: "Suche",
+  الملاحظات: "Notizen",
+  الدعم: "Unterstützen",
   "طريقة استخدام الموقع": "Website-Hilfe",
   "تبديل المظهر": "Darstellung wechseln",
   "التنقل السفلي": "Untere Navigation",
@@ -288,20 +312,23 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "حمّل الموقع للقراءة لاحقاً": "Website zum späteren Lesen installieren",
   "بعد أن جرّبت المكتبة، يمكنك تحميل الموقع ليبقى قريباً ويعمل بسرعة من جهازك.":
     "Nachdem du die Bibliothek ausprobiert hast, kannst du die Website installieren, damit sie schnell auf deinem Gerät erreichbar bleibt.",
+  "بعد أن قرأت لبعض الوقت، يمكنك تحميل الموقع ليبقى قريباً ويعمل بسرعة من جهازك.":
+    "Nachdem du eine Weile gelesen hast, kannst du die Website installieren, damit sie schnell auf deinem Gerät erreichbar bleibt.",
   "تحميل الموقع": "Website installieren",
   "جاري فتح نافذة التحميل": "Installationsdialog wird geöffnet...",
   "ليس الآن": "Nicht jetzt",
   "إغلاق طلب التحميل": "Installationshinweis schließen",
-  "اللغة": "Sprache",
-  "تغيير اللغة، اللغة الحالية: {language}": "Sprache ändern, aktuell: {language}",
-  "العربية": "Arabisch",
-  "الألمانية": "Deutsch",
-  "الإنجليزية": "Englisch",
+  اللغة: "Sprache",
+  "تغيير اللغة، اللغة الحالية: {language}":
+    "Sprache ändern, aktuell: {language}",
+  العربية: "Arabisch",
+  الألمانية: "Deutsch",
+  الإنجليزية: "Englisch",
   "نسبة القراءة": "Lesefortschritt",
   "ابحث في الكتب والفصول": "Bücher und Abschnitte durchsuchen",
   "ابحث في المكتبة": "Bibliothek durchsuchen",
   "ابحث باسم الكتاب": "Nach Buchtitel suchen",
-  "بحث": "Suchen",
+  بحث: "Suchen",
   "تابع القراءة": "Weiterlesen",
   "عرض الكل": "Alle anzeigen",
   "ابدأ من المكتبة": "In der Bibliothek beginnen",
@@ -323,20 +350,24 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "جار تحميل الطبعات": "Ausgaben werden geladen",
   "جار البحث": "Suche läuft",
   "طبعة واحدة": "1 Ausgabe",
-  "طبعتان": "2 Ausgaben",
+  طبعتان: "2 Ausgaben",
   "فتح الكتاب": "Buch öffnen",
   "فتح الطبعة": "Ausgabe öffnen",
   "طبعة متاحة": "Verfügbare Ausgabe",
-  "بطاقات": "Karten",
-  "قائمة": "Liste",
+  بطاقات: "Karten",
+  قائمة: "Liste",
   "مسح البحث": "Suche löschen",
   "لا توجد نتائج": "Keine Ergebnisse",
   "لا توجد كتب لهذه اللغة": "Keine Bücher in dieser Sprache",
-  "اختر لغة أخرى من القائمة لعرض الكتب المتاحة لها.": "Wähle eine andere Sprache, um verfügbare Bücher anzuzeigen.",
-  "جرب كلمة أقصر أو ابحث باسم آخر للكتاب.": "Versuche ein kürzeres Wort oder einen anderen Buchtitel.",
-  "جرب عبارة أقصر أو وسّع نطاق البحث.": "Versuche eine kürzere Formulierung oder erweitere den Suchbereich.",
+  "اختر لغة أخرى من القائمة لعرض الكتب المتاحة لها.":
+    "Wähle eine andere Sprache, um verfügbare Bücher anzuzeigen.",
+  "جرب كلمة أقصر أو ابحث باسم آخر للكتاب.":
+    "Versuche ein kürzeres Wort oder einen anderen Buchtitel.",
+  "جرب عبارة أقصر أو وسّع نطاق البحث.":
+    "Versuche eine kürzere Formulierung oder erweitere den Suchbereich.",
   "لا توجد نتائج بعد الفلترة": "Keine Ergebnisse nach dem Filtern",
-  "غيّر نطاق البحث أو موضع المطابقة.": "Ändere Suchbereich oder Trefferposition.",
+  "غيّر نطاق البحث أو موضع المطابقة.":
+    "Ändere Suchbereich oder Trefferposition.",
   "تعذر تحميل العمل": "Werk konnte nicht geladen werden",
   "الطبعات المتاحة": "Verfügbare Ausgaben",
   "تعذر تحميل الطبعة": "Ausgabe konnte nicht geladen werden",
@@ -349,30 +380,34 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "النص الكامل": "Volltext",
   "مقدمة الكتاب": "Einleitung",
   "العودة إلى المكتبة": "Zurück zur Bibliothek",
-  "افتح الطبعة التي تريد القراءة منها.": "Öffne die Ausgabe, aus der du lesen möchtest.",
+  "العودة إلى الكتاب": "Zurück zum Buch",
+  "الصعود للأعلى": "Nach oben",
+  "افتح الطبعة التي تريد القراءة منها.":
+    "Öffne die Ausgabe, aus der du lesen möchtest.",
   "لم يعثر على هذا الكتاب": "Dieses Buch wurde nicht gefunden",
   "قد تكون الطبعة مدرجة بعنوان مختلف. يمكنك العودة إلى المكتبة والبحث باسم الكتاب.":
     "Die Ausgabe kann unter einem anderen Titel geführt sein. Kehre zur Bibliothek zurück und suche nach dem Buchtitel.",
   "تعذر تحميل الفصل": "Abschnitt konnte nicht geladen werden",
-  "المحتويات": "Inhalt",
+  المحتويات: "Inhalt",
   "حفظ موضع القراءة": "Leseposition speichern",
   "نسخ الفصل": "Abschnitt kopieren",
   "البحث داخل هذا القسم": "In diesem Abschnitt suchen",
-  "لا يوجد نص متاح لهذا الفصل بعد.": "Für diesen Abschnitt ist noch kein Text verfügbar.",
+  "لا يوجد نص متاح لهذا الفصل بعد.":
+    "Für diesen Abschnitt ist noch kein Text verfügbar.",
   "الفصل السابق": "Vorheriger Abschnitt",
   "الفصل التالي": "Nächster Abschnitt",
   "تم النسخ": "Kopiert",
   "تم حفظ التظليل": "Markierung gespeichert",
   "تم حفظ الملاحظة": "Notiz gespeichert",
   "تم حفظ الموضع": "Position gespeichert",
-  "إغلاق": "Schließen",
+  إغلاق: "Schließen",
   "ملاحظة اختيارية": "Optionale Notiz",
   "لون التظليل": "Markierungsfarbe",
-  "تظليل": "Markieren",
+  تظليل: "Markieren",
   "حفظ ملاحظة": "Notiz speichern",
-  "نسخ": "Kopieren",
-  "مشاركة": "Teilen",
-  "مثال": "Beispiel",
+  نسخ: "Kopieren",
+  مشاركة: "Teilen",
+  مثال: "Beispiel",
   "إظهار الشريط": "Leiste anzeigen",
   "تصغير الخط": "Schrift verkleinern",
   "تكبير الخط": "Schrift vergrößern",
@@ -384,14 +419,14 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "إخفاء الشريط": "Leiste ausblenden",
   "حواشي الصفحة": "Seitenfußnoten",
   "الانتقال إلى الحاشية {marker}": "Zur Fußnote {marker}",
-  "الكتاب": "Buch",
-  "ص": "S.",
-  "باب": "Kapitel",
-  "فصل": "Abschnitt",
-  "عنوان": "Überschrift",
+  الكتاب: "Buch",
+  ص: "S.",
+  باب: "Kapitel",
+  فصل: "Abschnitt",
+  عنوان: "Überschrift",
   "كل المواضع": "Alle Treffer",
-  "العناوين": "Titel",
-  "النصوص": "Texte",
+  العناوين: "Titel",
+  النصوص: "Texte",
   "الأقرب صلة": "Relevanteste",
   "حسب الكتاب": "Nach Buch",
   "حسب الصفحة": "Nach Seite",
@@ -399,15 +434,17 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "داخل كتاب": "In einem Buch",
   "داخل قسم": "In einem Abschnitt",
   "ابحث في كل كتب ابن القيم.": "Durchsuche alle Bücher Ibn al-Qayyims.",
-  "احصر البحث في كتاب/طبعة واحدة.": "Beschränke die Suche auf ein Buch oder eine Ausgabe.",
-  "احصر البحث في قسم أو فصل محدد.": "Beschränke die Suche auf einen bestimmten Abschnitt.",
+  "احصر البحث في كتاب/طبعة واحدة.":
+    "Beschränke die Suche auf ein Buch oder eine Ausgabe.",
+  "احصر البحث في قسم أو فصل محدد.":
+    "Beschränke die Suche auf einen bestimmten Abschnitt.",
   "ابحث داخل كل المكتبة، أو احصر البحث في كتاب أو قسم محدد.":
     "Durchsuche die ganze Bibliothek oder grenze die Suche auf ein Buch oder einen Abschnitt ein.",
   "مثال: الصبر": "Beispiel: Geduld",
   "خيارات البحث": "Suchoptionen",
   "نطاق البحث": "Suchbereich",
   "اختر كتاباً": "Buch wählen",
-  "القسم": "Abschnitt",
+  القسم: "Abschnitt",
   "اختر قسماً": "Abschnitt wählen",
   "موضع المطابقة": "Trefferposition",
   "ترتيب النتائج": "Ergebnisse sortieren",
@@ -415,15 +452,18 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "ابدأ بكتابة عبارة": "Beginne mit einer Suchphrase",
   "سيظهر لك موضع العبارة في الكتب والفصول مع مقتطف مختصر.":
     "Du siehst, wo die Phrase in Büchern und Abschnitten vorkommt, mit einem kurzen Auszug.",
-  "مكتبتي": "Meine Bibliothek",
+  مكتبتي: "Meine Bibliothek",
   "مواضع القراءة والتظليلات والملاحظات محفوظة محليا في هذا المتصفح.":
     "Lesepositionen, Markierungen und Notizen werden lokal in diesem Browser gespeichert.",
   "لا يوجد سجل قراءة بعد": "Noch kein Leseverlauf",
-  "ابدأ قراءة فصل وسيظهر هنا آخر موضع وصلت إليه.": "Lies einen Abschnitt; deine letzte Position erscheint hier.",
-  "التظليلات": "Markierungen",
-  "حدد نصا في القارئ واحفظه كتظليل.": "Wähle Text im Reader aus und speichere ihn als Markierung.",
+  "ابدأ قراءة فصل وسيظهر هنا آخر موضع وصلت إليه.":
+    "Lies einen Abschnitt; deine letzte Position erscheint hier.",
+  التظليلات: "Markierungen",
+  "حدد نصا في القارئ واحفظه كتظليل.":
+    "Wähle Text im Reader aus und speichere ihn als Markierung.",
   "لا توجد تظليلات": "Keine Markierungen",
-  "حدد نصا في القارئ وأضف ملاحظة محلية.": "Wähle Text im Reader aus und füge eine lokale Notiz hinzu.",
+  "حدد نصا في القارئ وأضف ملاحظة محلية.":
+    "Wähle Text im Reader aus und füge eine lokale Notiz hinzu.",
   "لا توجد ملاحظات": "Keine Notizen",
   "تحميل المحفوظات": "Gespeicherte Einträge herunterladen",
   "افتح التفضيلات لاختيار ما تريد تحميله وطريقة ترتيب الملف.":
@@ -431,9 +471,9 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "تحميل كل التظليلات": "Alle Markierungen herunterladen",
   "تحميل كل الملاحظات": "Alle Notizen herunterladen",
   "كل الكتب": "alle Bücher",
-  "التاريخ": "Datum",
+  التاريخ: "Datum",
   "النص المحدد": "Ausgewählter Text",
-  "الملاحظة": "Notiz",
+  الملاحظة: "Notiz",
   "لا توجد تظليلات.": "Keine Markierungen.",
   "لا توجد ملاحظات.": "Keine Notizen.",
   "تظليلات {label}": "Markierungen {label}",
@@ -454,41 +494,47 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "الأقدم أولاً": "Älteste zuerst",
   "حسب الكتاب والفصل": "Nach Buch und Abschnitt",
   "حذف المقروءة": "Leseposition löschen",
-  "حذف": "Löschen",
+  حذف: "Löschen",
   "مشاركة الاقتباس": "Zitat teilen",
   "شكل البطاقة": "Kartenstil",
   "المقاس والمصدر": "Format und Quelle",
   "إظهار المصدر": "Quelle anzeigen",
   "ألوان البطاقة": "Kartenfarben",
-  "التأكيد": "Akzent",
-  "الخلفية": "Hintergrund",
+  التأكيد: "Akzent",
+  الخلفية: "Hintergrund",
   "تحميل الصورة": "Bild herunterladen",
   "جاري المشاركة...": "Teilen läuft...",
   "مشاركة مباشرة": "Direkt teilen",
   "تم نسخ الصورة": "Bild kopiert",
   "نسخ الصورة": "Bild kopieren",
-  "واتساب": "WhatsApp",
+  واتساب: "WhatsApp",
   "تم نسخ النص": "Text kopiert",
   "نسخ النص": "Text kopieren",
   "بطاقة الاقتباس": "Zitatkarte",
   "اقتباس من {bookTitle}": "Zitat aus {bookTitle}",
-  "ابن القيم الجوزية رحمه الله": "Ibn Qayyim al-Dschauziyya, möge Allah ihm barmherzig sein",
-  "تعذرت المشاركة المباشرة. يمكنك نسخ النص أو تحميل الصورة.": "Direktes Teilen ist fehlgeschlagen. Du kannst den Text kopieren oder das Bild herunterladen.",
+  "ابن القيم الجوزية رحمه الله":
+    "Ibn Qayyim al-Dschauziyya, möge Allah ihm barmherzig sein",
+  "تعذرت المشاركة المباشرة. يمكنك نسخ النص أو تحميل الصورة.":
+    "Direktes Teilen ist fehlgeschlagen. Du kannst den Text kopieren oder das Bild herunterladen.",
   "اختيار لون {label}": "Farbe {label} wählen",
   "لون {color}": "Farbe {color}",
-  "فإن في القلب شعثا لا يلمه إلا الإقبال على الله": "Im Herzen gibt es eine Zerstreuung, die nur die Hinwendung zu Allah sammelt.",
-  "مخطوط": "Manuskript",
-  "ورق هادئ وحدود هندسية للنصوص الطويلة": "Ruhiges Papier und geometrische Rahmen für längere Texte",
-  "محراب": "Mihrab",
-  "خلفية داكنة وعمق بصري مناسب للمشاركة": "Dunkler Hintergrund mit visueller Tiefe zum Teilen",
+  "فإن في القلب شعثا لا يلمه إلا الإقبال على الله":
+    "Im Herzen gibt es eine Zerstreuung, die nur die Hinwendung zu Allah sammelt.",
+  مخطوط: "Manuskript",
+  "ورق هادئ وحدود هندسية للنصوص الطويلة":
+    "Ruhiges Papier und geometrische Rahmen für längere Texte",
+  محراب: "Mihrab",
+  "خلفية داكنة وعمق بصري مناسب للمشاركة":
+    "Dunkler Hintergrund mit visueller Tiefe zum Teilen",
   "غلاف الكتاب": "Buchcover",
-  "يربط البطاقة بلون الكتاب ومصدر الاقتباس": "Verbindet die Karte mit Buchfarbe und Zitatquelle",
-  "مربع": "Quadrat",
-  "قصة": "Story",
-  "ذهبي": "Gold",
-  "أخضر": "Grün",
-  "أزرق": "Blau",
-  "وردي": "Rosa",
+  "يربط البطاقة بلون الكتاب ومصدر الاقتباس":
+    "Verbindet die Karte mit Buchfarbe und Zitatquelle",
+  مربع: "Quadrat",
+  قصة: "Story",
+  ذهبي: "Gold",
+  أخضر: "Grün",
+  أزرق: "Blau",
+  وردي: "Rosa",
   "أهلا بك في موروث ابن القيم": "Willkommen bei Ibn al-Qayyim Vermächtnis",
   "هذه جولة سريعة توضح كيف تبحث، تفتح كتابا، تنسخ النصوص، وتشارك اقتباسا منسقا كصورة قابلة للتعديل.":
     "Diese kurze Tour zeigt, wie du suchst, Bücher öffnest, Texte kopierst und ein formatiertes Zitat als bearbeitbares Bild teilst.",
@@ -500,6 +546,8 @@ const DE_TRANSLATIONS: Record<string, string> = {
     "In der Bibliothek kannst du verfügbare Werke durchsuchen. Wähle ein Werk und öffne dann die passende Ausgabe.",
   "في صفحة الطبعة يظهر زر بدء القراءة. الجولة تستخدم أول طبعة متاحة كمثال حتى ترى المسار كاملا.":
     "Auf der Ausgabenseite erscheint die Schaltfläche zum Lesen. Die Tour nutzt die erste verfügbare Ausgabe als Beispiel, damit du den ganzen Weg siehst.",
+  "في صفحة طبعة الداء والدواء من عطاءات العلم يظهر زر بدء القراءة، ومنها تكمل الجولة داخل القارئ.":
+    "Auf der Ataat-al-Ilm-Ausgabenseite von Al-Daa wa al-Dawa erscheint die Schaltfläche zum Lesen; danach geht die Tour im Reader weiter.",
   "اقرأ الفصل": "Abschnitt lesen",
   "هذا هو سطح القراءة. مرر بين الصفحات، وسيحفظ الموقع موضعك محليا في هذا المتصفح.":
     "Dies ist der Reader. Scrolle durch die Seiten; die Website speichert deine Position lokal.",
@@ -509,7 +557,8 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "انسخ نصا جاهزا للصق": "Text kopierfertig machen",
   "زر النسخ في أعلى القارئ ينسخ نص الفصل مع نسبة المصدر. بعد النسخ يمكنك لصقه في ملاحظاتك، بريدك، أو أي محرر نصوص.":
     "Die Kopieren-Schaltfläche oben im Reader kopiert den Abschnitt mit Quellenangabe. Danach kannst du ihn in Notizen, E-Mails oder einen Texteditor einfügen.",
-  "النص المنسوخ يتضمن الكتاب والفصل.": "Der kopierte Text enthält Buch und Abschnitt.",
+  "النص المنسوخ يتضمن الكتاب والفصل.":
+    "Der kopierte Text enthält Buch und Abschnitt.",
   "استخدمه عندما تريد حفظ الفصل أو جزء كبير منه خارج الموقع.":
     "Nutze dies, wenn du einen Abschnitt oder einen längeren Auszug außerhalb der Website speichern möchtest.",
   "حدد جزءا من النص": "Wähle einen Textteil",
@@ -532,13 +581,14 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "لم يظهر هذا الموضع بعد. يمكنك المتابعة، وستنتقل الجولة إلى الخطوة التالية.":
     "Dieses Ziel ist noch nicht sichtbar. Du kannst fortfahren; die Tour geht zum nächsten Schritt.",
   "خطوة {current} من {total}": "Schritt {current} von {total}",
-  "السابق": "Zurück",
-  "إنهاء": "Fertig",
+  السابق: "Zurück",
+  إنهاء: "Fertig",
   "ابدأ الجولة": "Tour starten",
-  "التالي": "Weiter",
-  "تخطي": "Überspringen",
+  التالي: "Weiter",
+  تخطي: "Überspringen",
   "الصفحة غير موجودة": "Seite nicht gefunden",
-  "يبدو أن هذه الصفحة لا وجود لها أو أن الرابط خاطئ.": "Diese Seite existiert nicht oder der Link ist falsch.",
+  "يبدو أن هذه الصفحة لا وجود لها أو أن الرابط خاطئ.":
+    "Diese Seite existiert nicht oder der Link ist falsch.",
   "العودة إلى الرئيسية": "Zur Startseite",
 };
 
@@ -572,7 +622,8 @@ function translatePattern(text: string, language: LanguageCode) {
   if (language !== "en") return text;
 
   let match = text.match(new RegExp(`^${NUMBER} من ${NUMBER} عمل$`));
-  if (match) return `${toLatinDigits(match[1]!)} of ${toLatinDigits(match[2]!)} works`;
+  if (match)
+    return `${toLatinDigits(match[1]!)} of ${toLatinDigits(match[2]!)} works`;
 
   match = text.match(new RegExp(`^${NUMBER} طبعات$`));
   if (match) return `${toLatinDigits(match[1]!)} editions`;
@@ -587,7 +638,8 @@ function translatePattern(text: string, language: LanguageCode) {
   if (match) return `${match[1]} / page ${toLatinDigits(match[2]!)}`;
 
   match = text.match(new RegExp(`^${NUMBER} دقائق قراءة / صفحة ${NUMBER}$`));
-  if (match) return `${toLatinDigits(match[1]!)} min read / page ${toLatinDigits(match[2]!)}`;
+  if (match)
+    return `${toLatinDigits(match[1]!)} min read / page ${toLatinDigits(match[2]!)}`;
 
   match = text.match(new RegExp(`^${NUMBER} نتيجة للبحث عن "(.+)"$`));
   if (match) return `${toLatinDigits(match[1]!)} results for "${match[2]}"`;
@@ -599,7 +651,8 @@ function translatePattern(text: string, language: LanguageCode) {
   if (match) return `Reading progress: ${toLatinDigits(match[1]!)}%`;
 
   match = text.match(/^خطوة ([\d٠-٩۰-۹]+) من ([\d٠-٩۰-۹]+)$/);
-  if (match) return `Step ${toLatinDigits(match[1]!)} of ${toLatinDigits(match[2]!)}`;
+  if (match)
+    return `Step ${toLatinDigits(match[1]!)} of ${toLatinDigits(match[2]!)}`;
 
   match = text.match(/^داخل قسم: (.+)$/);
   if (match) return `Within section: ${match[1]}`;
@@ -614,7 +667,8 @@ function translatePattern(text: string, language: LanguageCode) {
   if (match) return `Highlight ${translatePart(match[1]!, "en").toLowerCase()}`;
 
   match = text.match(/^اختيار لون (.+)$/);
-  if (match) return `Choose ${translatePart(match[1]!, "en").toLowerCase()} color`;
+  if (match)
+    return `Choose ${translatePart(match[1]!, "en").toLowerCase()} color`;
 
   match = text.match(/^لون (.+)$/);
   if (match) return `Color ${translatePart(match[1]!, "en")}`;
@@ -641,15 +695,22 @@ export function translateText(value: string, language: LanguageCode) {
   const normalized = value.trim().replace(/\s+/g, " ");
   if (!normalized) return value;
 
-  const translated = TRANSLATIONS[language]?.[normalized] ?? translatePattern(normalized, language);
+  const translated =
+    TRANSLATIONS[language]?.[normalized] ??
+    translatePattern(normalized, language);
   if (translated === normalized) return value;
   return `${leading}${translated}${trailing}`;
 }
 
-export function translateUi(language: LanguageCode, key: string, params: Record<string, string | number> = {}) {
+export function translateUi(
+  language: LanguageCode,
+  key: string,
+  params: Record<string, string | number> = {},
+) {
   const translated = translateText(key, language);
   return Object.entries(params).reduce(
-    (value, [name, replacement]) => value.replaceAll(`{${name}}`, String(replacement)),
+    (value, [name, replacement]) =>
+      value.replaceAll(`{${name}}`, String(replacement)),
     translated,
   );
 }
@@ -676,19 +737,35 @@ export function editionCountText(count: number, language: LanguageCode) {
     if (count === 2) return "طبعتان";
     return `${formatNumber(count, language)} طبعات`;
   }
-  if (language === "de") return count === 1 ? "1 Ausgabe" : `${formatNumber(count, language)} Ausgaben`;
-  return count === 1 ? "1 edition" : `${formatNumber(count, language)} editions`;
+  if (language === "de")
+    return count === 1
+      ? "1 Ausgabe"
+      : `${formatNumber(count, language)} Ausgaben`;
+  return count === 1
+    ? "1 edition"
+    : `${formatNumber(count, language)} editions`;
 }
 
 export function availableEditionsText(count: number, language: LanguageCode) {
   if (language === "ar") return `${formatNumber(count, language)} طبعات متاحة`;
-  if (language === "de") return count === 1 ? "1 Ausgabe verfügbar" : `${formatNumber(count, language)} Ausgaben verfügbar`;
-  return count === 1 ? "1 edition available" : `${formatNumber(count, language)} editions available`;
+  if (language === "de")
+    return count === 1
+      ? "1 Ausgabe verfügbar"
+      : `${formatNumber(count, language)} Ausgaben verfügbar`;
+  return count === 1
+    ? "1 edition available"
+    : `${formatNumber(count, language)} editions available`;
 }
 
-export function worksCountText(current: number, total: number, language: LanguageCode) {
-  if (language === "ar") return `${formatNumber(current, language)} من ${formatNumber(total, language)} عمل`;
-  if (language === "de") return `${formatNumber(current, language)} von ${formatNumber(total, language)} Werken`;
+export function worksCountText(
+  current: number,
+  total: number,
+  language: LanguageCode,
+) {
+  if (language === "ar")
+    return `${formatNumber(current, language)} من ${formatNumber(total, language)} عمل`;
+  if (language === "de")
+    return `${formatNumber(current, language)} von ${formatNumber(total, language)} Werken`;
   return `${formatNumber(current, language)} of ${formatNumber(total, language)} works`;
 }
 
@@ -698,21 +775,36 @@ export function pageText(pageNumber: number, language: LanguageCode) {
   return `Page ${formatNumber(pageNumber, language)}`;
 }
 
-export function readingMetaText(minutes: number, pageNumber: number, language: LanguageCode) {
-  if (language === "ar") return `${formatNumber(minutes, language)} دقائق قراءة / ${pageText(pageNumber, language)}`;
-  if (language === "de") return `${formatNumber(minutes, language)} Min. Lesezeit / ${pageText(pageNumber, language)}`;
+export function readingMetaText(
+  minutes: number,
+  pageNumber: number,
+  language: LanguageCode,
+) {
+  if (language === "ar")
+    return `${formatNumber(minutes, language)} دقائق قراءة / ${pageText(pageNumber, language)}`;
+  if (language === "de")
+    return `${formatNumber(minutes, language)} Min. Lesezeit / ${pageText(pageNumber, language)}`;
   return `${formatNumber(minutes, language)} min read / ${pageText(pageNumber, language).toLowerCase()}`;
 }
 
-export function searchResultsText(count: number, query: string, language: LanguageCode) {
-  if (language === "ar") return `${formatNumber(count, language)} نتيجة للبحث عن "${query}"`;
-  if (language === "de") return `${formatNumber(count, language)} Ergebnisse für "${query}"`;
+export function searchResultsText(
+  count: number,
+  query: string,
+  language: LanguageCode,
+) {
+  if (language === "ar")
+    return `${formatNumber(count, language)} نتيجة للبحث عن "${query}"`;
+  if (language === "de")
+    return `${formatNumber(count, language)} Ergebnisse für "${query}"`;
   return `${formatNumber(count, language)} results for "${query}"`;
 }
 
 export function matchCountText(count: number, language: LanguageCode) {
   if (language === "ar") return `${formatNumber(count, language)} تطابق`;
-  if (language === "de") return count === 1 ? "1 Treffer" : `${formatNumber(count, language)} Treffer`;
+  if (language === "de")
+    return count === 1
+      ? "1 Treffer"
+      : `${formatNumber(count, language)} Treffer`;
   return count === 1 ? "1 match" : `${formatNumber(count, language)} matches`;
 }
 
@@ -725,6 +817,7 @@ export function useUiTranslations() {
     language,
     locale: numberLocale(language),
     sortLocale: sortLocale(language),
-    t: (key: string, params?: Record<string, string | number>) => translateUi(language, key, params),
+    t: (key: string, params?: Record<string, string | number>) =>
+      translateUi(language, key, params),
   };
 }

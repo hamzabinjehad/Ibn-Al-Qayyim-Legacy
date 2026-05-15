@@ -3,8 +3,7 @@ import type { LanguageCode } from "@/lib/i18n";
 export const CONTRIBUTION_LINKS = {
   githubBranch: "main",
   githubRepoUrl: "https://github.com/hamzabinjehad/Ibn-Al-Qayyim-Legacy",
-  googleFormUrl: "",
-  telegramBotUrl: "",
+  supportUrl: "https://t.me/IbnAlQayyiumSupport_bot",
 } as const;
 
 export interface TranslationCorrectionLinkInput {
@@ -39,6 +38,10 @@ function field(label: string, value: string | number | undefined | null) {
 
 export function buildSourceEditUrl(sourceFile: string) {
   return githubUrl(`edit/${CONTRIBUTION_LINKS.githubBranch}/scripts/output/ibn-qayyim/${encodePath(sourceFile)}`);
+}
+
+export function buildSupportUrl() {
+  return CONTRIBUTION_LINKS.supportUrl;
 }
 
 export function buildTranslationIssueUrl(input: TranslationCorrectionLinkInput) {

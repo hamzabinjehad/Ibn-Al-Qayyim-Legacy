@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { ChevronDown } from "lucide-react";
+import { DisclosureChevron } from "@/components/editorial/DirectionalIcon";
 import { cn } from "@/lib/utils";
 import { sectionTypeLabel, type PageDetail, type SectionSummary } from "@/lib/static-library";
 import { formatNumber, pageText, useUiTranslations } from "@/lib/ui-translations";
@@ -171,6 +171,7 @@ function BookTocNode({
   const hasChildren = node.children.length > 0;
   const isCurrent = node.id === currentSectionId;
   const isOpen = openIds.has(node.id);
+  const isHeading = node.type === "heading";
   const childCount = useMemo(() => countDescendants(node), [node]);
   const href = `/edition/${editionId}/section/${node.id}`;
 
@@ -180,13 +181,19 @@ function BookTocNode({
         href={href}
         onClick={onSelect}
         className={cn(
-          "flex items-center justify-between gap-3 rounded-lg border border-transparent px-4 py-3 text-sm leading-7 transition-colors hover:border-border hover:bg-muted/50",
-          compact && "px-3 py-2 text-xs leading-6",
-          node.parentId && "mr-4 border-r-border",
+          isHeading
+            ? "grid grid-cols-[minmax(3.75rem,auto)_minmax(0,1fr)_minmax(3.75rem,auto)] items-center gap-3 rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm leading-7 transition-colors hover:border-foreground/40 hover:bg-muted/60"
+            : "flex items-center justify-between gap-3 rounded-lg border border-transparent px-4 py-3 text-sm leading-7 transition-colors hover:border-border hover:bg-muted/50",
+          compact &&
+            (isHeading
+              ? "grid-cols-[minmax(3.25rem,auto)_minmax(0,1fr)_minmax(3.25rem,auto)] px-3 py-2 text-xs leading-6"
+              : "px-3 py-2 text-xs leading-6"),
+          node.parentId && "ms-4 border-s-border",
           isCurrent ? "border-border bg-muted text-foreground" : "text-muted-foreground",
         )}
       >
-        <SectionTitle compact={compact} language={language} node={node} />
+        {isHeading && <span aria-hidden="true" />}
+        <SectionTitle centered={isHeading} compact={compact} language={language} node={node} />
         <PageRangeLabel
           endPage={displayPageByPageNumber.get(node.endPage) ?? node.endPage}
           language={language}
@@ -197,7 +204,7 @@ function BookTocNode({
   }
 
   return (
-    <div className={cn("rounded-lg border border-border", node.parentId && "mr-4 border-r-2", compact && "rounded-md")}>
+    <div className={cn("rounded-lg border border-border", node.parentId && "ms-4 border-s-2", compact && "rounded-md")}>
       <div className={cn("flex items-stretch gap-1 p-1", isCurrent && "bg-muted")}>
         <button
           type="button"
@@ -208,7 +215,7 @@ function BookTocNode({
             compact && "gap-2 px-2 py-1.5",
           )}
         >
-          <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", isOpen ? "rotate-0" : "rotate-90")} />
+          <DisclosureChevron className="h-4 w-4 shrink-0 text-muted-foreground" open={isOpen} />
           <SectionTitle compact={compact} language={language} node={node} strong />
           <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs tabular-nums text-muted-foreground">{childCount}</span>
         </button>
@@ -282,11 +289,13 @@ function PageRangeLabel({
 }
 
 function SectionTitle({
+  centered = false,
   compact,
   language,
   node,
   strong = false,
 }: {
+  centered?: boolean;
   compact: boolean;
   language?: LanguageCode;
   node: SectionNode;
@@ -295,13 +304,24 @@ function SectionTitle({
   return (
     <span
       className={cn(
-        "flex min-w-0 flex-1 items-baseline gap-3 leading-7",
-        compact && "gap-2 text-xs leading-6",
+        centered
+          ? "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 text-center leading-6"
+          : "flex min-w-0 flex-1 items-baseline gap-3 leading-7",
+        compact && (centered ? "gap-1 text-xs leading-5" : "gap-2 text-xs leading-6"),
         strong && "font-semibold text-foreground",
       )}
     >
-      <span className="shrink-0 text-xs font-normal text-muted-foreground">{sectionTypeLabel(node.type, language)}</span>
-      <span className="line-clamp-2 min-w-0 flex-1">{node.titleAr}</span>
+      <span
+        className={cn(
+          "shrink-0 text-xs font-normal text-muted-foreground",
+          centered && "rounded-full border border-border bg-background px-2 py-0.5 font-semibold",
+        )}
+      >
+        {sectionTypeLabel(node.type, language)}
+      </span>
+      <span className={cn("line-clamp-2 min-w-0 flex-1", centered && "w-full flex-none font-semibold text-foreground")}>
+        {node.titleAr}
+      </span>
     </span>
   );
 }

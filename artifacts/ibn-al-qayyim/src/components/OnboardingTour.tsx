@@ -8,8 +8,13 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useLocation } from "wouter";
+import { DirectionalArrow } from "@/components/editorial/DirectionalIcon";
+import {
+  FEATURED_READING_EDITION_ID,
+  FEATURED_READING_WORK_ID,
+} from "@/lib/featured-reading";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n";
 import { useStaticBooks } from "@/lib/static-library";
@@ -56,7 +61,9 @@ interface TargetRect {
   width: number;
 }
 
-const OnboardingTourContext = createContext<OnboardingTourContextValue | null>(null);
+const OnboardingTourContext = createContext<OnboardingTourContextValue | null>(
+  null,
+);
 
 function readTourSeen() {
   if (typeof window === "undefined") return true;
@@ -76,7 +83,9 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function getTargetRect(target: string): TargetRect | null {
-  const element = document.querySelector<HTMLElement>(selectorForTarget(target));
+  const element = document.querySelector<HTMLElement>(
+    selectorForTarget(target),
+  );
   if (!element) return null;
   const rect = element.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return null;
@@ -108,20 +117,29 @@ function getPanelStyle(rect: TargetRect | null): CSSProperties {
   }
 
   const estimatedHeight = 300;
-  const canFitBelow = window.innerHeight - rect.bottom > estimatedHeight + margin;
+  const canFitBelow =
+    window.innerHeight - rect.bottom > estimatedHeight + margin;
   const canFitAbove = rect.top > estimatedHeight + margin;
   const top = canFitBelow
     ? rect.bottom + margin
     : canFitAbove
       ? rect.top - estimatedHeight - margin
       : margin;
-  const left = clamp(rect.left + rect.width / 2 - width / 2, margin, window.innerWidth - width - margin);
+  const left = clamp(
+    rect.left + rect.width / 2 - width / 2,
+    margin,
+    window.innerWidth - width - margin,
+  );
 
   return {
     boxSizing: "border-box",
     left,
     maxWidth: width,
-    top: clamp(top, margin, Math.max(margin, window.innerHeight - estimatedHeight - margin)),
+    top: clamp(
+      top,
+      margin,
+      Math.max(margin, window.innerHeight - estimatedHeight - margin),
+    ),
     width,
   };
 }
@@ -145,7 +163,10 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [targetMissing, setTargetMissing] = useState(false);
 
-  const sampleBook = books?.[0];
+  const sampleBook =
+    books?.find((book) => book.id === FEATURED_READING_EDITION_ID) ??
+    books?.find((book) => book.workId === FEATURED_READING_WORK_ID) ??
+    books?.[0];
   const sampleReaderPath = sampleBook
     ? `/edition/${sampleBook.id}/section/${sampleBook.firstChapterId}`
     : "/library";
@@ -174,7 +195,7 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
       {
         id: "start-reading",
         title: "ابدأ القراءة",
-        body: "في صفحة الطبعة يظهر زر بدء القراءة. الجولة تستخدم أول طبعة متاحة كمثال حتى ترى المسار كاملا.",
+        body: "في صفحة طبعة الداء والدواء من عطاءات العلم يظهر زر بدء القراءة، ومنها تكمل الجولة داخل القارئ.",
         path: sampleBook ? `/edition/${sampleBook.id}` : "/library",
         target: "book-start-reading",
       },
@@ -198,7 +219,10 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
         body: "زر النسخ في أعلى القارئ ينسخ نص الفصل مع نسبة المصدر. بعد النسخ يمكنك لصقه في ملاحظاتك، بريدك، أو أي محرر نصوص.",
         path: sampleReaderPath,
         target: "reader-copy-chapter",
-        points: ["النص المنسوخ يتضمن الكتاب والفصل.", "استخدمه عندما تريد حفظ الفصل أو جزء كبير منه خارج الموقع."],
+        points: [
+          "النص المنسوخ يتضمن الكتاب والفصل.",
+          "استخدمه عندما تريد حفظ الفصل أو جزء كبير منه خارج الموقع.",
+        ],
       },
       {
         id: "select-text",
@@ -206,7 +230,9 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
         body: "ظلّل عبارة داخل الصفحة كما تفعل في أي قارئ. عند ترك التحديد يظهر شريط أعمال سريع في أسفل الشاشة.",
         path: sampleReaderPath,
         target: "reader-selection",
-        points: ["يمكنك تظليل العبارة، حفظ ملاحظة، نسخها، أو تحويلها إلى بطاقة مشاركة."],
+        points: [
+          "يمكنك تظليل العبارة، حفظ ملاحظة، نسخها، أو تحويلها إلى بطاقة مشاركة.",
+        ],
       },
       {
         id: "selection-actions",
@@ -247,13 +273,17 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   const stepNumber = formatNumber(currentStep + 1);
   const stepCount = formatNumber(steps.length);
 
-  const closeTour = useCallback(() => {
-    markTourSeen();
-    setIsTourOpen(false);
-    setCurrentStep(0);
-    setTargetRect(null);
-    setTargetMissing(false);
-  }, []);
+  const closeTour = useCallback(
+    (options?: { returnHome?: boolean }) => {
+      markTourSeen();
+      setIsTourOpen(false);
+      setCurrentStep(0);
+      setTargetRect(null);
+      setTargetMissing(false);
+      if (options?.returnHome && location !== "/") navigate("/");
+    },
+    [location, navigate],
+  );
 
   const startTour = useCallback(() => {
     setCurrentStep(0);
@@ -264,7 +294,7 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 
   const nextStep = () => {
     if (isLastStep) {
-      closeTour();
+      closeTour({ returnHome: true });
       return;
     }
     setCurrentStep((step) => Math.min(step + 1, steps.length - 1));
@@ -290,13 +320,15 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeTour();
-      if (event.key === "ArrowLeft") nextStep();
-      if (event.key === "ArrowRight") previousStep();
+      if (event.key === (direction === "rtl" ? "ArrowLeft" : "ArrowRight"))
+        nextStep();
+      if (event.key === (direction === "rtl" ? "ArrowRight" : "ArrowLeft"))
+        previousStep();
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  });
+  }, [closeTour, direction, isTourOpen, nextStep, previousStep]);
 
   useEffect(() => {
     if (!isTourOpen || !activeStep.target) {
@@ -312,7 +344,9 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 
     const capture = () => {
       if (disposed || !activeStep.target) return;
-      const element = document.querySelector<HTMLElement>(selectorForTarget(activeStep.target));
+      const element = document.querySelector<HTMLElement>(
+        selectorForTarget(activeStep.target),
+      );
 
       if (!element) {
         attempts += 1;
@@ -326,7 +360,11 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
       }
 
       if (!scrolled) {
-        element.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+        element.scrollIntoView({
+          block: "center",
+          inline: "nearest",
+          behavior: "smooth",
+        });
         scrolled = true;
         timer = window.setTimeout(capture, 240);
         return;
@@ -357,7 +395,11 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   }, [activeStep.target, currentStep, isTourOpen, location]);
 
   const contextValue = useMemo(
-    () => ({ activeStepId: isTourOpen ? activeStep.id : null, isTourOpen, startTour }),
+    () => ({
+      activeStepId: isTourOpen ? activeStep.id : null,
+      isTourOpen,
+      startTour,
+    }),
     [activeStep.id, isTourOpen, startTour],
   );
 
@@ -385,21 +427,28 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground">
-                  {t("خطوة {current} من {total}", { current: stepNumber, total: stepCount })}
+                  {t("خطوة {current} من {total}", {
+                    current: stepNumber,
+                    total: stepCount,
+                  })}
                 </p>
-                <h2 className="mt-2 font-display text-2xl font-bold leading-tight">{t(activeStep.title)}</h2>
+                <h2 className="mt-2 font-display text-2xl font-bold leading-tight">
+                  {t(activeStep.title)}
+                </h2>
               </div>
               <button
                 aria-label={t("إغلاق")}
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                onClick={closeTour}
+                onClick={() => closeTour()}
                 type="button"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <p className="mt-4 text-sm leading-7 text-muted-foreground">{t(activeStep.body)}</p>
+            <p className="mt-4 text-sm leading-7 text-muted-foreground">
+              {t(activeStep.body)}
+            </p>
 
             {activeStep.points && (
               <ul className="mt-4 grid gap-2 text-sm leading-6 text-muted-foreground">
@@ -414,14 +463,18 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 
             {targetMissing && hasTarget && (
               <p className="mt-3 rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs leading-6 text-muted-foreground">
-                {t("لم يظهر هذا الموضع بعد. يمكنك المتابعة، وستنتقل الجولة إلى الخطوة التالية.")}
+                {t(
+                  "لم يظهر هذا الموضع بعد. يمكنك المتابعة، وستنتقل الجولة إلى الخطوة التالية.",
+                )}
               </p>
             )}
 
             <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-primary transition-[width]"
-                style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                style={{
+                  width: `${((currentStep + 1) / steps.length) * 100}%`,
+                }}
               />
             </div>
 
@@ -435,7 +488,7 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
                 onClick={previousStep}
                 type="button"
               >
-                <ArrowRight className="h-4 w-4" />
+                <DirectionalArrow className="h-4 w-4" role="back" />
                 {t("السابق")}
               </button>
               <button
@@ -451,13 +504,13 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
                 ) : (
                   <>
                     {currentStep === 0 ? t("ابدأ الجولة") : t("التالي")}
-                    <ArrowLeft className="h-4 w-4" />
+                    <DirectionalArrow className="h-4 w-4" />
                   </>
                 )}
               </button>
               <button
                 className="ms-auto inline-flex h-10 items-center rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                onClick={closeTour}
+                onClick={() => closeTour()}
                 type="button"
               >
                 {t("تخطي")}
@@ -473,7 +526,9 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 export function useOnboardingTour() {
   const context = useContext(OnboardingTourContext);
   if (!context) {
-    throw new Error("useOnboardingTour must be used within OnboardingTourProvider");
+    throw new Error(
+      "useOnboardingTour must be used within OnboardingTourProvider",
+    );
   }
   return context;
 }

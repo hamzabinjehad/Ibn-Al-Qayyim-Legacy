@@ -15,7 +15,6 @@ const BookEditions = lazy(() => import("@/pages/BookEditions"));
 const ChapterReader = lazy(() => import("@/pages/ChapterReader"));
 const Search = lazy(() => import("@/pages/Search"));
 const Notes = lazy(() => import("@/pages/Notes"));
-const Support = lazy(() => import("@/pages/Support"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,7 +51,6 @@ function Router({ language }: { language: LanguageCode }) {
         <Route path="/search" component={Search} />
         <Route path="/notes" component={Notes} />
         <Route path="/profile" component={Notes} />
-        <Route path="/support" component={Support} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

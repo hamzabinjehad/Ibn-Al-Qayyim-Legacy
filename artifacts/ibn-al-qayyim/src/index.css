@@ -331,12 +331,25 @@
   }
 
   .reader-text {
-    max-width: 42rem;
+    box-sizing: border-box;
+    max-width: min(100%, 52rem);
+    text-wrap: pretty;
+  }
+
+  @media (min-width: 1280px) {
+    .reader-text {
+      max-width: min(100%, 56rem);
+    }
   }
 
   .reader-text p,
   .reader-text {
     text-wrap: pretty;
+  }
+
+  .reader-text[dir="rtl"] {
+    text-align: justify;
+    text-align-last: auto;
   }
 
   .reader-footnote-ref {
@@ -611,18 +624,44 @@
 
   .surface-card {
     border: 1px solid hsl(var(--border));
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     background:
       linear-gradient(180deg, hsl(var(--background) / 0.98), hsl(var(--background) / 0.94)),
       hsl(var(--background));
-    box-shadow: 0 18px 48px -42px rgb(0 0 0 / 0.72);
+    box-shadow: 0 18px 46px -42px rgb(0 0 0 / 0.72);
+  }
+
+  .reader-surface {
+    position: relative;
+    background:
+      linear-gradient(180deg, hsl(var(--background) / 0.99), hsl(var(--background) / 0.96) 52%, hsl(var(--muted) / 0.18)),
+      hsl(var(--background));
+    box-shadow:
+      0 24px 80px -58px rgb(0 0 0 / 0.82),
+      inset 0 1px 0 rgb(255 255 255 / 0.72);
+  }
+
+  .dark .reader-surface {
+    box-shadow:
+      0 24px 80px -58px rgb(0 0 0 / 0.95),
+      inset 0 1px 0 rgb(255 255 255 / 0.08);
+  }
+
+  .reader-header {
+    background:
+      linear-gradient(180deg, hsl(var(--muted) / 0.34), transparent 82%),
+      radial-gradient(ellipse at 50% 0%, hsl(var(--foreground) / 0.045), transparent 58%);
+  }
+
+  .reader-page-marker {
+    color: hsl(var(--muted-foreground));
   }
 
   .interactive-card {
     border: 1px solid hsl(var(--border));
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     background: hsl(var(--background));
-    box-shadow: 0 16px 42px -40px rgb(0 0 0 / 0.72);
+    box-shadow: 0 14px 36px -34px rgb(0 0 0 / 0.72);
     transition:
       border-color 160ms ease,
       background-color 160ms ease,
@@ -633,23 +672,24 @@
   .interactive-card:hover {
     border-color: hsl(var(--foreground) / 0.45);
     background: hsl(var(--background) / 0.96);
-    box-shadow: 0 22px 56px -44px rgb(0 0 0 / 0.82);
+    box-shadow: 0 20px 52px -44px rgb(0 0 0 / 0.82);
     transform: translateY(-1px);
   }
 
   .reader-chrome {
     border: 1px solid hsl(var(--border));
-    background: hsl(var(--background) / 0.96);
-    box-shadow: 0 18px 48px -42px rgb(0 0 0 / 0.72);
+    background: hsl(var(--background) / 0.98);
+    box-shadow: 0 16px 44px -40px rgb(0 0 0 / 0.72);
     backdrop-filter: blur(18px);
   }
 
   .reader-control {
-    min-height: 2.75rem;
+    min-height: 2.5rem;
     border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
     background: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-weight: 600;
     transition:
       border-color 160ms ease,
       background-color 160ms ease,
@@ -659,6 +699,19 @@
   .reader-control:hover {
     border-color: hsl(var(--foreground) / 0.48);
     background: hsl(var(--muted) / 0.62);
+  }
+
+  .reader-control[aria-pressed="true"] {
+    border-color: hsl(var(--foreground) / 0.58);
+    background: hsl(var(--muted) / 0.82);
+    color: hsl(var(--foreground));
+    box-shadow: inset 0 0 0 1px hsl(var(--foreground) / 0.08);
+  }
+
+  @media (hover: none) {
+    .interactive-card:hover {
+      transform: none;
+    }
   }
 
   .scrollbar-soft {

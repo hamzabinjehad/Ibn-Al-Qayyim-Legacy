@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { Link, useParams } from "wouter";
-import { ChevronLeft, Layers } from "lucide-react";
+import { Layers } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { BookRow } from "@/components/editorial/BookCard";
 import { EmptyState, LoadingState } from "@/components/editorial/DataState";
+import { DirectionalArrow } from "@/components/editorial/DirectionalIcon";
 import PageFrame from "@/components/editorial/PageFrame";
 import { extractBaseTitle } from "@/lib/book-titles";
 import { useStaticBooks } from "@/lib/static-library";
@@ -25,13 +26,13 @@ export default function BookEditions() {
       <PageFrame maxWidth="max-w-5xl">
         <Link
           href="/library"
-          className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <DirectionalArrow className="h-4 w-4" role="back" />
           {t("العودة إلى المكتبة")}
         </Link>
 
-        <header className="border-b border-border pb-8">
+        <header className="border-b border-border pb-6">
           <div className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
             <Layers className="h-4 w-4" />
             {t("الطبعات المتاحة")}
@@ -42,7 +43,7 @@ export default function BookEditions() {
           </p>
         </header>
 
-        <section className="pt-8">
+        <section className="pt-6">
           {isLoading ? (
             <LoadingState />
           ) : editions.length === 0 ? (

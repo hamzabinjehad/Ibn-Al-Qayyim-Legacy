@@ -9,17 +9,18 @@ const SESSION_STARTED_AT_KEY = "ibn-qayyim-install-started-at";
 const SESSION_PATHS_KEY = "ibn-qayyim-install-paths";
 const SESSION_INTERACTIONS_KEY = "ibn-qayyim-install-interactions";
 const SESSION_SCROLL_RATIO_KEY = "ibn-qayyim-install-scroll-ratio";
+const SESSION_READING_MS_KEY = "ibn-qayyim-install-reading-ms";
 const DISMISSED_UNTIL_KEY = "ibn-qayyim-install-dismissed-until";
 
-const MINIMUM_USE_MS = 45_000;
+const MINIMUM_READING_MS = 5 * 60 * 1000;
+const READING_TICK_MS = 5_000;
 const DISMISSAL_DURATION_MS = 14 * 24 * 60 * 60 * 1000;
-const REQUIRED_SCROLL_RATIO = 0.55;
-const REQUIRED_INTERACTIONS = 2;
 
 interface EngagementMetrics {
   interactionCount: number;
   maxScrollRatio: number;
   paths: string[];
+  readingMs: number;
   startedAt: number;
 }
 
@@ -67,8 +68,12 @@ function clearExpiredDismissal() {
 
 function readPaths(currentPath: string) {
   try {
-    const parsed = JSON.parse(window.sessionStorage.getItem(SESSION_PATHS_KEY) ?? "[]");
-    const storedPaths = Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+    const parsed = JSON.parse(
+      window.sessionStorage.getItem(SESSION_PATHS_KEY) ?? "[]",
+    );
+    const storedPaths = Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
     return addPath(storedPaths, currentPath);
   } catch {
     return [currentPath];
@@ -86,6 +91,7 @@ function readEngagementMetrics(currentPath: string): EngagementMetrics {
     interactionCount: readSessionNumber(SESSION_INTERACTIONS_KEY, 0),
     maxScrollRatio: Math.min(1, readSessionNumber(SESSION_SCROLL_RATIO_KEY, 0)),
     paths: readPaths(currentPath),
+    readingMs: readSessionNumber(SESSION_READING_MS_KEY, 0),
     startedAt,
   };
 
@@ -99,15 +105,26 @@ function persistEngagementMetrics(metrics: EngagementMetrics) {
   writeSessionValue(SESSION_PATHS_KEY, JSON.stringify(metrics.paths));
   writeSessionValue(SESSION_INTERACTIONS_KEY, String(metrics.interactionCount));
   writeSessionValue(SESSION_SCROLL_RATIO_KEY, String(metrics.maxScrollRatio));
+  writeSessionValue(SESSION_READING_MS_KEY, String(metrics.readingMs));
 }
 
 function currentScrollRatio() {
   const documentElement = document.documentElement;
-  const scrollHeight = Math.max(documentElement.scrollHeight, document.body.scrollHeight);
+  const scrollHeight = Math.max(
+    documentElement.scrollHeight,
+    document.body.scrollHeight,
+  );
   const viewportHeight = window.innerHeight;
   if (scrollHeight <= viewportHeight) return 0;
 
   return Math.min(1, (window.scrollY + viewportHeight) / scrollHeight);
+}
+
+function isReaderPath(path: string) {
+  return (
+    /^\/edition\/\d+\/section\/\d+$/.test(path) ||
+    /^\/book\/\d+\/chapter\/\d+$/.test(path)
+  );
 }
 
 export default function PwaInstallPromptModal() {
@@ -119,14 +136,18 @@ export default function PwaInstallPromptModal() {
   const [dismissedUntil, setDismissedUntilState] = useState(readDismissedUntil);
   const [open, setOpen] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const isReadingRoute = isReaderPath(location);
 
-  const updateMetrics = useCallback((updater: (current: EngagementMetrics) => EngagementMetrics) => {
-    setMetrics((current) => {
-      const next = updater(current);
-      persistEngagementMetrics(next);
-      return next;
-    });
-  }, []);
+  const updateMetrics = useCallback(
+    (updater: (current: EngagementMetrics) => EngagementMetrics) => {
+      setMetrics((current) => {
+        const next = updater(current);
+        persistEngagementMetrics(next);
+        return next;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     updateMetrics((current) => ({
@@ -148,7 +169,9 @@ export default function PwaInstallPromptModal() {
       }));
     };
 
-    window.addEventListener("pointerdown", recordInteraction, { passive: true });
+    window.addEventListener("pointerdown", recordInteraction, {
+      passive: true,
+    });
     window.addEventListener("keydown", recordInteraction);
     window.addEventListener("input", recordInteraction);
 
@@ -187,6 +210,52 @@ export default function PwaInstallPromptModal() {
   }, [location, updateMetrics]);
 
   useEffect(() => {
+    if (!isReadingRoute) return;
+
+    let lastRecordedAt =
+      document.visibilityState === "visible" ? Date.now() : null;
+
+    const recordReadingTime = () => {
+      if (lastRecordedAt === null) return;
+
+      const recordedAt = Date.now();
+      const elapsed = recordedAt - lastRecordedAt;
+      lastRecordedAt = recordedAt;
+
+      if (elapsed <= 0) return;
+
+      updateMetrics((current) => {
+        if (current.readingMs >= MINIMUM_READING_MS) return current;
+        return {
+          ...current,
+          readingMs: Math.min(current.readingMs + elapsed, MINIMUM_READING_MS),
+        };
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        lastRecordedAt = Date.now();
+        return;
+      }
+
+      recordReadingTime();
+      lastRecordedAt = null;
+    };
+
+    const interval = window.setInterval(recordReadingTime, READING_TICK_MS);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", recordReadingTime);
+
+    return () => {
+      recordReadingTime();
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", recordReadingTime);
+    };
+  }, [isReadingRoute, updateMetrics]);
+
+  useEffect(() => {
     if (dismissedUntil > 0 && dismissedUntil <= now) {
       clearExpiredDismissal();
       setDismissedUntilState(0);
@@ -194,20 +263,19 @@ export default function PwaInstallPromptModal() {
   }, [dismissedUntil, now]);
 
   const hasMeaningfulUse = useMemo(() => {
-    const hasSpentTime = now - metrics.startedAt >= MINIMUM_USE_MS;
-    const engagementSignals = [
-      metrics.paths.length >= 2,
-      metrics.interactionCount >= REQUIRED_INTERACTIONS,
-      metrics.maxScrollRatio >= REQUIRED_SCROLL_RATIO,
-    ].filter(Boolean).length;
-
-    return hasSpentTime && engagementSignals >= 2;
-  }, [metrics.interactionCount, metrics.maxScrollRatio, metrics.paths.length, metrics.startedAt, now]);
+    return isReadingRoute && metrics.readingMs >= MINIMUM_READING_MS;
+  }, [isReadingRoute, metrics.readingMs]);
 
   const isDismissed = dismissedUntil > now;
 
   useEffect(() => {
-    if (canInstall && !isInstalled && !isDismissed && hasMeaningfulUse && !open) {
+    if (
+      canInstall &&
+      !isInstalled &&
+      !isDismissed &&
+      hasMeaningfulUse &&
+      !open
+    ) {
       setOpen(true);
     }
   }, [canInstall, hasMeaningfulUse, isDismissed, isInstalled, open]);
@@ -267,8 +335,13 @@ export default function PwaInstallPromptModal() {
           <Dialog.Title className="mt-5 pe-9 font-display text-2xl font-bold leading-tight">
             {t("حمّل الموقع للقراءة لاحقاً")}
           </Dialog.Title>
-          <Dialog.Description id="pwa-install-description" className="mt-3 text-sm leading-7 text-muted-foreground">
-            {t("بعد أن جرّبت المكتبة، يمكنك تحميل الموقع ليبقى قريباً ويعمل بسرعة من جهازك.")}
+          <Dialog.Description
+            id="pwa-install-description"
+            className="mt-3 text-sm leading-7 text-muted-foreground"
+          >
+            {t(
+              "بعد أن قرأت لبعض الوقت، يمكنك تحميل الموقع ليبقى قريباً ويعمل بسرعة من جهازك.",
+            )}
           </Dialog.Description>
 
           <div className="mt-6 grid gap-2 sm:grid-cols-[1fr_auto]">

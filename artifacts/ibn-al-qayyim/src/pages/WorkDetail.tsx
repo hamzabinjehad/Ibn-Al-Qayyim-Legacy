@@ -1,8 +1,9 @@
 import { Link, useParams } from "wouter";
-import { ChevronLeft, Layers } from "lucide-react";
+import { Layers } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { BookRow } from "@/components/editorial/BookCard";
 import { ErrorState, LoadingState } from "@/components/editorial/DataState";
+import { DirectionalChevron } from "@/components/editorial/DirectionalIcon";
 import PageFrame from "@/components/editorial/PageFrame";
 import BookCover from "@/components/BookCover";
 import { useStaticWork } from "@/lib/static-library";
@@ -39,26 +40,26 @@ export default function WorkDetail() {
           <Link href="/library" className="hover:text-foreground">
             {t("المكتبة")}
           </Link>
-          <ChevronLeft className="h-4 w-4 rotate-180" />
+          <DirectionalChevron className="h-4 w-4" />
           <span className="line-clamp-1 text-foreground">{work.titleAr}</span>
         </div>
 
-        <section className="grid min-w-0 gap-8 border-b border-border pb-10 lg:grid-cols-[18rem_1fr]">
+        <section className="grid min-w-0 gap-7 border-b border-border pb-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-center">
           <BookCover
             coverColor={work.coverColor}
             coverImageAlt={work.coverImageAlt}
             coverImageUrl={work.coverImageUrl}
             title={work.titleAr}
             size="lg"
-            className="mx-auto w-full max-w-72"
+            className="mx-auto w-full max-w-64"
           />
-          <div className="self-center">
-            <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl">{work.titleAr}</h1>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground">{work.description}</p>
+          <div className="min-w-0 self-center">
+            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">{work.titleAr}</h1>
+            <p className="mt-5 max-w-3xl text-base leading-8 text-muted-foreground">{work.description}</p>
           </div>
         </section>
 
-        <section className="scroll-mt-24 pt-10" id="editions">
+        <section className="scroll-mt-24 pt-8" id="editions">
           <div className="mb-5 flex items-center gap-2">
             <Layers className="h-5 w-5" />
             <h2 className="text-2xl font-semibold">{t("الطبعات المتاحة")}</h2>

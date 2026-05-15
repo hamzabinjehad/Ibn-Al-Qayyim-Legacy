@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { prioritizeFeaturedEdition } from "@/lib/featured-reading";
 import { useLanguage, type LanguageCode, type TextDirection } from "@/lib/i18n";
 import { translateUi } from "@/lib/ui-translations";
 
@@ -129,7 +130,11 @@ export type BookSummary = EditionSummary & {
 };
 export type BookDetail = EditionDetail;
 export type ChapterSummary = SectionSummary & { page: number };
-export type ChapterDetail = SectionDetail & { bookId: number; bookTitle: string; page: number };
+export type ChapterDetail = SectionDetail & {
+  bookId: number;
+  bookTitle: string;
+  page: number;
+};
 
 interface SearchDocument {
   bookId: number;
@@ -192,14 +197,19 @@ function fetchJson<T>(language: LanguageCode, path: string): Promise<T> {
             lastError = error;
           }
         }
-        throw lastError instanceof Error ? lastError : new Error(`Unable to load library data: ${path}`);
+        throw lastError instanceof Error
+          ? lastError
+          : new Error(`Unable to load library data: ${path}`);
       })(),
     );
   }
   return cache.get(cacheKey)! as Promise<T>;
 }
 
-function matchesLanguage(item: { languageCode?: LanguageCode }, language: LanguageCode) {
+function matchesLanguage(
+  item: { languageCode?: LanguageCode },
+  language: LanguageCode,
+) {
   return item.languageCode === language;
 }
 
@@ -216,9 +226,11 @@ function localizedFallbackTitle(language: LanguageCode) {
 function displayTitle(language: LanguageCode, title: string, titleAr: string) {
   if (language === "ar") return titleAr || title;
   const translatedTitle = translateUi(language, title);
-  if (translatedTitle && !containsArabic(translatedTitle)) return translatedTitle;
+  if (translatedTitle && !containsArabic(translatedTitle))
+    return translatedTitle;
   const translatedArabicTitle = translateUi(language, titleAr);
-  if (translatedArabicTitle && !containsArabic(translatedArabicTitle)) return translatedArabicTitle;
+  if (translatedArabicTitle && !containsArabic(translatedArabicTitle))
+    return translatedArabicTitle;
   return localizedFallbackTitle(language);
 }
 
@@ -232,8 +244,12 @@ function normalizeVolumeNumber(value: string): string | undefined {
   const match = value.match(/[0-9\u0660-\u0669\u06F0-\u06F9]+/u);
   if (!match) return undefined;
   return match[0]
-    .replace(/[\u0660-\u0669]/gu, (digit) => String(digit.charCodeAt(0) - 0x0660))
-    .replace(/[\u06F0-\u06F9]/gu, (digit) => String(digit.charCodeAt(0) - 0x06f0));
+    .replace(/[\u0660-\u0669]/gu, (digit) =>
+      String(digit.charCodeAt(0) - 0x0660),
+    )
+    .replace(/[\u06F0-\u06F9]/gu, (digit) =>
+      String(digit.charCodeAt(0) - 0x06f0),
+    );
 }
 
 function localizedVolumeLabel(volume: string, language: LanguageCode): string {
@@ -241,17 +257,35 @@ function localizedVolumeLabel(volume: string, language: LanguageCode): string {
 
   const volumeNumber = normalizeVolumeNumber(volume);
   if (language === "de") return volumeNumber ? `Band ${volumeNumber}` : "Buch";
-  if (language === "en") return volumeNumber ? `Volume ${volumeNumber}` : "Book";
+  if (language === "en")
+    return volumeNumber ? `Volume ${volumeNumber}` : "Book";
   return volume;
 }
 
-function localizedEditionAvailabilityText(count: number, language: LanguageCode) {
-  if (language === "de") return count === 1 ? "1 Ausgabe verfügbar" : `${count.toLocaleString("de-DE")} Ausgaben verfügbar`;
-  if (language === "en") return count === 1 ? "1 edition available" : `${count.toLocaleString("en")} editions available`;
-  return count === 1 ? "طبعة واحدة متاحة" : count === 2 ? "طبعتان متاحتان" : `${count.toLocaleString("ar-SA")} طبعات متاحة`;
+function localizedEditionAvailabilityText(
+  count: number,
+  language: LanguageCode,
+) {
+  if (language === "de")
+    return count === 1
+      ? "1 Ausgabe verfügbar"
+      : `${count.toLocaleString("de-DE")} Ausgaben verfügbar`;
+  if (language === "en")
+    return count === 1
+      ? "1 edition available"
+      : `${count.toLocaleString("en")} editions available`;
+  return count === 1
+    ? "طبعة واحدة متاحة"
+    : count === 2
+      ? "طبعتان متاحتان"
+      : `${count.toLocaleString("ar-SA")} طبعات متاحة`;
 }
 
-function localizeWork(work: WorkSummary, language: LanguageCode, editions: EditionSummary[] = []) {
+function localizeWork(
+  work: WorkSummary,
+  language: LanguageCode,
+  editions: EditionSummary[] = [],
+) {
   const firstEdition = editions[0];
   const editionCount = editions.length || work.editionCount;
   return {
@@ -260,13 +294,22 @@ function localizeWork(work: WorkSummary, language: LanguageCode, editions: Editi
     coverImageAlt: firstEdition?.coverImageAlt ?? work.coverImageAlt,
     coverImageUrl: firstEdition?.coverImageUrl ?? work.coverImageUrl,
     defaultEditionId: firstEdition?.id ?? work.defaultEditionId,
-    description: language === "ar" ? work.description : localizedEditionAvailabilityText(editionCount, language),
+    description:
+      language === "ar"
+        ? work.description
+        : localizedEditionAvailabilityText(editionCount, language),
     editionCount,
     languageCode: language,
-    pageCount: editions.length ? editions.reduce((total, edition) => total + edition.pageCount, 0) : work.pageCount,
-    sectionCount: editions.length ? editions.reduce((total, edition) => total + edition.sectionCount, 0) : work.sectionCount,
+    pageCount: editions.length
+      ? editions.reduce((total, edition) => total + edition.pageCount, 0)
+      : work.pageCount,
+    sectionCount: editions.length
+      ? editions.reduce((total, edition) => total + edition.sectionCount, 0)
+      : work.sectionCount,
     titleAr: displayTitle(language, work.title, work.titleAr),
-    volumeCount: editions.length ? editions.reduce((total, edition) => total + edition.volumeCount, 0) : work.volumeCount,
+    volumeCount: editions.length
+      ? editions.reduce((total, edition) => total + edition.volumeCount, 0)
+      : work.volumeCount,
   } satisfies WorkSummary;
 }
 
@@ -294,8 +337,13 @@ function localizeEditionDetail(edition: EditionDetail, language: LanguageCode) {
   return {
     ...edition,
     ...localizedEdition,
-    pages: edition.pages.map((page) => ({ ...page, volume: localizedVolumeLabel(page.volume, language) })),
-    sections: edition.sections.map((section) => localizeSection(section, language)),
+    pages: edition.pages.map((page) => ({
+      ...page,
+      volume: localizedVolumeLabel(page.volume, language),
+    })),
+    sections: edition.sections.map((section) =>
+      localizeSection(section, language),
+    ),
   } satisfies EditionDetail;
 }
 
@@ -362,7 +410,10 @@ function toBookSummary(edition: EditionSummary): BookSummary {
   };
 }
 
-export function sectionTypeLabel(type: SectionSummary["type"], language: LanguageCode = "ar") {
+export function sectionTypeLabel(
+  type: SectionSummary["type"],
+  language: LanguageCode = "ar",
+) {
   if (type === "bab") return translateUi(language, "باب");
   if (type === "fasl") return translateUi(language, "فصل");
   return translateUi(language, "عنوان");
@@ -383,7 +434,9 @@ export function useStaticWorks(category?: string) {
     queryKey: ["static-library", language, "works", category ?? ""],
     queryFn: async () => {
       const works = await fetchJson<WorkSummary[]>(language, "works.json");
-      const editions = (await fetchJson<EditionSummary[]>(language, "editions.json"))
+      const editions = (
+        await fetchJson<EditionSummary[]>(language, "editions.json")
+      )
         .filter((edition) => matchesLanguage(edition, language))
         .map((edition) => localizeEdition(edition, language));
       const editionsByWork = new Map<number, EditionSummary[]>();
@@ -392,13 +445,20 @@ export function useStaticWorks(category?: string) {
         current.push(edition);
         editionsByWork.set(edition.workId, current);
       });
+      editionsByWork.forEach((workEditions, workId) => {
+        editionsByWork.set(workId, prioritizeFeaturedEdition(workEditions));
+      });
 
       return works
         .filter((work) => {
           const workEditions = editionsByWork.get(work.id) ?? [];
-          return workEditions.length > 0 && (!category || work.category === category);
+          return (
+            workEditions.length > 0 && (!category || work.category === category)
+          );
         })
-        .map((work) => localizeWork(work, language, editionsByWork.get(work.id)));
+        .map((work) =>
+          localizeWork(work, language, editionsByWork.get(work.id)),
+        );
     },
     staleTime: Infinity,
   });
@@ -410,18 +470,24 @@ export function useStaticWork(workId: number | undefined) {
     enabled: !!workId,
     queryKey: ["static-library", language, "work", workId],
     queryFn: async () => {
-      const work = await fetchJson<WorkDetail>(language, `works/${workId}.json`);
+      const work = await fetchJson<WorkDetail>(
+        language,
+        `works/${workId}.json`,
+      );
       const editions = work.editions
         .filter((edition) => matchesLanguage(edition, language))
         .map((edition) => localizeEdition(edition, language));
-      if (editions.length === 0) throw new Error(`Work ${workId} has no ${language} editions`);
+      if (editions.length === 0)
+        throw new Error(`Work ${workId} has no ${language} editions`);
 
-      const summary = localizeWork(work, language, editions);
+      const orderedEditions = prioritizeFeaturedEdition(editions);
+      const summary = localizeWork(work, language, orderedEditions);
       return {
         ...work,
         ...summary,
-        editionIds: editions.map((edition) => edition.id),
-        editions,
+        defaultEditionId: orderedEditions[0]?.id ?? summary.defaultEditionId,
+        editionIds: orderedEditions.map((edition) => edition.id),
+        editions: orderedEditions,
       } satisfies WorkDetail;
     },
     staleTime: Infinity,
@@ -434,12 +500,20 @@ export function useStaticEditions(workId?: number) {
     queryKey: ["static-library", language, "editions", workId ?? ""],
     queryFn: async () => {
       if (workId) {
-        const work = await fetchJson<WorkDetail>(language, `works/${workId}.json`);
-        return work.editions
-          .filter((edition) => matchesLanguage(edition, language))
-          .map((edition) => localizeEdition(edition, language));
+        const work = await fetchJson<WorkDetail>(
+          language,
+          `works/${workId}.json`,
+        );
+        return prioritizeFeaturedEdition(
+          work.editions
+            .filter((edition) => matchesLanguage(edition, language))
+            .map((edition) => localizeEdition(edition, language)),
+        );
       }
-      const editions = await fetchJson<EditionSummary[]>(language, "editions.json");
+      const editions = await fetchJson<EditionSummary[]>(
+        language,
+        "editions.json",
+      );
       return editions
         .filter((edition) => matchesLanguage(edition, language))
         .map((edition) => localizeEdition(edition, language));
@@ -454,27 +528,40 @@ export function useStaticEdition(editionId: number | undefined) {
     enabled: !!editionId,
     queryKey: ["static-library", language, "edition", editionId],
     queryFn: async () => {
-      const edition = await fetchJson<EditionDetail>(language, `editions/${editionId}.json`);
-      if (!matchesLanguage(edition, language)) throw new Error(`Edition ${editionId} is not available in ${language}`);
+      const edition = await fetchJson<EditionDetail>(
+        language,
+        `editions/${editionId}.json`,
+      );
+      if (!matchesLanguage(edition, language))
+        throw new Error(`Edition ${editionId} is not available in ${language}`);
       return localizeEditionDetail(edition, language);
     },
     staleTime: Infinity,
   });
 }
 
-export function useStaticSection(editionId: number | undefined, sectionId: number | undefined) {
+export function useStaticSection(
+  editionId: number | undefined,
+  sectionId: number | undefined,
+) {
   const { language } = useLanguage();
   return useQuery({
     enabled: !!editionId && !!sectionId,
     queryKey: ["static-library", language, "section", editionId, sectionId],
     queryFn: async () => {
-      const rawEdition = await fetchJson<EditionDetail>(language, `editions/${editionId}.json`);
-      if (!matchesLanguage(rawEdition, language)) throw new Error(`Edition ${editionId} is not available in ${language}`);
+      const rawEdition = await fetchJson<EditionDetail>(
+        language,
+        `editions/${editionId}.json`,
+      );
+      if (!matchesLanguage(rawEdition, language))
+        throw new Error(`Edition ${editionId} is not available in ${language}`);
       const edition = localizeEditionDetail(rawEdition, language);
       const section = edition.sections.find((item) => item.id === sectionId);
       if (!section) throw new Error(`Section ${sectionId} not found`);
       const pages = edition.pages.filter(
-        (page) => page.pageNumber >= section.startPage && page.pageNumber <= section.endPage,
+        (page) =>
+          page.pageNumber >= section.startPage &&
+          page.pageNumber <= section.endPage,
       );
       const siblings = edition.sections;
       const currentIndex = siblings.findIndex((item) => item.id === section.id);
@@ -507,11 +594,16 @@ export function useStaticBooks(category?: string) {
   return useQuery({
     queryKey: ["static-library", language, "edition-books", category ?? ""],
     queryFn: async () => {
-      const editions = await fetchJson<EditionSummary[]>(language, "editions.json");
+      const editions = await fetchJson<EditionSummary[]>(
+        language,
+        "editions.json",
+      );
       const books = editions
         .filter((edition) => matchesLanguage(edition, language))
         .map((edition) => toBookSummary(localizeEdition(edition, language)));
-      return category ? books.filter((book) => book.category === category) : books;
+      return category
+        ? books.filter((book) => book.category === category)
+        : books;
     },
     staleTime: Infinity,
   });
@@ -523,15 +615,22 @@ export function useStaticBook(bookId: number | undefined) {
     enabled: !!bookId,
     queryKey: ["static-library", language, "book-compat", bookId],
     queryFn: async () => {
-      const rawEdition = await fetchJson<EditionDetail>(language, `editions/${bookId}.json`);
-      if (!matchesLanguage(rawEdition, language)) throw new Error(`Edition ${bookId} is not available in ${language}`);
+      const rawEdition = await fetchJson<EditionDetail>(
+        language,
+        `editions/${bookId}.json`,
+      );
+      if (!matchesLanguage(rawEdition, language))
+        throw new Error(`Edition ${bookId} is not available in ${language}`);
       const edition = localizeEditionDetail(rawEdition, language);
       return {
         ...edition,
         baseTitle: edition.workTitleAr,
         chapterCount: edition.sectionCount,
         chapters: edition.sections.map(toChapterSummary),
-        contentParts: edition.pageParts.map((part) => ({ ...part, chapterIds: part.pageIds })),
+        contentParts: edition.pageParts.map((part) => ({
+          ...part,
+          chapterIds: part.pageIds,
+        })),
         firstChapterId: edition.defaultSectionId,
         volumes: edition.volumeCount,
       };
@@ -540,7 +639,10 @@ export function useStaticBook(bookId: number | undefined) {
   });
 }
 
-export function useStaticBookChapter(bookId: number | undefined, chapterId: number | undefined) {
+export function useStaticBookChapter(
+  bookId: number | undefined,
+  chapterId: number | undefined,
+) {
   const query = useStaticSection(bookId, chapterId);
   return {
     ...query,
@@ -554,16 +656,25 @@ export function useStaticChapter(chapterId: number | undefined) {
     enabled: !!chapterId,
     queryKey: ["static-library", language, "chapter-compat", chapterId],
     queryFn: async () => {
-      const editions = (await fetchJson<EditionSummary[]>(language, "editions.json"))
-        .filter((edition) => matchesLanguage(edition, language));
+      const editions = (
+        await fetchJson<EditionSummary[]>(language, "editions.json")
+      ).filter((edition) => matchesLanguage(edition, language));
       for (const editionSummary of editions) {
         const edition = localizeEditionDetail(
-          await fetchJson<EditionDetail>(language, `editions/${editionSummary.id}.json`),
+          await fetchJson<EditionDetail>(
+            language,
+            `editions/${editionSummary.id}.json`,
+          ),
           language,
         );
-        if (!edition.sections.some((section) => section.id === chapterId)) continue;
+        if (!edition.sections.some((section) => section.id === chapterId))
+          continue;
         const found = edition.sections.find((item) => item.id === chapterId)!;
-        const pages = edition.pages.filter((page) => page.pageNumber >= found.startPage && page.pageNumber <= found.endPage);
+        const pages = edition.pages.filter(
+          (page) =>
+            page.pageNumber >= found.startPage &&
+            page.pageNumber <= found.endPage,
+        );
         return toChapterDetail({
           ...found,
           category: edition.category,
@@ -583,7 +694,13 @@ export function useStaticChapter(chapterId: number | undefined) {
 
 export function useStaticSearch(
   query: string,
-  options: { bookId?: number; category?: string; enabled?: boolean; sectionId?: number; workId?: number } = {},
+  options: {
+    bookId?: number;
+    category?: string;
+    enabled?: boolean;
+    sectionId?: number;
+    workId?: number;
+  } = {},
 ) {
   const { language } = useLanguage();
   return useQuery({
@@ -599,18 +716,31 @@ export function useStaticSearch(
       options.category ?? "",
     ],
     queryFn: async () => {
-      const manifest = await fetchJson<SearchManifest>(language, "search-index/manifest.json");
+      const manifest = await fetchJson<SearchManifest>(
+        language,
+        "search-index/manifest.json",
+      );
       const normalizedQuery = normalizeArabic(query);
       const matches: LibrarySearchResult[] = [];
       let reachedRequestedBook = false;
 
       for (const shard of manifest.shards) {
-        const docs = await fetchJson<SearchDocument[]>(language, `search-index/${shard.file}`);
-        if (options.bookId && reachedRequestedBook && docs.every((doc) => doc.editionId !== options.bookId)) {
+        const docs = await fetchJson<SearchDocument[]>(
+          language,
+          `search-index/${shard.file}`,
+        );
+        if (
+          options.bookId &&
+          reachedRequestedBook &&
+          docs.every((doc) => doc.editionId !== options.bookId)
+        ) {
           break;
         }
 
-        if (options.bookId && docs.some((doc) => doc.editionId === options.bookId)) {
+        if (
+          options.bookId &&
+          docs.some((doc) => doc.editionId === options.bookId)
+        ) {
           reachedRequestedBook = true;
         }
 
@@ -618,15 +748,29 @@ export function useStaticSearch(
           if (!matchesLanguage(doc, language)) return false;
           if (options.bookId && doc.editionId !== options.bookId) return false;
           if (options.workId && doc.workId !== options.workId) return false;
-          if (options.sectionId && doc.sectionId !== options.sectionId) return false;
-          if (options.category && doc.category !== options.category) return false;
-          const inTitle = normalizeArabic(`${doc.workTitle} ${doc.bookTitle} ${doc.sectionTitle}`).includes(normalizedQuery);
-          const inContent = normalizeArabic(doc.content).includes(normalizedQuery);
+          if (options.sectionId && doc.sectionId !== options.sectionId)
+            return false;
+          if (options.category && doc.category !== options.category)
+            return false;
+          const inTitle = normalizeArabic(
+            `${doc.workTitle} ${doc.bookTitle} ${doc.sectionTitle}`,
+          ).includes(normalizedQuery);
+          const inContent = normalizeArabic(doc.content).includes(
+            normalizedQuery,
+          );
           if (!inTitle && !inContent) return false;
 
-          const titleMatches = countMatches(`${doc.workTitle} ${doc.bookTitle} ${doc.sectionTitle}`, query);
+          const titleMatches = countMatches(
+            `${doc.workTitle} ${doc.bookTitle} ${doc.sectionTitle}`,
+            query,
+          );
           const contentMatches = countMatches(doc.content, query);
-          const matchIn = titleMatches > 0 && contentMatches > 0 ? "both" : titleMatches > 0 ? "title" : "content";
+          const matchIn =
+            titleMatches > 0 && contentMatches > 0
+              ? "both"
+              : titleMatches > 0
+                ? "title"
+                : "content";
           matches.push({
             bookId: doc.editionId,
             bookTitle: doc.bookTitle,
@@ -648,14 +792,17 @@ export function useStaticSearch(
           return true;
         });
 
-        if (!options.bookId && !options.workId && !options.sectionId && matches.length >= 120) {
+        if (
+          !options.bookId &&
+          !options.workId &&
+          !options.sectionId &&
+          matches.length >= 120
+        ) {
           break;
         }
       }
 
-      return matches
-        .sort((a, b) => b.matchCount - a.matchCount)
-        .slice(0, 80);
+      return matches.sort((a, b) => b.matchCount - a.matchCount).slice(0, 80);
     },
   });
 }

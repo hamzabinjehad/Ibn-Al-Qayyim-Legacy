@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, BookOpen, Diamond, Layers, Library, Route, type LucideIcon } from "lucide-react";
+import { BookOpen, Diamond, Layers, Library, Route, type LucideIcon } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { LoadingState } from "@/components/editorial/DataState";
+import { DirectionalArrow } from "@/components/editorial/DirectionalIcon";
 import PageFrame from "@/components/editorial/PageFrame";
 import { normalizeArabicTitle } from "@/lib/book-titles";
 import { type WorkSummary, useStaticWorks } from "@/lib/static-library";
@@ -113,18 +114,18 @@ export default function ReadingPlan() {
   return (
     <AppShell>
       <PageFrame className="overflow-hidden" containerClassName="pb-24 md:pb-16">
-        <header className="grid min-w-0 gap-8 border-b border-border pb-8 lg:grid-cols-[1fr_18rem]">
+        <header className="grid min-w-0 gap-6 border-b border-border pb-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
           <div className="min-w-0">
             <div className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
               <Route className="h-4 w-4" />
               خطة قراءة
             </div>
-            <h1 className="max-w-full break-words font-display text-3xl font-bold leading-tight md:text-6xl">
+            <h1 className="max-w-full break-words font-display text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">
               ترتيب مقترح لقراءة كتب الإمام ابن القيم
             </h1>
           </div>
 
-          <aside className="self-end rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          <aside className="surface-card self-end p-4 text-sm text-muted-foreground">
             <p className="font-semibold text-foreground">ملخص الخطة</p>
             <div className="mt-4 space-y-3">
               <p className="flex items-center justify-between">
@@ -146,7 +147,7 @@ export default function ReadingPlan() {
         {isLoading ? (
           <LoadingState />
         ) : (
-          <section className="grid min-w-0 gap-8 pt-8 lg:grid-cols-2">
+          <section className="grid min-w-0 gap-6 pt-7 lg:grid-cols-2 xl:gap-8">
             {resolvedColumns.map((column, columnIndex) => (
               <ol className="min-w-0 space-y-3" key={columnIndex}>
                 {column.map((item, itemIndex) => {
@@ -158,7 +159,7 @@ export default function ReadingPlan() {
           </section>
         )}
 
-        <section className="mt-10 grid gap-4 border-t border-border pt-8 md:grid-cols-3">
+        <section className="mt-8 grid gap-4 border-t border-border pt-7 md:grid-cols-3">
           <PlanStat icon={Layers} label="المجموع" value="أربعة وستون مجلداً تقريباً" />
           <PlanStat icon={Library} label="الأعمال" value={`${PLAN_ITEMS.length} عملاً`} />
           <PlanStat icon={BookOpen} label="الوتيرة" value="ورد يومي ثابت لمدة سنة" />
@@ -190,7 +191,7 @@ function ReadingPlanRow({
           {!item.work && <span>غير متاح في البيانات المحلية</span>}
         </span>
       </span>
-      {item.href && <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />}
+      {item.href && <DirectionalArrow className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />}
     </>
   );
 
@@ -206,7 +207,7 @@ function ReadingPlanRow({
     <li>
       <Link
         href={item.href}
-        className="group flex min-w-0 items-start gap-3 rounded-lg border border-border bg-background p-4 transition-colors hover:border-foreground hover:bg-muted/30"
+        className="interactive-card group flex min-w-0 items-start gap-3 p-4"
       >
         {content}
       </Link>
@@ -224,7 +225,7 @@ function PlanStat({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-border p-4">
+    <div className="surface-card p-4">
       <Icon className="h-5 w-5 text-foreground" />
       <p className="mt-4 text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 text-base font-semibold leading-7">{value}</p>

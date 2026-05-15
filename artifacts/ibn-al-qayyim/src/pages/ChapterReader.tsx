@@ -1,9 +1,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
 import {
-  ArrowRight,
   Bookmark,
-  ChevronLeft,
+  ChevronUp,
   Check,
   Copy,
   Eye,
@@ -27,6 +26,7 @@ import BookTocTree from "@/components/BookTocTree";
 import { useOnboardingTour } from "@/components/OnboardingTour";
 import AppShell from "@/components/editorial/AppShell";
 import { ErrorState, LoadingState } from "@/components/editorial/DataState";
+import { DirectionalArrow } from "@/components/editorial/DirectionalIcon";
 import ProgressLine from "@/components/editorial/ProgressLine";
 import QuoteShareModal from "@/components/QuoteShareModal";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -63,6 +63,14 @@ const FOOTNOTE_REFERENCE_REGEX = new RegExp(
   "gu",
 );
 const FOOTNOTE_FOCUS_MS = 2200;
+
+function currentScrollY() {
+  return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+}
+
+function scrollTopThreshold() {
+  return Math.min(700, Math.max(360, window.innerHeight * 0.7));
+}
 
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText) {
@@ -263,6 +271,7 @@ export default function ChapterReader() {
   const [shareText, setShareText] = useState<string | null>(null);
   const [highlightColor, setHighlightColor] = useState<HighlightColor>(HIGHLIGHT_PALETTE[0].value);
   const [activeFootnoteId, setActiveFootnoteId] = useState<string | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const selectionToolbarRef = useRef<HTMLDivElement>(null);
   const { activeStepId, isTourOpen } = useOnboardingTour();
@@ -345,6 +354,12 @@ export default function ChapterReader() {
     });
   }, []);
 
+  const scrollToTop = useCallback(() => {
+    document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" });
+    document.body.scrollTo?.({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const handleFootnoteReference = useCallback(
     (id: string) => {
       setActiveFootnoteId(id);
@@ -384,6 +399,16 @@ export default function ChapterReader() {
     clearSelection();
     setActiveFootnoteId(null);
   }, [chapterIdNum]);
+
+  useEffect(() => {
+    const updateScrollTopVisibility = () => {
+      setShowScrollTop(currentScrollY() > scrollTopThreshold());
+    };
+
+    updateScrollTopVisibility();
+    window.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
+    return () => window.removeEventListener("scroll", updateScrollTopVisibility);
+  }, [bookIdNum, chapterIdNum]);
 
   useEffect(() => {
     if (!activeFootnoteId || !settings.showFootnotes) return;
@@ -505,26 +530,30 @@ export default function ChapterReader() {
 
   return (
     <AppShell>
-      <main className="scholarly-bg min-h-screen px-4 pb-40 pt-6 md:px-5" id="main-content">
-        <div className="mx-auto max-w-5xl">
-          <article className="surface-card mx-auto min-w-0 max-w-5xl overflow-hidden" data-tour="reader-text">
-          <div className="reader-chrome sticky top-16 z-30 rounded-none border-x-0 border-t-0">
+      <main className="scholarly-bg min-h-screen px-4 pb-40 pt-6 md:px-6" id="main-content">
+        <div className="mx-auto max-w-6xl">
+          <article className="reader-surface surface-card mx-auto min-w-0 max-w-6xl" data-tour="reader-text">
+          <div className="reader-chrome sticky top-14 z-30 rounded-none border-x-0 border-t-0">
             <div className="flex h-14 items-center justify-between gap-3 px-4">
               <button
                 onClick={() => setTocOpen(true)}
-                className="reader-control inline-flex h-9 w-9 items-center justify-center"
+                className="reader-control inline-flex h-10 w-10 items-center justify-center"
                 aria-label={t("المحتويات")}
               >
                 <Menu className="h-4 w-4" />
               </button>
-              <div className="min-w-0 flex-1 text-center">
+              <Link
+                aria-label={t("العودة إلى الكتاب")}
+                className="min-w-0 flex-1 text-center transition-colors hover:text-muted-foreground"
+                href={`/edition/${book.id}`}
+              >
                 <p className="truncate text-sm font-semibold">{book.titleAr}</p>
                 <p className="truncate text-xs text-muted-foreground">{chapter.titleAr}</p>
-              </div>
+              </Link>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <button
                   onClick={handleSavePosition}
-                  className="reader-control inline-flex h-9 w-9 items-center justify-center"
+                  className="reader-control inline-flex h-10 w-10 items-center justify-center"
                   aria-label={t("حفظ موضع القراءة")}
                 >
                   <Bookmark className="h-4 w-4" />
@@ -532,14 +561,14 @@ export default function ChapterReader() {
                 <button
                   onClick={handleCopyChapter}
                   data-tour="reader-copy-chapter"
-                  className="reader-control inline-flex h-9 w-9 items-center justify-center"
+                  className="reader-control inline-flex h-10 w-10 items-center justify-center"
                   aria-label={t("نسخ الفصل")}
                 >
                   <Copy className="h-4 w-4" />
                 </button>
                 <Link
                   href={`/search?target=section&editionId=${book.id}&sectionId=${chapter.id}`}
-                  className="reader-control inline-flex h-9 w-9 items-center justify-center"
+                  className="reader-control inline-flex h-10 w-10 items-center justify-center"
                   aria-label={t("البحث داخل هذا القسم")}
                 >
                   <Search className="h-4 w-4" />
@@ -552,12 +581,8 @@ export default function ChapterReader() {
             </div>
           </div>
 
-          <header className="mx-auto max-w-3xl border-b border-border px-6 py-10 text-center md:py-12">
-            <Link href={`/edition/${book.id}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-              <ArrowRight className="h-4 w-4" />
-              {book.titleAr}
-            </Link>
-            <h1 className="mx-auto mt-5 max-w-3xl font-display text-3xl font-bold leading-tight md:text-5xl">
+          <header className="reader-header mx-auto max-w-4xl border-b border-border px-6 py-10 text-center md:px-12 md:py-14">
+            <h1 className="mx-auto max-w-3xl font-display text-3xl font-bold leading-tight md:text-5xl">
               {chapter.titleAr}
             </h1>
             <p className="mt-4 text-sm text-muted-foreground tabular-nums">
@@ -593,16 +618,16 @@ export default function ChapterReader() {
           <div
             ref={contentRef}
             data-tour="reader-selection"
-            className="reader-text mx-auto mt-10 whitespace-pre-wrap px-6 pb-8 text-start leading-[2.45] text-foreground md:px-8"
+            className="reader-text mx-auto mt-8 whitespace-pre-wrap px-5 pb-10 text-start leading-[2.45] text-foreground sm:px-8 md:px-10 lg:px-12"
             dir={chapter.direction}
             style={{ fontFamily, fontSize: settings.fontSize }}
           >
             {visibleBody ? (
               pageContent.map((page) => (
                 <section className="mb-10 scroll-mt-32" id={`page-${page.pageNumber}`} key={page.id}>
-                  <div className="mb-5 flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="reader-page-marker mb-6 flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="h-px flex-1 bg-border" />
-                    <span className="rounded-md border border-border px-3 py-1 tabular-nums">
+                    <span className="rounded-full border border-border bg-background px-3 py-1 tabular-nums shadow-sm">
                       {pageText(displayPageNumber(page), language)}
                       {page.volume ? ` / ${page.volume}` : ""}
                     </span>
@@ -623,9 +648,9 @@ export default function ChapterReader() {
             )}
           </div>
 
-          <footer className="mx-6 mt-16 grid gap-3 border-t border-border pb-8 pt-6 sm:grid-cols-2">
-            {prev ? <ChapterNav chapter={prev} label={t("الفصل السابق")} /> : <span />}
-            {next ? <ChapterNav chapter={next} label={t("الفصل التالي")} /> : <span />}
+          <footer className="mx-auto mt-16 grid max-w-5xl gap-3 border-t border-border px-6 pb-8 pt-6 sm:grid-cols-2">
+            {prev ? <ChapterNav chapter={prev} label={t("الفصل السابق")} role="back" /> : <span />}
+            {next ? <ChapterNav chapter={next} label={t("الفصل التالي")} role="forward" /> : <span />}
           </footer>
           </article>
         </div>
@@ -639,6 +664,19 @@ export default function ChapterReader() {
         settings={settings}
         setSettings={setSettings}
       />
+
+      {showScrollTop && (
+        <button
+          aria-label={t("الصعود للأعلى")}
+          className={`reader-chrome fixed right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition hover:-translate-y-0.5 hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground ${
+            toolbarVisible ? "bottom-40 md:bottom-20" : "bottom-28 md:bottom-6"
+          }`}
+          onClick={scrollToTop}
+          type="button"
+        >
+          <ChevronUp className="h-5 w-5" />
+        </button>
+      )}
 
       {showTourSelectionDemo && <TourSelectionActionsDemo text={tourSelectionText} />}
 
@@ -657,7 +695,7 @@ export default function ChapterReader() {
       {selection && (
         <div
           ref={selectionToolbarRef}
-          className="reader-chrome fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-lg p-3 md:bottom-20"
+          className="reader-chrome fixed bottom-[calc(8rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-lg p-3 md:bottom-20"
         >
           <div className="flex items-start gap-3">
             <p className="line-clamp-2 flex-1 text-sm leading-6 text-muted-foreground">{selection}</p>
@@ -780,7 +818,7 @@ function TourSelectionActionsDemo({ text }: { text: string }) {
 
   return (
     <div
-      className="reader-chrome fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-lg p-3 md:bottom-20"
+      className="reader-chrome fixed bottom-[calc(8rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-lg p-3 md:bottom-20"
       data-tour="reader-selection-demo"
       dir={direction}
     >
@@ -847,7 +885,7 @@ function ReaderToolbar({
     return (
       <button
         onClick={onShow}
-        className="reader-chrome fixed bottom-20 left-4 z-40 inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold md:bottom-4"
+        className="reader-chrome fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-4 z-40 inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold md:bottom-4"
       >
         <Eye className="h-4 w-4" />
         {t("إظهار الشريط")}
@@ -856,7 +894,7 @@ function ReaderToolbar({
   }
 
   return (
-    <div className="reader-chrome fixed inset-x-0 bottom-16 z-40 rounded-none border-x-0 border-b-0 md:bottom-0" data-tour="reader-toolbar">
+    <div className="reader-chrome fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 rounded-none border-x-0 border-b-0 md:bottom-0" data-tour="reader-toolbar">
       <div className="safe-bottom scrollbar-soft mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-4 py-3">
         <button onClick={onToc} className={`${controlClass} gap-2`}>
           <ListTree className="h-4 w-4" />
@@ -887,6 +925,7 @@ function ReaderToolbar({
             }))
           }
           className={`${controlClass} gap-2`}
+          aria-pressed={settings.fontFamily === "amiri"}
         >
           <Type className="h-4 w-4" />
           {t("نوع الخط")}
@@ -985,7 +1024,7 @@ function ReaderToc({
   );
 }
 
-function ChapterNav({ chapter, label }: { chapter: ChapterSummary; label: string }) {
+function ChapterNav({ chapter, label, role }: { chapter: ChapterSummary; label: string; role: "back" | "forward" }) {
   return (
     <Link
       href={`/edition/${chapter.editionId}/section/${chapter.id}`}
@@ -994,7 +1033,7 @@ function ChapterNav({ chapter, label }: { chapter: ChapterSummary; label: string
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 line-clamp-2 font-semibold leading-7">
         {chapter.titleAr}
-        <ChevronLeft className="mr-2 inline h-4 w-4 rotate-180" />
+        <DirectionalArrow className="ms-2 inline h-4 w-4" role={role} />
       </p>
     </Link>
   );

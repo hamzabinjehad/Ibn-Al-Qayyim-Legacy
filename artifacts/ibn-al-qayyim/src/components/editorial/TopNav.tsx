@@ -3,7 +3,6 @@ import {
   Bookmark,
   Check,
   ChevronDown,
-  HeartHandshake,
   HelpCircle,
   Library,
   Moon,
@@ -36,7 +35,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/reading-plan", label: "ترتيب القراءة", mobileLabel: "الخطة", icon: Route, match: (p: string) => p.startsWith("/reading-plan") },
   { href: "/search", label: "البحث", icon: Search, match: (p: string) => p.startsWith("/search") },
   { href: "/notes", label: "الملاحظات", icon: Bookmark, match: (p: string) => p.startsWith("/notes") || p.startsWith("/profile") },
-  { href: "/support", label: "الدعم", icon: HeartHandshake, match: (p: string) => p.startsWith("/support") },
 ];
 
 const SITE_LOGO_SRC = `${import.meta.env.BASE_URL}site-logo.png`;
@@ -64,8 +62,8 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 shadow-[0_16px_42px_-40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/96 shadow-[0_14px_38px_-36px_rgba(0,0,0,0.75)] backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-6">
           <Link
             href="/"
             aria-label={t("موروث ابن القيم")}
@@ -75,14 +73,14 @@ export default function TopNav() {
             <img
               src={SITE_LOGO_SRC}
               alt=""
-              className="h-10 w-10 shrink-0 rounded-full bg-black object-cover shadow-[0_10px_26px_-18px_rgba(0,0,0,0.9)] ring-1 ring-border"
+              className="h-9 w-9 shrink-0 rounded-full bg-black object-cover shadow-[0_10px_24px_-18px_rgba(0,0,0,0.9)] ring-1 ring-border"
             />
-            <span className="hidden font-display text-xl font-bold tracking-tight sm:inline">
+            <span className="hidden font-display text-lg font-bold leading-none sm:inline">
               {t("موروث ابن القيم")}
             </span>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-7 text-sm text-muted-foreground md:flex">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-6 text-sm text-muted-foreground md:flex">
             {visibleNavItems.map((item) => {
               const active = item.match(location);
               return (
@@ -90,12 +88,12 @@ export default function TopNav() {
                   aria-current={active ? "page" : undefined}
                   href={item.href}
                   key={item.href}
-                  className={`relative inline-flex h-16 items-center transition-colors hover:text-foreground ${
+                  className={`relative inline-flex h-14 items-center transition-colors hover:text-foreground ${
                     active ? "text-foreground" : ""
                   }`}
                 >
                   {t(item.label)}
-                  {active && <span className="absolute inset-x-0 bottom-0 h-px bg-foreground" />}
+                  {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-foreground" />}
                 </Link>
               );
             })}
@@ -178,7 +176,7 @@ export default function TopNav() {
 
       <nav
         aria-label={t("التنقل السفلي")}
-        className="fixed inset-x-0 bottom-0 z-50 grid h-[calc(4rem+env(safe-area-inset-bottom))] border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] text-[0.7rem] text-muted-foreground backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 grid h-[calc(4.25rem+env(safe-area-inset-bottom))] border-t border-border bg-background/96 pb-[env(safe-area-inset-bottom)] text-[0.7rem] text-muted-foreground shadow-[0_-14px_38px_-34px_rgba(0,0,0,0.7)] backdrop-blur-xl md:hidden"
         style={{ gridTemplateColumns: `repeat(${visibleNavItems.length}, minmax(0, 1fr))` }}
       >
         {visibleNavItems.map((item) => {
@@ -189,10 +187,11 @@ export default function TopNav() {
               aria-current={active ? "page" : undefined}
               href={item.href}
               key={item.href}
-              className={`flex flex-col items-center justify-center gap-1 transition-colors ${
-                active ? "text-foreground" : "hover:text-foreground"
+              className={`relative flex flex-col items-center justify-center gap-1 transition-colors ${
+                active ? "font-semibold text-foreground" : "hover:text-foreground"
               }`}
             >
+              {active && <span className="absolute top-0 h-0.5 w-10 rounded-full bg-foreground" />}
               <Icon className={`h-5 w-5 ${active ? "fill-foreground/10" : ""}`} />
               <span>{t(item.mobileLabel ?? item.label)}</span>
             </Link>

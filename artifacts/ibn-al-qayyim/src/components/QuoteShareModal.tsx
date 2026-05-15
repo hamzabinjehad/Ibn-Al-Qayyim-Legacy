@@ -654,7 +654,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
         dir={direction}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="order-1 border-b border-border bg-muted/35 p-4 lg:order-2 lg:border-b-0 lg:border-r lg:p-6">
+        <div className="order-1 border-b border-border bg-muted/35 p-4 lg:order-2 lg:border-b-0 lg:border-s lg:p-6">
           <div className="mx-auto flex max-w-[38rem] items-center justify-center lg:min-h-[calc(100vh-5rem)]">
             <div className="w-full">
               <div className="mb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">

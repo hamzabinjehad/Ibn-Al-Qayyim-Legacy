@@ -1,7 +1,8 @@
 import { Link } from "wouter";
-import { ArrowLeft, Bookmark } from "lucide-react";
+import { Bookmark } from "lucide-react";
 import type { BookSummary, EditionSummary, WorkSummary } from "@/lib/static-library";
 import BookCover from "@/components/BookCover";
+import { DirectionalArrow } from "./DirectionalIcon";
 import ProgressLine from "./ProgressLine";
 import { editionCountText, useUiTranslations } from "@/lib/ui-translations";
 
@@ -11,7 +12,7 @@ export function WorkCard({ work, progress }: { work: WorkSummary; progress?: num
   return (
     <Link
       href={`/work/${work.id}`}
-      className="interactive-card group block p-4"
+      className="interactive-card group flex h-full min-h-[22rem] flex-col p-4 sm:p-5"
     >
       <BookCover
         coverColor={work.coverColor}
@@ -19,9 +20,9 @@ export function WorkCard({ work, progress }: { work: WorkSummary; progress?: num
         coverImageUrl={work.coverImageUrl}
         title={work.titleAr}
         size="md"
-        className="mx-auto max-w-40"
+        className="mx-auto !h-44 !w-32 sm:!h-52 sm:!w-36"
       />
-      <div className="mt-4 text-center">
+      <div className="mt-4 flex flex-1 flex-col text-center">
         <h3 className="line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
           {work.titleAr}
         </h3>
@@ -43,7 +44,7 @@ export function WorkRow({ work }: { work: WorkSummary }) {
   return (
     <Link
       href={`/work/${work.id}`}
-      className="interactive-card grid gap-4 p-4 sm:grid-cols-[auto_1fr_auto]"
+      className="interactive-card grid min-w-0 gap-4 p-4 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center"
     >
       <BookCover
         coverColor={work.coverColor}
@@ -53,7 +54,7 @@ export function WorkRow({ work }: { work: WorkSummary }) {
         size="sm"
         className="hidden w-24 sm:flex"
       />
-      <div>
+      <div className="min-w-0">
         <p className="text-xs text-muted-foreground">
           {editionCountText(work.editionCount, language)}
         </p>
@@ -63,7 +64,7 @@ export function WorkRow({ work }: { work: WorkSummary }) {
       <div className="self-end text-xs text-muted-foreground sm:text-end">
         <p className="inline-flex items-center gap-1">
           {t("فتح الكتاب")}
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <DirectionalArrow className="h-3.5 w-3.5" />
         </p>
       </div>
     </Link>
@@ -76,7 +77,7 @@ export function BookCard({ book, progress }: { book: BookSummary; progress?: num
   return (
     <Link
       href={`/edition/${book.id}`}
-      className="interactive-card group block p-4"
+      className="interactive-card group flex h-full min-h-[21rem] flex-col p-4 sm:p-5"
     >
       <BookCover
         coverColor={book.coverColor}
@@ -86,9 +87,9 @@ export function BookCard({ book, progress }: { book: BookSummary; progress?: num
         publisher={book.publisher}
         title={book.titleAr}
         size="md"
-        className="mx-auto max-w-40"
+        className="mx-auto !h-44 !w-32 sm:!h-52 sm:!w-36"
       />
-      <div className="mt-4 text-center">
+      <div className="mt-4 flex flex-1 flex-col text-center">
         <h3 className="line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
           {book.titleAr}
         </h3>
@@ -109,7 +110,7 @@ export function BookRow({ book }: { book: BookSummary | EditionSummary }) {
   return (
     <Link
       href={`/edition/${book.id}`}
-      className="interactive-card grid gap-4 p-4 sm:grid-cols-[auto_1fr_auto]"
+      className="interactive-card grid min-w-0 gap-4 p-4 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center"
     >
       <BookCover
         coverColor={book.coverColor}
@@ -121,7 +122,7 @@ export function BookRow({ book }: { book: BookSummary | EditionSummary }) {
         size="sm"
         className="hidden w-24 sm:flex"
       />
-      <div>
+      <div className="min-w-0">
         <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <Bookmark className="h-3.5 w-3.5" />
           {book.editionLabel ?? book.publisher ?? t("طبعة متاحة")}
@@ -134,7 +135,7 @@ export function BookRow({ book }: { book: BookSummary | EditionSummary }) {
       <div className="self-end text-xs text-muted-foreground sm:text-end">
         <p className="inline-flex items-center gap-1">
           {t("فتح الطبعة")}
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <DirectionalArrow className="h-3.5 w-3.5" />
         </p>
       </div>
     </Link>

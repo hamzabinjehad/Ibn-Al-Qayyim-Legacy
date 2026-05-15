@@ -66,17 +66,17 @@ export default function Notes() {
 
   return (
     <AppShell>
-      <PageFrame containerClassName="pt-12">
-        <header className="border-b border-border pb-8">
+      <PageFrame containerClassName="pt-10">
+        <header className="border-b border-border pb-6">
           <div>
-            <h1 className="font-display text-4xl font-bold md:text-6xl">{t("الملاحظات")}</h1>
-            <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
+            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">{t("الملاحظات")}</h1>
+            <p className="mt-4 max-w-3xl text-base leading-8 text-muted-foreground md:text-lg">
               {t("مواضع القراءة والتظليلات والملاحظات محفوظة محليا في هذا المتصفح.")}
             </p>
           </div>
         </header>
 
-        <div className="grid min-w-0 gap-8 pt-10 lg:grid-cols-[22rem_1fr]">
+        <div className="grid min-w-0 gap-6 pt-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:gap-8">
           <aside>
             <h2 className="mb-4 text-xl font-semibold">{t("تابع القراءة")}</h2>
             {positions.length === 0 ? (
