@@ -50,18 +50,18 @@ export default function Library() {
 
   return (
     <AppShell>
-      <PageFrame containerClassName="pt-10">
-        <header className="border-b border-border pb-6">
+      <PageFrame containerClassName="pt-7 sm:pt-10">
+        <header className="border-b border-border pb-5 sm:pb-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
+            <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">
               {t("المكتبة")}
             </h1>
           </div>
         </header>
 
-        <div className="min-w-0 pt-6">
+        <div className="min-w-0 pt-4 sm:pt-6">
           <section className="min-w-0" data-tour="library-books">
-            <div className="reader-chrome sticky top-14 z-30 mb-6 rounded-lg px-3 py-3 sm:px-4">
+            <div className="reader-chrome sticky top-14 z-30 mb-5 rounded-lg px-2.5 py-2.5 sm:mb-6 sm:px-4 sm:py-3">
               <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                 <div className="relative">
                   <SearchIcon className="pointer-events-none absolute start-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -69,7 +69,7 @@ export default function Library() {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder={t("ابحث باسم الكتاب")}
-                    className="h-11 w-full rounded-lg border border-border bg-background ps-11 pe-11 text-sm transition-colors focus:border-foreground focus:outline-none"
+                    className="h-10 w-full rounded-lg border border-border bg-background ps-11 pe-11 text-sm transition-colors focus:border-foreground focus:outline-none sm:h-11"
                     dir={direction}
                   />
                   {query && (
@@ -87,7 +87,7 @@ export default function Library() {
                   <button
                     aria-pressed={view === "grid"}
                     onClick={() => setView("grid")}
-                    className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors ${
+                    className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-semibold transition-colors sm:h-9 sm:gap-2 sm:px-3 ${
                       view === "grid"
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
@@ -100,7 +100,7 @@ export default function Library() {
                   <button
                     aria-pressed={view === "list"}
                     onClick={() => setView("list")}
-                    className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors ${
+                    className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-semibold transition-colors sm:h-9 sm:gap-2 sm:px-3 ${
                       view === "list"
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"

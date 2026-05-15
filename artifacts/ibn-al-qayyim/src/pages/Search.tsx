@@ -214,22 +214,22 @@ export default function Search() {
   return (
     <AppShell>
       <main className="scholarly-bg min-h-screen">
-        <div className="mx-auto max-w-[90rem] px-4 pb-24 pt-10 sm:px-6 md:pb-20">
-          <header className="mx-auto max-w-3xl pb-7 text-center">
-            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">{t("البحث")}</h1>
-            <p className="mt-4 text-base leading-8 text-muted-foreground md:text-lg">
+        <div className="mx-auto max-w-[90rem] px-3.5 pb-28 pt-7 sm:px-6 sm:pt-10 md:pb-20">
+          <header className="mx-auto max-w-3xl pb-5 text-center sm:pb-7">
+            <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">{t("البحث")}</h1>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground sm:mt-4 md:text-lg md:leading-8">
               {t("ابحث داخل كل المكتبة، أو احصر البحث في كتاب أو قسم محدد.")}
             </p>
           </header>
 
-          <div className="reader-chrome sticky top-14 z-30 mx-auto max-w-4xl rounded-lg px-3 py-3 sm:px-4">
+          <div className="reader-chrome sticky top-14 z-30 mx-auto max-w-4xl rounded-lg px-2.5 py-2.5 sm:px-4 sm:py-3">
             <div className="grid gap-3 md:grid-cols-[1fr_auto]">
               <SearchBox value={query} onChange={setQuery} onSubmit={submit} placeholder="مثال: الصبر" />
 
               <Popover open={optionsOpen} onOpenChange={setOptionsOpen}>
                 <PopoverTrigger asChild>
                   <button
-                    className="reader-control inline-flex h-12 items-center justify-center gap-2 px-4 text-sm font-semibold"
+                    className="reader-control inline-flex h-11 items-center justify-center gap-2 px-4 text-sm font-semibold sm:h-12"
                     type="button"
                   >
                     <ListFilter className="h-4 w-4" />
@@ -372,11 +372,11 @@ export default function Search() {
                   {filteredResults.map((result) => (
                     <Link
                       href={`/edition/${result.editionId}/section/${result.chapterId}#page-${result.pageNumber}`}
-                      className="interactive-card block p-4 sm:p-5"
+                      className="interactive-card block p-3.5 sm:p-5"
                       key={`${result.pageId}-${result.matchCount}-${result.matchIn}`}
                     >
-                      <div className="flex gap-4">
-                        <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <div className="flex gap-3 sm:gap-4">
+                        <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted sm:h-10 sm:w-10">
                           <BookOpen className="h-5 w-5" />
                         </span>
                         <div className="min-w-0">
@@ -384,7 +384,7 @@ export default function Search() {
                             {highlightedText(result.workTitle, submittedQuery)} /{" "}
                             {highlightedText(result.bookTitle, submittedQuery)} / {pageText(result.pageNumber, language)}
                           </p>
-                          <h2 className="mt-1 text-xl font-semibold leading-8">
+                          <h2 className="mt-1 text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
                             {highlightedText(result.chapterTitle, submittedQuery)}
                           </h2>
                           <p className="mt-2 line-clamp-3 text-sm leading-7 text-muted-foreground">

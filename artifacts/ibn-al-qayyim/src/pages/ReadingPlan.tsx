@@ -113,19 +113,19 @@ export default function ReadingPlan() {
 
   return (
     <AppShell>
-      <PageFrame className="overflow-hidden" containerClassName="pb-24 md:pb-16">
-        <header className="grid min-w-0 gap-6 border-b border-border pb-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
+      <PageFrame className="overflow-hidden" containerClassName="pb-28 md:pb-16">
+        <header className="grid min-w-0 gap-5 border-b border-border pb-5 sm:gap-6 sm:pb-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
           <div className="min-w-0">
             <div className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
               <Route className="h-4 w-4" />
               خطة قراءة
             </div>
-            <h1 className="max-w-full break-words font-display text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">
+            <h1 className="max-w-full break-words font-display text-2xl font-bold leading-tight sm:text-3xl md:text-5xl lg:text-6xl">
               ترتيب مقترح لقراءة كتب الإمام ابن القيم
             </h1>
           </div>
 
-          <aside className="surface-card self-end p-4 text-sm text-muted-foreground">
+          <aside className="surface-card self-end p-3.5 text-sm text-muted-foreground sm:p-4">
             <p className="font-semibold text-foreground">ملخص الخطة</p>
             <div className="mt-4 space-y-3">
               <p className="flex items-center justify-between">
@@ -147,7 +147,7 @@ export default function ReadingPlan() {
         {isLoading ? (
           <LoadingState />
         ) : (
-          <section className="grid min-w-0 gap-6 pt-7 lg:grid-cols-2 xl:gap-8">
+          <section className="grid min-w-0 gap-5 pt-6 sm:gap-6 sm:pt-7 lg:grid-cols-2 xl:gap-8">
             {resolvedColumns.map((column, columnIndex) => (
               <ol className="min-w-0 space-y-3" key={columnIndex}>
                 {column.map((item, itemIndex) => {
@@ -159,7 +159,7 @@ export default function ReadingPlan() {
           </section>
         )}
 
-        <section className="mt-8 grid gap-4 border-t border-border pt-7 md:grid-cols-3">
+        <section className="mt-7 grid gap-3 border-t border-border pt-6 sm:mt-8 sm:gap-4 sm:pt-7 md:grid-cols-3">
           <PlanStat icon={Layers} label="المجموع" value="أربعة وستون مجلداً تقريباً" />
           <PlanStat icon={Library} label="الأعمال" value={`${PLAN_ITEMS.length} عملاً`} />
           <PlanStat icon={BookOpen} label="الوتيرة" value="ورد يومي ثابت لمدة سنة" />
@@ -197,7 +197,7 @@ function ReadingPlanRow({
 
   if (!item.href) {
     return (
-    <li className="flex min-w-0 items-start gap-3 rounded-lg border border-dashed border-border p-4 text-muted-foreground opacity-80">
+    <li className="flex min-w-0 items-start gap-2.5 rounded-lg border border-dashed border-border p-3.5 text-muted-foreground opacity-80 sm:gap-3 sm:p-4">
         {content}
       </li>
     );
@@ -207,7 +207,7 @@ function ReadingPlanRow({
     <li>
       <Link
         href={item.href}
-        className="interactive-card group flex min-w-0 items-start gap-3 p-4"
+        className="interactive-card group flex min-w-0 items-start gap-2.5 p-3.5 sm:gap-3 sm:p-4"
       >
         {content}
       </Link>
@@ -225,7 +225,7 @@ function PlanStat({
   value: string;
 }) {
   return (
-    <div className="surface-card p-4">
+    <div className="surface-card p-3.5 sm:p-4">
       <Icon className="h-5 w-5 text-foreground" />
       <p className="mt-4 text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 text-base font-semibold leading-7">{value}</p>

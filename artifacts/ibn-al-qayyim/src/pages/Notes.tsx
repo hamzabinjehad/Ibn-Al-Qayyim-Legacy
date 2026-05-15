@@ -66,17 +66,17 @@ export default function Notes() {
 
   return (
     <AppShell>
-      <PageFrame containerClassName="pt-10">
-        <header className="border-b border-border pb-6">
+      <PageFrame containerClassName="pt-7 sm:pt-10">
+        <header className="border-b border-border pb-5 sm:pb-6">
           <div>
-            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">{t("الملاحظات")}</h1>
-            <p className="mt-4 max-w-3xl text-base leading-8 text-muted-foreground md:text-lg">
+            <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">{t("الملاحظات")}</h1>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:mt-4 md:text-lg md:leading-8">
               {t("مواضع القراءة والتظليلات والملاحظات محفوظة محليا في هذا المتصفح.")}
             </p>
           </div>
         </header>
 
-        <div className="grid min-w-0 gap-6 pt-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:gap-8">
+        <div className="grid min-w-0 gap-6 pt-6 sm:pt-8 lg:grid-cols-[20rem_minmax(0,1fr)] xl:gap-8">
           <aside>
             <h2 className="mb-4 text-xl font-semibold">{t("تابع القراءة")}</h2>
             {positions.length === 0 ? (
@@ -325,14 +325,14 @@ function DownloadTree({
   });
 
   return (
-    <section className="surface-card p-4 md:p-5" data-tour="notes-downloads">
+    <section className="surface-card p-3.5 sm:p-4 md:p-5" data-tour="notes-downloads">
       <div className="flex flex-col gap-4 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-semibold">
+          <h2 className="flex items-center gap-2 text-lg font-semibold sm:text-xl">
             <Download className="h-5 w-5" />
             {t("تحميل المحفوظات")}
           </h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground">
+          <p className="mt-2 text-sm leading-6 text-muted-foreground sm:leading-7">
             {t("افتح التفضيلات لاختيار ما تريد تحميله وطريقة ترتيب الملف.")}
           </p>
         </div>
@@ -434,7 +434,7 @@ function DownloadPreferencesMenu({
     <DropdownMenu dir={direction}>
       <DropdownMenuTrigger asChild>
         <button
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm font-semibold transition-colors hover:border-foreground"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border px-3 text-sm font-semibold transition-colors hover:border-foreground"
           type="button"
         >
           <Settings2 className="h-4 w-4" />
@@ -503,7 +503,7 @@ function ReadingPositionItem({
   const { formatDate, t } = useUiTranslations();
 
   return (
-    <div className="interactive-card p-4">
+    <div className="interactive-card p-3.5 sm:p-4">
       <div className="flex items-start gap-3">
         <Link href={`/edition/${position.bookId}/section/${position.chapterId}`} className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">{position.bookTitle}</p>
@@ -574,7 +574,7 @@ function SavedItem({
   const { t } = useUiTranslations();
 
   return (
-    <div className="interactive-card p-4">
+    <div className="interactive-card p-3.5 sm:p-4">
       <div className="flex items-start gap-3">
         <BookOpen className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
@@ -589,7 +589,7 @@ function SavedItem({
             {text}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 flex-col items-center gap-1 sm:flex-row">
           <button
             onClick={onShare}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

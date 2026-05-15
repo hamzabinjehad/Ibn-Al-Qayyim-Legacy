@@ -719,6 +719,14 @@
     scrollbar-color: hsl(var(--border)) transparent;
   }
 
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   .bottom-nav-spacer {
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
   }

@@ -38,7 +38,7 @@ export default function SearchBox({
         />
       </div>
       <button
-        className="h-12 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="h-11 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50 sm:h-12"
         disabled={value.trim().length < 2}
         type="submit"
       >

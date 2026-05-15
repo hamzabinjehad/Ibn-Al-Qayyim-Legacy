@@ -70,8 +70,8 @@ export default function Home() {
   return (
     <AppShell>
       <PageFrame>
-        <section className="mx-auto max-w-3xl pt-2 text-center md:pt-5">
-          <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
+        <section className="mx-auto max-w-3xl pt-1 text-center md:pt-5">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">
             {t("موروث ابن القيم")}
           </h1>
           <form
@@ -80,7 +80,7 @@ export default function Home() {
               submitSearch();
             }}
             data-tour="home-search"
-            className="surface-card mx-auto mt-7 grid max-w-2xl gap-2 p-2 sm:grid-cols-[1fr_auto]"
+            className="surface-card mx-auto mt-5 grid max-w-2xl gap-2 p-2 sm:mt-7 sm:grid-cols-[1fr_auto]"
           >
             <div className="relative">
               <Search className="pointer-events-none absolute start-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -104,15 +104,15 @@ export default function Home() {
           </form>
         </section>
 
-        <section className="mt-10 md:mt-12">
+        <section className="mt-8 md:mt-12">
           <div className="min-w-0 space-y-8">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold">
                 {continueBook ? t("تابع القراءة") : t("ابدأ القراءة")}
               </h2>
               <Link
                 href={readingActionHref}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
                 {t(readingActionLabel)}
                 <DirectionalArrow className="h-4 w-4" />
@@ -208,7 +208,7 @@ function ContinueReadingCard({
   return (
     <Link
       href={href}
-      className="interactive-card grid gap-5 p-4 sm:grid-cols-[1fr_auto] sm:p-5"
+      className="interactive-card grid gap-4 p-3.5 sm:grid-cols-[1fr_auto] sm:gap-5 sm:p-5"
     >
       <div className="flex min-w-0 flex-col justify-between gap-6">
         <div>
@@ -250,7 +250,7 @@ function ContinueReadingCard({
         publisher={book.publisher}
         title={book.titleAr}
         size="md"
-        className="mx-auto !h-44 !w-32 sm:!h-52 sm:!w-36"
+        className="mx-auto !h-36 !w-24 sm:!h-52 sm:!w-36"
       />
     </Link>
   );
@@ -270,7 +270,7 @@ function LibraryBookCard({
   return (
     <Link
       href={`/work/${work.id}`}
-      className="interactive-card group flex h-full min-h-[20rem] flex-col p-4"
+      className="interactive-card group flex h-full min-h-[16rem] flex-col p-3.5 sm:min-h-[20rem] sm:p-4"
     >
       <BookCover
         coverColor={work.coverColor}
@@ -278,7 +278,7 @@ function LibraryBookCard({
         coverImageUrl={work.coverImageUrl}
         title={work.titleAr}
         size="md"
-        className="mx-auto !h-40 !w-28 sm:!h-44 sm:!w-32"
+        className="mx-auto !h-36 !w-24 sm:!h-44 sm:!w-32"
       />
       <div className="mt-4 flex flex-1 flex-col text-center">
         <h3 className="line-clamp-2 text-base font-semibold leading-7">

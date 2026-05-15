@@ -15,7 +15,7 @@ export default function PageFrame({
 }: PageFrameProps) {
   return (
     <main className={cn("scholarly-bg min-h-screen", className)} id="main-content">
-      <div className={cn("mx-auto px-4 pb-24 pt-8 sm:px-6 md:pb-20 md:pt-10", maxWidth, containerClassName)}>
+      <div className={cn("mx-auto px-3.5 pb-28 pt-6 sm:px-6 sm:pt-8 md:pb-20 md:pt-10", maxWidth, containerClassName)}>
         {children}
       </div>
     </main>

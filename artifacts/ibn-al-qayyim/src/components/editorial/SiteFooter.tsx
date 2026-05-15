@@ -35,8 +35,8 @@ export default function SiteFooter() {
   const copy = FOOTER_COPY[language];
 
   return (
-    <footer className="border-t border-border bg-background pb-[calc(5rem+env(safe-area-inset-bottom))] pt-6 md:pb-7">
-      <div className="mx-auto flex max-w-[90rem] flex-col gap-4 px-5 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-6">
+    <footer className="border-t border-border bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-6 md:pb-7">
+      <div className="mx-auto flex max-w-[90rem] flex-col gap-4 px-3.5 text-sm text-muted-foreground sm:px-5 md:flex-row md:items-center md:justify-between md:px-6">
         <p className="max-w-2xl leading-7">{copy.localData}</p>
         <nav
           aria-label={copy.navLabel}

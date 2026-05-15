@@ -62,7 +62,7 @@ export default function BookDetail() {
           <span className="line-clamp-1 text-foreground">{edition.titleAr}</span>
         </div>
 
-        <section className="grid min-w-0 gap-7 border-b border-border pb-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-center">
+        <section className="grid min-w-0 gap-5 border-b border-border pb-7 sm:gap-7 sm:pb-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-center">
           <BookCover
             coverColor={edition.coverColor}
             coverImageAlt={edition.coverImageAlt}
@@ -71,29 +71,29 @@ export default function BookDetail() {
             publisher={edition.publisher}
             title={edition.titleAr}
             size="lg"
-            className="mx-auto w-full max-w-64"
+            className="mx-auto !h-56 !w-40 sm:!h-72 sm:!w-48"
           />
           <div className="min-w-0 self-center">
-            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">{edition.titleAr}</h1>
-            <div className="mt-6 flex flex-wrap gap-2.5">
+            <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">{edition.titleAr}</h1>
+            <div className="mt-5 flex flex-col gap-2.5 sm:mt-6 sm:flex-row sm:flex-wrap">
               <Link
                 href={`/edition/${edition.id}/section/${edition.defaultSectionId}`}
                 data-tour="book-start-reading"
-                className="inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:justify-start"
               >
                 {t("ابدأ القراءة")}
                 <DirectionalArrow className="h-4 w-4" />
               </Link>
               <Link
                 href={`/search?target=book&editionId=${edition.id}`}
-                className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45 sm:justify-start"
               >
                 {t("البحث داخل الكتاب")}
                 <Search className="h-4 w-4" />
               </Link>
               {correctionIssueUrl && (
                 <a
-                  className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45 sm:justify-start"
                   href={correctionIssueUrl}
                   rel="noreferrer"
                   target="_blank"
@@ -104,7 +104,7 @@ export default function BookDetail() {
               )}
               {sourceEditUrl && (
                 <a
-                  className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45 sm:justify-start"
                   href={sourceEditUrl}
                   rel="noreferrer"
                   target="_blank"
@@ -120,9 +120,9 @@ export default function BookDetail() {
 
         <section className="grid min-w-0 gap-8 pt-8 lg:grid-cols-[1fr_18rem]">
           <div className="min-w-0">
-            <div className="mb-5 flex items-center gap-2">
+            <div className="mb-4 flex items-center gap-2 sm:mb-5">
               <BookMarked className="h-5 w-5" />
-              <h2 className="text-2xl font-semibold">{t("محتويات الطبعة")}</h2>
+              <h2 className="text-xl font-semibold sm:text-2xl">{t("محتويات الطبعة")}</h2>
             </div>
             <BookTocTree editionId={edition.id} editionTitle={edition.titleAr} pages={edition.pages} sections={edition.sections} />
           </div>

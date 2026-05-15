@@ -44,25 +44,25 @@ export default function WorkDetail() {
           <span className="line-clamp-1 text-foreground">{work.titleAr}</span>
         </div>
 
-        <section className="grid min-w-0 gap-7 border-b border-border pb-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-center">
+        <section className="grid min-w-0 gap-5 border-b border-border pb-7 sm:gap-7 sm:pb-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-center">
           <BookCover
             coverColor={work.coverColor}
             coverImageAlt={work.coverImageAlt}
             coverImageUrl={work.coverImageUrl}
             title={work.titleAr}
             size="lg"
-            className="mx-auto w-full max-w-64"
+            className="mx-auto !h-56 !w-40 sm:!h-72 sm:!w-48"
           />
           <div className="min-w-0 self-center">
-            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">{work.titleAr}</h1>
-            <p className="mt-5 max-w-3xl text-base leading-8 text-muted-foreground">{work.description}</p>
+            <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">{work.titleAr}</h1>
+            <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground sm:mt-5 sm:leading-8">{work.description}</p>
           </div>
         </section>
 
         <section className="scroll-mt-24 pt-8" id="editions">
-          <div className="mb-5 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2 sm:mb-5">
             <Layers className="h-5 w-5" />
-            <h2 className="text-2xl font-semibold">{t("الطبعات المتاحة")}</h2>
+            <h2 className="text-xl font-semibold sm:text-2xl">{t("الطبعات المتاحة")}</h2>
           </div>
           <div className="space-y-3">
             {work.editions.map((edition) => (

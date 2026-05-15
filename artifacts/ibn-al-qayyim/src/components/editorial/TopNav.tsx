@@ -63,17 +63,17 @@ export default function TopNav() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-border bg-background/96 shadow-[0_14px_38px_-36px_rgba(0,0,0,0.75)] backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-[90rem] items-center justify-between gap-2 px-3.5 sm:gap-3 sm:px-6">
           <Link
             href="/"
             aria-label={t("موروث ابن القيم")}
             aria-current={location === "/" ? "page" : undefined}
-            className="inline-flex min-w-0 shrink-0 items-center gap-2.5 whitespace-nowrap transition-colors hover:text-muted-foreground"
+            className="inline-flex min-w-0 shrink-0 items-center gap-2 whitespace-nowrap transition-colors hover:text-muted-foreground sm:gap-2.5"
           >
             <img
               src={SITE_LOGO_SRC}
               alt=""
-              className="h-9 w-9 shrink-0 rounded-full bg-black object-cover shadow-[0_10px_24px_-18px_rgba(0,0,0,0.9)] ring-1 ring-border"
+              className="h-8 w-8 shrink-0 rounded-full bg-black object-cover shadow-[0_10px_24px_-18px_rgba(0,0,0,0.9)] ring-1 ring-border sm:h-9 sm:w-9"
             />
             <span className="hidden font-display text-lg font-bold leading-none sm:inline">
               {t("موروث ابن القيم")}
@@ -99,12 +99,12 @@ export default function TopNav() {
             })}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={t("تغيير اللغة، اللغة الحالية: {language}", { language: activeLanguageName })}
-                  className="group inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-2.5 text-sm font-semibold text-foreground transition-colors hover:border-foreground/25 hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:min-w-20"
+                  className="group inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground/25 hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9 sm:min-w-20 sm:gap-2 sm:px-2.5"
                   dir="ltr"
                   type="button"
                 >
@@ -155,7 +155,7 @@ export default function TopNav() {
             </DropdownMenu>
             <button
               aria-label={t("طريقة استخدام الموقع")}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground sm:h-9 sm:w-9"
               data-tour="tour-help"
               onClick={startTour}
               type="button"
@@ -164,7 +164,7 @@ export default function TopNav() {
             </button>
             <button
               onClick={toggle}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground sm:h-9 sm:w-9"
               aria-label={t("تبديل المظهر")}
               type="button"
             >
@@ -176,7 +176,7 @@ export default function TopNav() {
 
       <nav
         aria-label={t("التنقل السفلي")}
-        className="fixed inset-x-0 bottom-0 z-50 grid h-[calc(4.25rem+env(safe-area-inset-bottom))] border-t border-border bg-background/96 pb-[env(safe-area-inset-bottom)] text-[0.7rem] text-muted-foreground shadow-[0_-14px_38px_-34px_rgba(0,0,0,0.7)] backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 grid h-[calc(4.5rem+env(safe-area-inset-bottom))] border-t border-border bg-background/96 pb-[env(safe-area-inset-bottom)] text-[0.68rem] text-muted-foreground shadow-[0_-14px_38px_-34px_rgba(0,0,0,0.7)] backdrop-blur-xl md:hidden"
         style={{ gridTemplateColumns: `repeat(${visibleNavItems.length}, minmax(0, 1fr))` }}
       >
         {visibleNavItems.map((item) => {
@@ -187,13 +187,13 @@ export default function TopNav() {
               aria-current={active ? "page" : undefined}
               href={item.href}
               key={item.href}
-              className={`relative flex flex-col items-center justify-center gap-1 transition-colors ${
+              className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 transition-colors ${
                 active ? "font-semibold text-foreground" : "hover:text-foreground"
               }`}
             >
               {active && <span className="absolute top-0 h-0.5 w-10 rounded-full bg-foreground" />}
               <Icon className={`h-5 w-5 ${active ? "fill-foreground/10" : ""}`} />
-              <span>{t(item.mobileLabel ?? item.label)}</span>
+              <span className="max-w-full truncate">{t(item.mobileLabel ?? item.label)}</span>
             </Link>
           );
         })}
