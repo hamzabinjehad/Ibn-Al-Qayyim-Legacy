@@ -49,6 +49,10 @@ Thumbs.db
 .local/
 
 # local agent/editor state and run logs
+.codex/
 .claude/settings.local.json
+*.err.log
+*.out.log
 vite-dev*.log
+serve-static-*.cjs
 attached_assets/

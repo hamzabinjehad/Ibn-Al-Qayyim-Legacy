@@ -4,23 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "hello": "tsx ./src/hello.ts",
     "extract-ibn-qayyim": "tsx ./src/extract-ibn-qayyim.ts",
     "generate-static-library": "tsx ./src/generate-static-library.ts",
     "import-book-covers": "tsx ./src/import-book-covers.ts",
-    "seed-from-extracted": "tsx ./src/seed-from-extracted.ts",
-    "mock-api": "tsx ./src/mock-api-server.ts",
+    "translate-daa-wa-dawaa-de": "tsx ./src/translate-book-to-german.ts --source-title الداء --edition-title عطاءات",
+    "validate-german-translation": "tsx ./src/validate-german-translation.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@workspace/db": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "pg": "^8.20.0",
     "turath-sdk": "^1.1.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@types/pg": "^8.18.0",
     "tsx": "catalog:"
   }
 }

@@ -26,12 +26,21 @@ function slugify(title: string): string {
 
 function stripHtml(html: string): string {
   return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<span\b[^>]*data-type=["']title["'][^>]*>/gi, "\n")
+    .replace(/<\/(?:p|div|section|article|h[1-6]|li|tr|span)>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ")
-    .replace(/\s{2,}/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t\f\v]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -55,6 +64,16 @@ interface IndexFile {
   failed: { id: number; title: string; error: string }[];
 }
 
+type ExtractedBookSummary = {
+  slug: string;
+  title: string;
+  source_id: number;
+  pages: number;
+  volumes: number;
+};
+
+type FailedBookSummary = IndexFile["failed"][number];
+
 async function loadExistingIndex(): Promise<IndexFile | null> {
   const indexPath = join(OUTPUT_DIR, "index.json");
   if (!existsSync(indexPath)) return null;
@@ -67,6 +86,47 @@ async function loadExistingIndex(): Promise<IndexFile | null> {
 }
 
 // ─── Step 1: Discover Ibn Qayyim's author_id ──────────────────────────────
+function indexBookToSummary(book: IndexBook): ExtractedBookSummary {
+  return {
+    slug: book.id,
+    title: book.title,
+    source_id: book.source_id,
+    pages: book.pages,
+    volumes: book.volumes,
+  };
+}
+
+async function writeExtractionIndex(
+  authorId: number,
+  books: ExtractedBookSummary[],
+  failed: FailedBookSummary[]
+) {
+  await writeFile(
+    join(OUTPUT_DIR, "index.json"),
+    JSON.stringify(
+      {
+        author: "ابن قيم الجوزية",
+        author_id: authorId,
+        source: "turath.io",
+        extracted_at: new Date().toISOString(),
+        books_count: books.length,
+        books: books.map(({ slug, title, source_id, pages, volumes }) => ({
+          id: slug,
+          title,
+          source_id,
+          pages,
+          volumes,
+          file: `${slug}.json`,
+        })),
+        failed,
+      },
+      null,
+      2
+    ),
+    "utf-8"
+  );
+}
+
 async function findAuthorId(): Promise<number> {
   console.log("🔍 البحث عن ابن قيم الجوزية...");
   for (const q of ["ابن قيم الجوزية", "ابن القيم الجوزية", "ابن القيم"]) {
@@ -266,8 +326,12 @@ async function main() {
 
   console.log(`\n📊 كتب مُكتشفة: ${booksMap.size} | جديدة/فاشلة للاستخراج: ${booksList.length}\n`);
 
-  const succeeded: Awaited<ReturnType<typeof extractBook>>[] = [];
-  const failed: { id: number; title: string; error: string }[] = [];
+  const succeeded: ExtractedBookSummary[] = [];
+  const failed: FailedBookSummary[] = [];
+  const mergedSucceeded = () => [
+    ...previouslySucceeded.map(indexBookToSummary),
+    ...succeeded,
+  ];
 
   for (let i = 0; i < booksList.length; i++) {
     const book = booksList[i]!;
@@ -279,20 +343,12 @@ async function main() {
       console.error(`   ❌ "${book.title}": ${msg}`);
       failed.push({ id: book.id, title: book.title, error: msg });
     }
+    await writeExtractionIndex(authorId, mergedSucceeded(), failed);
     if (i < booksList.length - 1) await sleep(DELAY_BETWEEN_BOOKS);
   }
 
   // Merge with previously succeeded
-  const allSucceeded = [
-    ...previouslySucceeded.map((b) => ({
-      slug: b.id,
-      title: b.title,
-      source_id: b.source_id,
-      pages: b.pages,
-      volumes: b.volumes,
-    })),
-    ...succeeded,
-  ];
+  const allSucceeded = mergedSucceeded();
 
   // Write merged index
   await writeFile(

@@ -11,6 +11,8 @@ export interface LocalReadingPosition {
   progress: number;
   savedAt: number;
   scrollY: number;
+  workId?: number;
+  workTitle?: string;
 }
 
 export interface LocalHighlight {
@@ -22,6 +24,8 @@ export interface LocalHighlight {
   createdAt: number;
   id: string;
   text: string;
+  workId?: number;
+  workTitle?: string;
 }
 
 export interface LocalNote {
@@ -33,12 +37,15 @@ export interface LocalNote {
   id: string;
   note: string;
   selectedText?: string;
+  workId?: number;
+  workTitle?: string;
 }
 
 export interface ReaderSettings {
   fontFamily: "naskh" | "amiri";
   fontSize: number;
   showHarakat: boolean;
+  showFootnotes: boolean;
 }
 
 const KEYS = {
@@ -52,6 +59,7 @@ const KEYS = {
 const DEFAULT_SETTINGS: ReaderSettings = {
   fontFamily: "amiri",
   fontSize: 22,
+  showFootnotes: true,
   showHarakat: true,
 };
 
@@ -68,6 +76,17 @@ function readStorage<T>(key: string, fallback: T): T {
 function writeStorage<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
   window.dispatchEvent(new CustomEvent("local-library-change", { detail: key }));
+}
+
+function normalizeReaderSettings(settings: Partial<ReaderSettings>): ReaderSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...settings,
+    fontSize: Math.min(34, Math.max(16, settings.fontSize ?? DEFAULT_SETTINGS.fontSize)),
+    fontFamily: settings.fontFamily === "naskh" ? "naskh" : "amiri",
+    showFootnotes: settings.showFootnotes ?? DEFAULT_SETTINGS.showFootnotes,
+    showHarakat: settings.showHarakat ?? DEFAULT_SETTINGS.showHarakat,
+  };
 }
 
 function useStoredValue<T>(key: string, fallback: T) {
@@ -96,7 +115,15 @@ export function useLocalLibrary() {
   const [highlights, setHighlights] = useStoredValue<LocalHighlight[]>(KEYS.highlights, []);
   const [notes, setNotes] = useStoredValue<LocalNote[]>(KEYS.notes, []);
   const [positions, setPositions] = useStoredValue<LocalReadingPosition[]>(KEYS.readingPosition, []);
-  const [settings, setSettings] = useStoredValue<ReaderSettings>(KEYS.readerSettings, DEFAULT_SETTINGS);
+  const [rawSettings, setRawSettings] = useStoredValue<Partial<ReaderSettings>>(KEYS.readerSettings, DEFAULT_SETTINGS);
+  const settings = useMemo(() => normalizeReaderSettings(rawSettings), [rawSettings]);
+  const setSettings = (next: ReaderSettings | ((current: ReaderSettings) => ReaderSettings)) => {
+    setRawSettings((current) => {
+      const normalizedCurrent = normalizeReaderSettings(current);
+      const nextSettings = typeof next === "function" ? next(normalizedCurrent) : next;
+      return normalizeReaderSettings(nextSettings);
+    });
+  };
 
   return useMemo(
     () => ({

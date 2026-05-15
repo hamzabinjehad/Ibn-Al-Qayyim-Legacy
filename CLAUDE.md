@@ -1,146 +1,119 @@
-# Ibn Al-Qayyim Legacy — دليل Claude Code
+# Ibn Al-Qayyim Legacy - Claude Guide
 
-## نظرة عامة
+## Overview
 
-منصة ويب لتصفح وقراءة كتب ابن قيم الجوزية. تتيح للمستخدم تمييز النصوص، إضافة ملاحظات، والتعليق على الفصول. البيانات مستخرجة من Turath SDK (shamela.ws).
+Static web app for browsing and reading Ibn Al-Qayyim books. The site runs without a database or API server in production. Published library data is generated into language-scoped JSON bundles under the frontend `public/` directory and read directly by the browser.
 
-## بنية المشروع (pnpm monorepo)
+## Project Structure
 
-```
+```text
 artifacts/
-  ibn-al-qayyim/     # واجهة React 19 + Vite 7 + Tailwind 4
-  api-server/        # خادم Express 5 + Drizzle ORM
-  mockup-sandbox/    # بيئة تجريبية (غير مستخدمة في الإنتاج)
-lib/
-  api-spec/          # OpenAPI spec + Orval codegen config
-  api-client-react/  # React Query hooks (مولَّدة تلقائياً)
-  api-zod/           # Zod schemas (مولَّدة تلقائياً)
-  db/                # Drizzle ORM schema + PostgreSQL connection
+  ibn-al-qayyim/     # React 19 + Vite 7 + Tailwind 4 frontend
 scripts/
   src/
-    extract-ibn-qayyim.ts  # يجلب بيانات الكتب من Turath SDK
-    seed.ts                # يزرع قاعدة البيانات
-    mock-api-server.ts     # خادم API وهمي للتطوير
+    extract-ibn-qayyim.ts       # Fetches source book data from Turath SDK
+    generate-static-library.ts  # Builds public JSON data for the app
+    import-book-covers.ts       # Imports local book cover metadata/assets
 ```
 
-## تدفق الكود الأساسي
+Removed legacy areas:
 
+- No `api-server`
+- No `mockup-sandbox`
+- No `lib/db`
+- No OpenAPI/Orval generated client
+- No Supabase/Postgres runtime dependency
+
+## Data Flow
+
+```text
+scripts/output/ibn-qayyim/*.json
+        ->
+scripts/src/generate-static-library.ts
+        ->
+artifacts/ibn-al-qayyim/public/library-data/{ar,de,en}/
+        ->
+artifacts/ibn-al-qayyim/src/lib/static-library.ts
+        ->
+React pages
 ```
-lib/api-spec/openapi.yaml
-        ↓ (pnpm --filter @workspace/api-spec run codegen)
-lib/api-client-react/src/generated/   ← React Query hooks
-lib/api-zod/src/generated/            ← Zod schemas
-        ↓
-artifacts/ibn-al-qayyim/src/          ← يستخدم الـ hooks مباشرة
-artifacts/api-server/src/             ← يستخدم Zod للتحقق
-```
 
-**القاعدة:** لا تعدّل الملفات المولَّدة يدوياً. عدّل `openapi.yaml` ثم شغّل `codegen`.
+Do not move the generated `public/library-data/{ar,de,en}` files unless you also update `static-library.ts` and the generator. Root-level compatibility bundles are no longer generated.
 
-## المنافذ
-
-| الخدمة | المنفذ |
-|--------|--------|
-| React frontend (dev) | 5173 |
-| Express API | 3001 |
-
-الـ Vite proxy يوجّه `/api/*` تلقائياً إلى `http://localhost:3001/api/*`.
-
-## متغيرات البيئة المطلوبة
-
-| المتغير | القيمة الافتراضية | الاستخدام |
-|---------|------------------|-----------|
-| `PORT` | — | **مطلوب** لتشغيل Vite و API server |
-| `BASE_PATH` | `/` | مسار الـ base لـ Vite |
-| `DATABASE_URL` | — | اتصال PostgreSQL لـ Drizzle |
-
-## أوامر التطوير
+## Development Commands
 
 ```bash
-# typecheck كامل
+# full typecheck
 pnpm run typecheck
 
-# بناء كل الحزم
+# generate static JSON and build frontend
 pnpm run build
 
-# تشغيل API server (dev)
-pnpm --filter @workspace/api-server run dev
+# generate static library data only
+pnpm --filter @workspace/scripts run generate-static-library
 
-# إعادة توليد React hooks + Zod schemas من OpenAPI spec
-pnpm --filter @workspace/api-spec run codegen
-
-# push schema قاعدة البيانات (dev فقط)
-pnpm --filter @workspace/db run push
-
-# استخراج بيانات ابن القيم من Turath SDK
+# fetch/update source books from Turath SDK
 pnpm --filter @workspace/scripts run extract-ibn-qayyim
 
-# زرع قاعدة البيانات من JSON المستخرجة (يتطلب DATABASE_URL)
-# يجب تشغيل push أولاً لتحديث المخطط، ثم السكريبت
-pnpm --filter @workspace/db run push
-pnpm --filter @workspace/scripts run seed-from-extracted
+# run frontend dev server
+pnpm --filter @workspace/ibn-al-qayyim run dev
 ```
 
-### تشغيل الواجهة (Windows PowerShell)
+## Environment
 
-```powershell
-$env:PORT = "5173"; $env:BASE_PATH = "/"; Set-Location "artifacts\ibn-al-qayyim"; npx vite --host 0.0.0.0
+| Variable | Default | Use |
+| --- | --- | --- |
+| `PORT` | `5173` | Vite dev/preview port |
+| `BASE_PATH` | `/` | Vite base path |
+
+`DATABASE_URL` is not required. If a future database is added, document the new runtime and keep static JSON as the public reading path unless the architecture intentionally changes.
+
+## Frontend Routes
+
+The app supports optional language prefixes via Wouter base routing:
+
+```text
+/ar/library
+/de/library
+/en/library
 ```
 
-## صفحات الواجهة
+Core routes inside each language prefix:
 
-| المسار | الصفحة | الوصف |
-|--------|--------|-------|
-| `/` | Home | صفحة رئيسية مع كتب مميزة وإحصائيات |
-| `/library` | Library | تصفح جميع الكتب |
-| `/book/:bookId` | BookDetail | تفاصيل كتاب واحد |
-| `/book/:bookId/chapter/:chapterId` | ChapterReader | قارئ الفصول (الأثقل — 880 سطر) |
-| `/search` | Search | بحث نصي كامل |
-| `/profile` | Profile | الملف الشخصي والإعدادات |
-
-الـ router مبني على **Wouter** (خفيف الوزن).
-
-## نقاط API الرئيسية
-
-```
-GET  /api/books                              ← قائمة الكتب
-GET  /api/books/:id                          ← كتاب واحد
-GET  /api/books/:bookId/chapters             ← فصول الكتاب
-GET  /api/books/:bookId/chapters/:chapterId  ← فصل واحد
-GET  /api/search                             ← بحث نصي
-POST /api/annotations/highlights             ← إنشاء تمييز
-POST /api/annotations/notes                  ← إنشاء ملاحظة
-POST /api/annotations/comments               ← إنشاء تعليق
-GET  /api/health                             ← فحص الخادم
+```text
+/                  Home
+/library           Library
+/reading-plan      Reading plan
+/editions/:slug    Editions for a work slug
+/work/:workId      Work detail
+/edition/:id       Edition detail
+/edition/:id/section/:sectionId
+/search            Search
+/profile           Local profile/settings
 ```
 
-## مخطط قاعدة البيانات
+Legacy aliases `/book/:bookId` and `/book/:bookId/chapter/:chapterId` still exist for compatibility.
 
-```
-books        → id, title, titleAr, description, category, coverColor
-chapters     → id, bookId (FK), title, titleAr, content, orderIndex
-highlights   → id, chapterId (FK), text, color, startOffset, endOffset, sessionId
-notes        → id, chapterId (FK), content, sessionId
-comments     → id, chapterId (FK), content, parentId (self-ref), sessionId
-```
+## Data Model
 
-## كيفية إضافة endpoint جديد
+The static JSON represents:
 
-1. أضف المسار في `lib/api-spec/openapi.yaml`
-2. شغّل `pnpm --filter @workspace/api-spec run codegen`
-3. نفّذ المنطق في `artifacts/api-server/src/routes/`
-4. استخدم الـ hook المولَّد في الواجهة من `@workspace/api-client-react`
+- `work`: the intellectual work.
+- `edition`: a readable version of that work, including originals and translations.
+- `section`: table-of-contents node for an edition.
+- `page`: readable page text for an edition.
 
-## مكتبات UI
+Languages are handled with `languageCode` and direction metadata. Arabic is RTL; German and English are LTR.
 
-- **shadcn/ui** مبنية على Radix UI primitives — في `artifacts/ibn-al-qayyim/src/components/ui/`
-- **Tailwind CSS 4** مع دعم RTL كامل (عربي)
-- **Framer Motion** للحركات
-- **Vaul** لـ drawer components
+## UI Notes
 
-## ملاحظات مهمة
+- RTL support is required for Arabic.
+- UI state such as highlights, reading progress, onboarding, and preferences is local-browser state.
+- The frontend uses a small retained UI set: dropdown menu, popover, and sheet.
+- Do not reintroduce API hooks or generated OpenAPI files for static read-only data.
 
-- المشروع يدعم **RTL كاملاً** — المحتوى العربي هو المحتوى الأساسي
-- لا يوجد نظام تسجيل دخول — يُعرَّف المستخدم بـ `sessionId` في المتصفح
-- `turath-sdk` يتواصل مع shamela.ws لجلب الكتب الإسلامية
-- `lib/api-client-react` و `lib/api-zod` **لا تعدّلهما يدوياً** — مولَّدتان بـ Orval
+## Dependency Rules
+
+- Keep dependencies scoped to the static frontend and data scripts.
+- Do not add backend/database packages unless the runtime architecture changes.
+- Keep `scripts/src/extract-ibn-qayyim.ts`, `generate-static-library.ts`, and `import-book-covers.ts`; they are the data maintenance path.

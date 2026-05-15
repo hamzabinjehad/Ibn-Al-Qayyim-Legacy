@@ -1,14 +1,82 @@
 import { Link } from "wouter";
-import { Bookmark, FileText } from "lucide-react";
-import type { BookSummary } from "@/lib/static-library";
+import { ArrowLeft, Bookmark } from "lucide-react";
+import type { BookSummary, EditionSummary, WorkSummary } from "@/lib/static-library";
 import BookCover from "@/components/BookCover";
+import ProgressLine from "./ProgressLine";
+import { editionCountText, useUiTranslations } from "@/lib/ui-translations";
 
-export function BookCard({ book, progress }: { book: BookSummary; progress?: number }) {
+export function WorkCard({ work, progress }: { work: WorkSummary; progress?: number }) {
+  const { language } = useUiTranslations();
   const roundedProgress = typeof progress === "number" ? Math.round(progress) : null;
   return (
     <Link
-      href={`/book/${book.id}`}
-      className="group block rounded-lg border border-border bg-background p-4 transition-colors hover:border-foreground"
+      href={`/work/${work.id}`}
+      className="interactive-card group block p-4"
+    >
+      <BookCover
+        coverColor={work.coverColor}
+        coverImageAlt={work.coverImageAlt}
+        coverImageUrl={work.coverImageUrl}
+        title={work.titleAr}
+        size="md"
+        className="mx-auto max-w-40"
+      />
+      <div className="mt-4 text-center">
+        <h3 className="line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
+          {work.titleAr}
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {editionCountText(work.editionCount, language)}
+        </p>
+        <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{work.description}</p>
+      </div>
+      {roundedProgress !== null && (
+        <ProgressLine className="mt-4" value={roundedProgress} />
+      )}
+    </Link>
+  );
+}
+
+export function WorkRow({ work }: { work: WorkSummary }) {
+  const { language, t } = useUiTranslations();
+
+  return (
+    <Link
+      href={`/work/${work.id}`}
+      className="interactive-card grid gap-4 p-4 sm:grid-cols-[auto_1fr_auto]"
+    >
+      <BookCover
+        coverColor={work.coverColor}
+        coverImageAlt={work.coverImageAlt}
+        coverImageUrl={work.coverImageUrl}
+        title={work.titleAr}
+        size="sm"
+        className="hidden w-24 sm:flex"
+      />
+      <div>
+        <p className="text-xs text-muted-foreground">
+          {editionCountText(work.editionCount, language)}
+        </p>
+        <h3 className="mt-2 text-lg font-semibold leading-8">{work.titleAr}</h3>
+        <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-7 text-muted-foreground">{work.description}</p>
+      </div>
+      <div className="self-end text-xs text-muted-foreground sm:text-end">
+        <p className="inline-flex items-center gap-1">
+          {t("فتح الكتاب")}
+          <ArrowLeft className="h-3.5 w-3.5" />
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+export function BookCard({ book, progress }: { book: BookSummary; progress?: number }) {
+  const { t } = useUiTranslations();
+  const roundedProgress = typeof progress === "number" ? Math.round(progress) : null;
+  return (
+    <Link
+      href={`/edition/${book.id}`}
+      className="interactive-card group block p-4"
     >
       <BookCover
         coverColor={book.coverColor}
@@ -21,31 +89,27 @@ export function BookCard({ book, progress }: { book: BookSummary; progress?: num
         className="mx-auto max-w-40"
       />
       <div className="mt-4 text-center">
-        <p className="text-xs text-muted-foreground">{book.category}</p>
-        <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
+        <h3 className="line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
           {book.titleAr}
         </h3>
-        <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-          {book.chapterCount} فصل / {book.pageCount} صفحة
+        <p className="mt-1 text-xs text-muted-foreground">
+          {book.editionLabel ?? book.publisher ?? t("طبعة متاحة")}
         </p>
       </div>
       {roundedProgress !== null && (
-        <div className="mt-4 flex items-center gap-3">
-          <span className="text-xs text-muted-foreground tabular-nums">{roundedProgress}%</span>
-          <div className="h-px flex-1 bg-border">
-            <div className="h-px bg-foreground" style={{ width: `${roundedProgress}%` }} />
-          </div>
-        </div>
+        <ProgressLine className="mt-4" value={roundedProgress} />
       )}
     </Link>
   );
 }
 
-export function BookRow({ book }: { book: BookSummary }) {
+export function BookRow({ book }: { book: BookSummary | EditionSummary }) {
+  const { t } = useUiTranslations();
+
   return (
     <Link
-      href={`/book/${book.id}`}
-      className="grid gap-4 rounded-lg border border-border bg-background p-4 transition-colors hover:border-foreground sm:grid-cols-[auto_1fr_auto]"
+      href={`/edition/${book.id}`}
+      className="interactive-card grid gap-4 p-4 sm:grid-cols-[auto_1fr_auto]"
     >
       <BookCover
         coverColor={book.coverColor}
@@ -60,16 +124,17 @@ export function BookRow({ book }: { book: BookSummary }) {
       <div>
         <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <Bookmark className="h-3.5 w-3.5" />
-          {book.category}
+          {book.editionLabel ?? book.publisher ?? t("طبعة متاحة")}
         </p>
         <h3 className="mt-2 text-lg font-semibold leading-8">{book.titleAr}</h3>
-        <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-7 text-muted-foreground">{book.description}</p>
+        <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+          {book.workTitleAr}
+        </p>
       </div>
-      <div className="self-end text-xs text-muted-foreground tabular-nums sm:text-left">
-        <p>{book.chapterCount} فصل</p>
-        <p className="mt-1 inline-flex items-center gap-1">
-          <FileText className="h-3.5 w-3.5" />
-          {book.pageCount} صفحة
+      <div className="self-end text-xs text-muted-foreground sm:text-end">
+        <p className="inline-flex items-center gap-1">
+          {t("فتح الطبعة")}
+          <ArrowLeft className="h-3.5 w-3.5" />
         </p>
       </div>
     </Link>

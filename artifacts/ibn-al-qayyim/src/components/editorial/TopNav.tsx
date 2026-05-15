@@ -1,6 +1,27 @@
-import { Link, useLocation } from "wouter";
-import { Bookmark, Library, Menu, Moon, Route, Search, Settings, Sun, UserRound, type LucideIcon } from "lucide-react";
+import { Link, useLocation, useSearch } from "wouter";
+import {
+  Bookmark,
+  Check,
+  ChevronDown,
+  HeartHandshake,
+  HelpCircle,
+  Library,
+  Moon,
+  Route,
+  Search,
+  Sun,
+  type LucideIcon,
+} from "lucide-react";
+import { useOnboardingTour } from "@/components/OnboardingTour";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/hooks/useTheme";
+import { LANGUAGES, languageDefinition, pathForLanguage, useLanguage, type LanguageCode } from "@/lib/i18n";
+import { useUiTranslations } from "@/lib/ui-translations";
 
 interface NavItem {
   href: string;
@@ -11,75 +32,161 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/library", label: "المكتبة", icon: Library, match: (p: string) => p.startsWith("/library") || p.startsWith("/book") || p.startsWith("/editions") },
+  { href: "/library", label: "المكتبة", icon: Library, match: (p: string) => p.startsWith("/library") || p.startsWith("/book") || p.startsWith("/editions") || p.startsWith("/work") || p.startsWith("/edition") },
   { href: "/reading-plan", label: "ترتيب القراءة", mobileLabel: "الخطة", icon: Route, match: (p: string) => p.startsWith("/reading-plan") },
   { href: "/search", label: "البحث", icon: Search, match: (p: string) => p.startsWith("/search") },
-  { href: "/profile", label: "الملاحظات", icon: Bookmark, match: (p: string) => p.startsWith("/profile") },
+  { href: "/notes", label: "الملاحظات", icon: Bookmark, match: (p: string) => p.startsWith("/notes") || p.startsWith("/profile") },
+  { href: "/support", label: "الدعم", icon: HeartHandshake, match: (p: string) => p.startsWith("/support") },
 ];
+
+const SITE_LOGO_SRC = `${import.meta.env.BASE_URL}site-logo.png`;
+
+const LANGUAGE_NAMES: Record<LanguageCode, Record<LanguageCode, string>> = {
+  ar: { ar: "العربية", de: "الألمانية", en: "الإنجليزية" },
+  de: { ar: "Arabisch", de: "Deutsch", en: "Englisch" },
+  en: { ar: "Arabic", de: "German", en: "English" },
+};
+
+function languageName(code: LanguageCode, uiLanguage: LanguageCode) {
+  return LANGUAGE_NAMES[uiLanguage][code];
+}
 
 export default function TopNav() {
   const [location] = useLocation();
+  const search = useSearch();
+  const { language } = useLanguage();
+  const { t } = useUiTranslations();
+  const activeLanguage = languageDefinition(language);
+  const activeLanguageName = languageName(language, language);
+  const { startTour } = useOnboardingTour();
   const { dark, toggle } = useTheme();
+  const visibleNavItems = language === "ar" ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== "/reading-plan");
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
-      <div className="relative mx-auto flex h-16 max-w-[90rem] items-center gap-4 px-4 sm:px-6">
-        <button
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border lg:hidden"
-          aria-label="القائمة"
-        >
-          <Menu className="h-4 w-4" />
-        </button>
-
-        <Link
-          href="/"
-          className="shrink-0 whitespace-nowrap text-lg font-semibold tracking-tight md:absolute md:left-1/2 md:-translate-x-1/2"
-        >
-          موروث ابن القيم
-        </Link>
-
-        <nav className="mr-auto hidden shrink-0 items-center gap-8 text-sm text-muted-foreground md:flex">
-          {NAV_ITEMS.map((item) => {
-            const active = item.match(location);
-            return (
-              <Link
-                href={item.href}
-                key={item.href}
-                className={`relative inline-flex h-16 items-center transition-colors hover:text-foreground ${
-                  active ? "text-foreground" : ""
-                }`}
-              >
-                {item.label}
-                {active && <span className="absolute inset-x-0 bottom-0 h-px bg-foreground" />}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="mr-auto flex items-center gap-1 md:mr-0">
-          <button
-            onClick={toggle}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="تبديل المظهر"
-          >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+    <>
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 shadow-[0_16px_42px_-40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6">
           <Link
-            href="/profile"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="حسابي"
+            href="/"
+            aria-label={t("موروث ابن القيم")}
+            aria-current={location === "/" ? "page" : undefined}
+            className="inline-flex min-w-0 shrink-0 items-center gap-2.5 whitespace-nowrap transition-colors hover:text-muted-foreground"
           >
-            <UserRound className="h-4 w-4" />
+            <img
+              src={SITE_LOGO_SRC}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-full bg-black object-cover shadow-[0_10px_26px_-18px_rgba(0,0,0,0.9)] ring-1 ring-border"
+            />
+            <span className="hidden font-display text-xl font-bold tracking-tight sm:inline">
+              {t("موروث ابن القيم")}
+            </span>
           </Link>
-        </div>
-      </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-5 border-t border-border bg-background/95 text-[0.7rem] text-muted-foreground backdrop-blur-xl md:hidden">
-        {NAV_ITEMS.map((item) => {
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-7 text-sm text-muted-foreground md:flex">
+            {visibleNavItems.map((item) => {
+              const active = item.match(location);
+              return (
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  href={item.href}
+                  key={item.href}
+                  className={`relative inline-flex h-16 items-center transition-colors hover:text-foreground ${
+                    active ? "text-foreground" : ""
+                  }`}
+                >
+                  {t(item.label)}
+                  {active && <span className="absolute inset-x-0 bottom-0 h-px bg-foreground" />}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label={t("تغيير اللغة، اللغة الحالية: {language}", { language: activeLanguageName })}
+                  className="group inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-2.5 text-sm font-semibold text-foreground transition-colors hover:border-foreground/25 hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:min-w-20"
+                  dir="ltr"
+                  type="button"
+                >
+                  <span className="text-xs font-bold uppercase leading-none text-muted-foreground">{activeLanguage.code}</span>
+                  <span className="hidden max-w-24 truncate text-xs text-foreground sm:inline" dir={activeLanguage.direction}>
+                    {activeLanguageName}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                aria-label={t("اللغة")}
+                className="w-40 rounded-md border-border bg-popover p-1 text-left shadow-sm [direction:ltr]"
+                sideOffset={6}
+              >
+                {LANGUAGES.map((item) => {
+                  const targetPath = location === "/reading-plan" && item.code !== "ar" ? "/" : location;
+                  const href = `${pathForLanguage(item.code, targetPath)}${search ? `?${search}` : ""}`;
+                  const active = item.code === language;
+                  return (
+                    <DropdownMenuItem
+                      asChild
+                      className={`cursor-pointer rounded-sm px-2 py-1.5 transition-colors ${
+                        active ? "bg-muted text-foreground" : "text-muted-foreground focus:bg-muted/70 focus:text-foreground"
+                      }`}
+                      key={item.code}
+                    >
+                      <a
+                        aria-current={active ? "page" : undefined}
+                        className="grid min-h-8 grid-cols-[1.5rem_1fr_1rem] items-center gap-2"
+                        href={href}
+                      >
+                        <span className="text-[0.65rem] font-bold uppercase text-muted-foreground">{item.code}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium leading-none" dir={item.direction}>
+                            {languageName(item.code, language)}
+                          </span>
+                        </span>
+                        <span className="flex h-4 w-4 items-center justify-center text-foreground">
+                          {active && <Check className="h-3.5 w-3.5" />}
+                        </span>
+                      </a>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              aria-label={t("طريقة استخدام الموقع")}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
+              data-tour="tour-help"
+              onClick={startTour}
+              type="button"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+            <button
+              onClick={toggle}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
+              aria-label={t("تبديل المظهر")}
+              type="button"
+            >
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <nav
+        aria-label={t("التنقل السفلي")}
+        className="fixed inset-x-0 bottom-0 z-50 grid h-[calc(4rem+env(safe-area-inset-bottom))] border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] text-[0.7rem] text-muted-foreground backdrop-blur-xl md:hidden"
+        style={{ gridTemplateColumns: `repeat(${visibleNavItems.length}, minmax(0, 1fr))` }}
+      >
+        {visibleNavItems.map((item) => {
           const active = item.match(location);
           const Icon = item.icon;
           return (
             <Link
+              aria-current={active ? "page" : undefined}
               href={item.href}
               key={item.href}
               className={`flex flex-col items-center justify-center gap-1 transition-colors ${
@@ -87,18 +194,11 @@ export default function TopNav() {
               }`}
             >
               <Icon className={`h-5 w-5 ${active ? "fill-foreground/10" : ""}`} />
-              <span>{item.mobileLabel ?? item.label}</span>
+              <span>{t(item.mobileLabel ?? item.label)}</span>
             </Link>
           );
         })}
-        <button
-          onClick={toggle}
-          className="flex flex-col items-center justify-center gap-1 transition-colors hover:text-foreground"
-        >
-          <Settings className="h-5 w-5" />
-          <span>الإعدادات</span>
-        </button>
       </nav>
-    </header>
+    </>
   );
 }

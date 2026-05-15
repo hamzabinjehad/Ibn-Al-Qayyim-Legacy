@@ -1,12 +1,16 @@
 import type { BookDetail, ChapterSummary } from "@/lib/static-library";
 
+type BookWithChapters = BookDetail & {
+  chapters: ChapterSummary[];
+};
+
 function clampProgress(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.min(100, Math.max(0, value));
 }
 
 export function calculateBookPageProgress(
-  book: Pick<BookDetail, "chapters"> | null | undefined,
+  book: Pick<BookWithChapters, "chapters"> | null | undefined,
   chapter: Pick<ChapterSummary, "id" | "orderIndex" | "page"> | null | undefined,
 ) {
   if (!book || !chapter || book.chapters.length === 0) return 0;

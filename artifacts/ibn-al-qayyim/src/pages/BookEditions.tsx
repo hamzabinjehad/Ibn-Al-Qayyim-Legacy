@@ -4,10 +4,13 @@ import { ChevronLeft, Layers } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { BookRow } from "@/components/editorial/BookCard";
 import { EmptyState, LoadingState } from "@/components/editorial/DataState";
+import PageFrame from "@/components/editorial/PageFrame";
 import { extractBaseTitle } from "@/lib/book-titles";
 import { useStaticBooks } from "@/lib/static-library";
+import { useUiTranslations } from "@/lib/ui-translations";
 
 export default function BookEditions() {
+  const { t } = useUiTranslations();
   const { slug } = useParams<{ slug: string }>();
   const baseTitle = decodeURIComponent(slug ?? "");
   const { data: books, isLoading } = useStaticBooks();
@@ -19,23 +22,23 @@ export default function BookEditions() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-5 pb-24 pt-10 md:pb-16">
+      <PageFrame maxWidth="max-w-5xl">
         <Link
           href="/library"
           className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
-          العودة إلى المكتبة
+          {t("العودة إلى المكتبة")}
         </Link>
 
         <header className="border-b border-border pb-8">
           <div className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
             <Layers className="h-4 w-4" />
-            اختر الطبعة
+            {t("الطبعات المتاحة")}
           </div>
           <h1 className="font-display text-3xl font-bold leading-tight md:text-5xl">{baseTitle}</h1>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            {isLoading ? "جار تحميل الطبعات" : `${editions.length} طبعة متاحة تعمل من بيانات ثابتة.`}
+            {isLoading ? t("جار تحميل الطبعات") : t("افتح الطبعة التي تريد القراءة منها.")}
           </p>
         </header>
 
@@ -55,7 +58,7 @@ export default function BookEditions() {
             </div>
           )}
         </section>
-      </main>
+      </PageFrame>
     </AppShell>
   );
 }

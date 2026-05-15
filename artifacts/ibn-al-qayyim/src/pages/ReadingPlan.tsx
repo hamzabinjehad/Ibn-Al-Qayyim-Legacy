@@ -3,8 +3,9 @@ import { Link } from "wouter";
 import { ArrowLeft, BookOpen, Diamond, Layers, Library, Route, type LucideIcon } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { LoadingState } from "@/components/editorial/DataState";
-import { extractBaseTitle, getEditionsForWork } from "@/lib/book-titles";
-import { type BookSummary, useStaticBooks } from "@/lib/static-library";
+import PageFrame from "@/components/editorial/PageFrame";
+import { normalizeArabicTitle } from "@/lib/book-titles";
+import { type WorkSummary, useStaticWorks } from "@/lib/static-library";
 
 interface ReadingPlanItem {
   matchTitle: string;
@@ -80,34 +81,38 @@ const LEFT_COLUMN: ReadingPlanItem[] = [
 const PLAN_COLUMNS = [RIGHT_COLUMN, LEFT_COLUMN];
 const PLAN_ITEMS = PLAN_COLUMNS.flat();
 
-function getWorkHref(editions: BookSummary[]) {
-  if (editions.length === 0) return undefined;
-  if (editions.length === 1) return `/book/${editions[0]!.id}`;
-
-  return `/editions/${encodeURIComponent(extractBaseTitle(editions[0]!.titleAr))}`;
+function findWork(works: WorkSummary[] | undefined, matchTitle: string) {
+  if (!works) return undefined;
+  const normalizedMatch = normalizeArabicTitle(matchTitle);
+  const exact = works.find((work) => normalizeArabicTitle(work.titleAr) === normalizedMatch);
+  if (exact) return exact;
+  return works.find((work) => {
+    const normalizedTitle = normalizeArabicTitle(work.titleAr);
+    return normalizedTitle.includes(normalizedMatch) || normalizedMatch.includes(normalizedTitle);
+  });
 }
 
 export default function ReadingPlan() {
-  const { data: books, isLoading } = useStaticBooks();
+  const { data: works, isLoading } = useStaticWorks();
 
   const resolvedColumns = useMemo(() => {
     return PLAN_COLUMNS.map((column) =>
       column.map((item) => {
-        const editions = books ? getEditionsForWork(books, item.matchTitle) : [];
+        const work = findWork(works, item.matchTitle);
         return {
           ...item,
-          editions,
-          href: getWorkHref(editions),
+          href: work ? `/work/${work.id}` : undefined,
+          work,
         };
       }),
     );
-  }, [books]);
+  }, [works]);
 
   const linkedCount = resolvedColumns.flat().filter((item) => item.href).length;
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-[90rem] min-w-0 overflow-hidden px-5 pb-24 pt-10 md:pb-16">
+      <PageFrame className="overflow-hidden" containerClassName="pb-24 md:pb-16">
         <header className="grid min-w-0 gap-8 border-b border-border pb-8 lg:grid-cols-[1fr_18rem]">
           <div className="min-w-0">
             <div className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -117,10 +122,6 @@ export default function ReadingPlan() {
             <h1 className="max-w-full break-words font-display text-3xl font-bold leading-tight md:text-6xl">
               ترتيب مقترح لقراءة كتب الإمام ابن القيم
             </h1>
-            <p className="mt-5 max-w-3xl text-base leading-8 text-muted-foreground">
-              الطبعات المعتمدة لجميع الكتب هي طبعة دار عالم الفوائد ضمن مشروع آثار ابن القيم وما لحق بها من أعمال.
-              يربط هذا التطبيق كل عمل بالطبعات المتاحة في البيانات المحلية، ثم يتيح اختيار الطبعة عند تعددها.
-            </p>
           </div>
 
           <aside className="self-end rounded-lg border border-border p-4 text-sm text-muted-foreground">
@@ -131,7 +132,7 @@ export default function ReadingPlan() {
                 <span className="tabular-nums text-foreground">{PLAN_ITEMS.length}</span>
               </p>
               <p className="flex items-center justify-between">
-                <span>روابط متاحة</span>
+                <span>أعمال متاحة</span>
                 <span className="tabular-nums text-foreground">{isLoading ? "..." : linkedCount}</span>
               </p>
               <p className="flex items-center justify-between">
@@ -159,10 +160,10 @@ export default function ReadingPlan() {
 
         <section className="mt-10 grid gap-4 border-t border-border pt-8 md:grid-cols-3">
           <PlanStat icon={Layers} label="المجموع" value="أربعة وستون مجلداً تقريباً" />
-          <PlanStat icon={Library} label="الصفحات" value="22000 صفحة تقريباً" />
-          <PlanStat icon={BookOpen} label="المعدل" value="60 صفحة يومياً لمدة سنة" />
+          <PlanStat icon={Library} label="الأعمال" value={`${PLAN_ITEMS.length} عملاً`} />
+          <PlanStat icon={BookOpen} label="الوتيرة" value="ورد يومي ثابت لمدة سنة" />
         </section>
-      </main>
+      </PageFrame>
     </AppShell>
   );
 }
@@ -171,7 +172,7 @@ function ReadingPlanRow({
   item,
   order,
 }: {
-  item: ReadingPlanItem & { editions: BookSummary[]; href?: string };
+  item: ReadingPlanItem & { href?: string; work?: WorkSummary };
   order: number;
 }) {
   const content = (
@@ -185,8 +186,8 @@ function ReadingPlanRow({
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span>{item.volumeLabel}</span>
           {item.note && <span>{item.note}</span>}
-          {item.editions.length > 1 && <span>{item.editions.length} طبعات متاحة</span>}
-          {item.editions.length === 0 && <span>غير متاح في البيانات المحلية</span>}
+          {item.work && item.work.editionCount > 1 && <span>{item.work.editionCount} طبعات متاحة</span>}
+          {!item.work && <span>غير متاح في البيانات المحلية</span>}
         </span>
       </span>
       {item.href && <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />}

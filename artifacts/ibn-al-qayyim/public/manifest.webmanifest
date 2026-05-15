@@ -1,0 +1,35 @@
+{
+  "id": ".",
+  "name": "مورث ابن القيم",
+  "short_name": "ابن القيم",
+  "description": "منصة لقراءة وتصفح كتب ابن قيم الجوزية.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#4f4778",
+  "categories": ["books", "education", "reference"],
+  "icons": [
+    {
+      "src": "site-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "site-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
