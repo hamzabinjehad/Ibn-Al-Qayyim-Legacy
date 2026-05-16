@@ -21,9 +21,9 @@ const SIZE_CLASS: Record<Size, string> = {
 };
 
 const TITLE_CLASS: Record<Size, string> = {
-  sm: "text-xs",
-  md: "text-lg",
-  lg: "text-2xl",
+  sm: "book-cover-title--sm",
+  md: "book-cover-title--md",
+  lg: "book-cover-title--lg",
 };
 
 const AUTHOR_DISPLAY_NAME = "\u0627\u0628\u0646 \u0627\u0644\u0642\u064A\u0645";
@@ -107,7 +107,8 @@ export default function BookCover({
 
   return (
     <div
-      className={`book-cover flex items-center justify-center text-center transition-transform duration-200 group-hover:-translate-y-0.5 ${canShowImage ? `book-cover--image ${SIZE_CLASS[size]} px-0` : SIZE_CLASS[size]} ${className}`}
+      className={`book-cover flex items-center justify-center text-center ${canShowImage ? `book-cover--image ${SIZE_CLASS[size]} px-0` : SIZE_CLASS[size]} ${className}`}
+      data-cover-size={size}
       style={{
         "--cover-accent": accent,
         "--cover-deep": palette.deep,
@@ -142,7 +143,7 @@ export default function BookCover({
 
           <div className="book-cover-title-panel relative z-10 w-[88%]">
             <h3
-              className={`book-cover-title font-bold ${TITLE_CLASS[size]} line-clamp-5`}
+              className={`book-cover-title ${TITLE_CLASS[size]}`}
               style={coverTextStyle}
             >
               {mainTitle}

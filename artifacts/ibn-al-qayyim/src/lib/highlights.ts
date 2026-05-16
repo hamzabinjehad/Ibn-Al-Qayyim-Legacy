@@ -3,57 +3,76 @@ import type { CSSProperties } from "react";
 export const HIGHLIGHT_PALETTE = [
   {
     name: "ذهبي",
-    value: "#f7efd8",
-    bg: "rgb(247 239 216 / 0.9)",
-    border: "rgb(201 168 76 / 0.34)",
-    rail: "rgb(201 168 76 / 0.68)",
-    darkBg: "rgb(146 107 32 / 0.46)",
-    darkBorder: "rgb(240 202 112 / 0.5)",
-    darkRail: "rgb(240 202 112 / 0.82)",
+    value: "#fff200",
+    legacyValues: ["#f7efd8"],
+    bg: "#fff200",
+    fg: "#050505",
+    border: "rgb(0 0 0 / 0.72)",
+    rail: "rgb(0 0 0 / 0.92)",
+    darkBg: "#fff200",
+    darkFg: "#050505",
+    darkBorder: "rgb(255 255 255 / 0.88)",
+    darkRail: "rgb(255 255 255 / 1)",
   },
   {
     name: "أخضر",
-    value: "#dff3df",
-    bg: "rgb(223 243 223 / 0.9)",
-    border: "rgb(91 142 94 / 0.34)",
-    rail: "rgb(91 142 94 / 0.68)",
-    darkBg: "rgb(55 114 71 / 0.5)",
-    darkBorder: "rgb(139 207 151 / 0.52)",
-    darkRail: "rgb(139 207 151 / 0.86)",
+    value: "#39ff14",
+    legacyValues: ["#dff3df"],
+    bg: "#39ff14",
+    fg: "#031403",
+    border: "rgb(0 43 0 / 0.72)",
+    rail: "rgb(0 43 0 / 0.92)",
+    darkBg: "#39ff14",
+    darkFg: "#031403",
+    darkBorder: "rgb(255 255 255 / 0.88)",
+    darkRail: "rgb(255 255 255 / 1)",
   },
   {
     name: "أزرق",
-    value: "#dcecf8",
-    bg: "rgb(220 236 248 / 0.9)",
-    border: "rgb(73 132 173 / 0.34)",
-    rail: "rgb(73 132 173 / 0.68)",
-    darkBg: "rgb(40 96 139 / 0.52)",
-    darkBorder: "rgb(130 190 232 / 0.54)",
-    darkRail: "rgb(130 190 232 / 0.88)",
+    value: "#00e5ff",
+    legacyValues: ["#dcecf8"],
+    bg: "#00e5ff",
+    fg: "#001014",
+    border: "rgb(0 44 52 / 0.72)",
+    rail: "rgb(0 44 52 / 0.92)",
+    darkBg: "#00e5ff",
+    darkFg: "#001014",
+    darkBorder: "rgb(255 255 255 / 0.88)",
+    darkRail: "rgb(255 255 255 / 1)",
   },
   {
     name: "وردي",
-    value: "#f6e0e8",
-    bg: "rgb(246 224 232 / 0.9)",
-    border: "rgb(171 92 119 / 0.34)",
-    rail: "rgb(171 92 119 / 0.68)",
-    darkBg: "rgb(135 57 88 / 0.52)",
-    darkBorder: "rgb(231 145 176 / 0.54)",
-    darkRail: "rgb(231 145 176 / 0.88)",
+    value: "#ff4fd8",
+    legacyValues: ["#f6e0e8"],
+    bg: "#ff4fd8",
+    fg: "#190014",
+    border: "rgb(62 0 50 / 0.72)",
+    rail: "rgb(62 0 50 / 0.92)",
+    darkBg: "#ff4fd8",
+    darkFg: "#190014",
+    darkBorder: "rgb(255 255 255 / 0.88)",
+    darkRail: "rgb(255 255 255 / 1)",
   },
 ] as const;
 
 export function getHighlightTone(color: string) {
-  return HIGHLIGHT_PALETTE.find((item) => item.value === color) ?? HIGHLIGHT_PALETTE[0];
+  const normalizedColor = color.toLowerCase();
+  return (
+    HIGHLIGHT_PALETTE.find(
+      (item) => item.value === normalizedColor || item.legacyValues.some((value) => value === normalizedColor),
+    ) ?? HIGHLIGHT_PALETTE[0]
+  );
 }
 
 export function getHighlightStyle(color: string) {
   const tone = getHighlightTone(color);
   return {
     "--reader-highlight-bg": tone.bg,
+    "--reader-highlight-fg": tone.fg,
     "--reader-highlight-border": tone.border,
     "--reader-highlight-rail": tone.rail,
     "--reader-highlight-dark-bg": tone.darkBg,
+    "--reader-highlight-dark-fg": tone.darkFg,
     "--reader-highlight-dark-border": tone.darkBorder,
     "--reader-highlight-dark-rail": tone.darkRail,
   } as CSSProperties;
