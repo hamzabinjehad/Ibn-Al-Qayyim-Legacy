@@ -56,3 +56,5 @@ Thumbs.db
 vite-dev*.log
 serve-static-*.cjs
 attached_assets/
+
+.vercel

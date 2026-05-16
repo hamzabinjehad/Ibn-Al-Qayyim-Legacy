@@ -22,7 +22,11 @@ export interface LocalHighlight {
   chapterTitle: string;
   color: string;
   createdAt: number;
+  endOffset?: number;
   id: string;
+  pageId?: number;
+  startOffset?: number;
+  surface?: "main" | "footnote";
   text: string;
   workId?: number;
   workTitle?: string;

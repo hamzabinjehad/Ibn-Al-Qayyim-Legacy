@@ -172,13 +172,35 @@ function fitTextToArea(
 
   ctx.font = `${weight} ${minFontSize}px ${fontFamily}`;
   const lineHeight = minFontSize * 1.72;
-  const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight));
+  const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight) - 1);
   const lines = wrapText(ctx, text, maxWidth).slice(0, maxLines);
-  if (lines.length === maxLines) {
-    const last = lines[maxLines - 1];
-    lines[maxLines - 1] = last.length > 8 ? `${last.slice(0, -5)}…` : last;
-  }
   return { lines, fontSize: minFontSize, lineHeight, clipped: true };
+}
+
+function splitTextToImageChunks(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxHeight: number,
+  startFontSize: number,
+  minFontSize: number,
+  fontFamily: string,
+  weight = 700,
+) {
+  const fitted = fitTextToArea(ctx, text, maxWidth, maxHeight, startFontSize, minFontSize, fontFamily, weight);
+  if (!fitted.clipped) return [normalizeQuote(text)];
+
+  ctx.font = `${weight} ${minFontSize}px ${fontFamily}`;
+  const lineHeight = minFontSize * 1.72;
+  const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight) - 1);
+  const allLines = wrapText(ctx, text, maxWidth);
+  const chunks: string[] = [];
+
+  for (let index = 0; index < allLines.length; index += maxLines) {
+    chunks.push(allLines.slice(index, index + maxLines).join(" "));
+  }
+
+  return chunks;
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -374,6 +396,21 @@ function drawCardBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, 
   drawFineTexture(ctx, preset, width, height);
 }
 
+type GenerateImageInput = {
+  brandSubtitle: string;
+  brandTitle: string;
+  text: string;
+  bookTitle: string;
+  chapterTitle: string;
+  pageNumber?: number;
+  preset: QuotePreset;
+  colors: ShareColors;
+  direction: TextDirection;
+  format: ShareFormat;
+  language: LanguageCode;
+  showSource: boolean;
+};
+
 function generateImageForPreset({
   brandSubtitle,
   brandTitle,
@@ -387,20 +424,7 @@ function generateImageForPreset({
   format,
   language,
   showSource,
-}: {
-  brandSubtitle: string;
-  brandTitle: string;
-  text: string;
-  bookTitle: string;
-  chapterTitle: string;
-  pageNumber?: number;
-  preset: QuotePreset;
-  colors: ShareColors;
-  direction: TextDirection;
-  format: ShareFormat;
-  language: LanguageCode;
-  showSource: boolean;
-}) {
+}: GenerateImageInput) {
   const { width, height } = formatDimensions[format];
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -498,6 +522,39 @@ function generateImageForPreset({
   return canvas.toDataURL("image/png");
 }
 
+function generateImagesForPreset(input: GenerateImageInput) {
+  const { width, height } = formatDimensions[input.format];
+  const measurementCanvas = document.createElement("canvas");
+  measurementCanvas.width = width;
+  measurementCanvas.height = height;
+  const ctx = measurementCanvas.getContext("2d");
+  if (!ctx) return [];
+
+  const isRtl = input.direction === "rtl";
+  const fontFamily = isRtl ? "'Amiri', 'Noto Naskh Arabic', serif" : "Georgia, 'Times New Roman', serif";
+  const padding = input.format === "story" ? 86 : 74;
+  const cardY = input.format === "story" ? 150 : 86;
+  const cardW = width - padding * 2;
+  const cardH = height - cardY * 2;
+  const quoteMaxH = input.showSource ? cardH * 0.47 : cardH * 0.58;
+  const quoteWidth = cardW - 170;
+  const quoteWeight = input.preset.key === "mihrab" ? 600 : 700;
+  const startFontSize = input.format === "story" ? 62 : 54;
+  const minFontSize = input.format === "story" ? 34 : 30;
+  const chunks = splitTextToImageChunks(
+    ctx,
+    input.text,
+    quoteWidth,
+    quoteMaxH,
+    startFontSize,
+    minFontSize,
+    fontFamily,
+    quoteWeight,
+  );
+
+  return chunks.map((chunk) => generateImageForPreset({ ...input, text: chunk })).filter(Boolean);
+}
+
 async function dataUrlToBlob(dataUrl: string) {
   const response = await fetch(dataUrl);
   return await response.blob();
@@ -523,7 +580,7 @@ function translateAttribution(language: LanguageCode) {
 export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNumber, onClose }: Props) {
   const { direction, language, t } = useUiTranslations();
   const initialAccent = quotePresets[0].accent;
-  const [imageDataUrl, setImageDataUrl] = useState("");
+  const [imageDataUrls, setImageDataUrls] = useState<string[]>([]);
   const [activePreset, setActivePreset] = useState<QuotePresetKey>("manuscript");
   const [format, setFormat] = useState<ShareFormat>("square");
   const [showSource, setShowSource] = useState(true);
@@ -538,6 +595,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
   const [shareError, setShareError] = useState<string | null>(null);
 
   const activePresetConfig = quotePresets.find((preset) => preset.key === activePreset) ?? quotePresets[0];
+  const imageCount = imageDataUrls.length;
   const shareText = useMemo(
     () => buildShareText(text, bookTitle, chapterTitle, language, pageNumber),
     [bookTitle, chapterTitle, language, pageNumber, text],
@@ -553,8 +611,8 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
   }, []);
 
   useEffect(() => {
-    setImageDataUrl(
-      generateImageForPreset({
+    setImageDataUrls(
+      generateImagesForPreset({
         brandSubtitle: t("بطاقة الاقتباس"),
         brandTitle: t("موروث ابن القيم"),
         text,
@@ -585,22 +643,28 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
   };
 
   const handleDownload = async () => {
-    if (!imageDataUrl) return;
-    const blob = await dataUrlToBlob(imageDataUrl);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ibn-al-qayyim-quote-${activePreset}-${format}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (imageDataUrls.length === 0) return;
+
+    for (const [index, imageDataUrl] of imageDataUrls.entries()) {
+      const blob = await dataUrlToBlob(imageDataUrl);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        imageDataUrls.length === 1
+          ? `ibn-al-qayyim-quote-${activePreset}-${format}.png`
+          : `ibn-al-qayyim-quote-${activePreset}-${format}-${index + 1}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const handleCopyImage = async () => {
-    if (!imageDataUrl || !canCopyImage) return;
-    const blob = await dataUrlToBlob(imageDataUrl);
-    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    if (imageDataUrls.length === 0 || !canCopyImage) return;
+    const blobs = await Promise.all(imageDataUrls.map((imageDataUrl) => dataUrlToBlob(imageDataUrl)));
+    await navigator.clipboard.write(blobs.map((blob) => new ClipboardItem({ [blob.type]: blob })));
     flashCopied("image");
   };
 
@@ -610,11 +674,14 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
     setShareError(null);
 
     try {
-      if (imageDataUrl) {
-        const blob = await dataUrlToBlob(imageDataUrl);
-        const file = new File([blob], `quote-${activePreset}-${format}.png`, { type: blob.type });
-        if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ title: t("اقتباس من {bookTitle}", { bookTitle }), text: shareText, files: [file] });
+      if (imageDataUrls.length > 0) {
+        const blobs = await Promise.all(imageDataUrls.map((imageDataUrl) => dataUrlToBlob(imageDataUrl)));
+        const files = blobs.map(
+          (blob, index) =>
+            new File([blob], `quote-${activePreset}-${format}-${index + 1}.png`, { type: blob.type }),
+        );
+        if (navigator.canShare?.({ files })) {
+          await navigator.share({ title: t("اقتباس من {bookTitle}", { bookTitle }), text: shareText, files });
           return;
         }
       }
@@ -661,18 +728,30 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                 <span className="font-semibold text-foreground">{t(formatDimensions[format].label)}</span>
                 <span className="tabular-nums">
                   {formatNumber(formatDimensions[format].width, language)} × {formatNumber(formatDimensions[format].height, language)}
+                  {imageCount > 1 ? ` / ${formatNumber(imageCount, language)}` : ""}
                 </span>
               </div>
               <div
-                className="overflow-hidden rounded-lg border border-border bg-background p-3 shadow-lg"
+                className="max-h-[calc(100vh-8rem)] overflow-y-auto rounded-lg border border-border bg-background p-3 shadow-lg"
                 data-tour="quote-card-preview"
               >
-                {imageDataUrl ? (
-                  <img
-                    src={imageDataUrl}
-                    alt={t("بطاقة الاقتباس")}
-                    className={`w-full rounded-md object-cover ${format === "story" ? "aspect-[9/16]" : "aspect-square"}`}
-                  />
+                {imageDataUrls.length > 0 ? (
+                  <div className="grid gap-3">
+                    {imageDataUrls.map((imageDataUrl, index) => (
+                      <figure key={`${imageDataUrl.slice(0, 48)}-${index}`} className="space-y-2">
+                        {imageCount > 1 ? (
+                          <figcaption className="text-center text-xs font-semibold text-muted-foreground">
+                            {formatNumber(index + 1, language)} / {formatNumber(imageCount, language)}
+                          </figcaption>
+                        ) : null}
+                        <img
+                          src={imageDataUrl}
+                          alt={t("بطاقة الاقتباس")}
+                          className={`w-full rounded-md object-cover ${format === "story" ? "aspect-[9/16]" : "aspect-square"}`}
+                        />
+                      </figure>
+                    ))}
+                  </div>
                 ) : (
                   <div className={`w-full animate-pulse rounded-md bg-muted ${format === "story" ? "aspect-[9/16]" : "aspect-square"}`} />
                 )}

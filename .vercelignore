@@ -1,0 +1,6 @@
+.git
+.pnpm-store
+node_modules
+artifacts/ibn-al-qayyim/node_modules
+scripts/node_modules
+artifacts/ibn-al-qayyim/dist

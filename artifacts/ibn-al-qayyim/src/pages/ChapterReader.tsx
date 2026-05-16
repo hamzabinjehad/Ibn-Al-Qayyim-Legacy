@@ -39,6 +39,14 @@ import { pageText, readingMetaText, translateUi, useUiTranslations } from "@/lib
 
 type ReaderStatus = "copied" | "highlighted" | "noted" | "saved" | null;
 type HighlightColor = string;
+type HighlightSurface = "main" | "footnote";
+
+type SelectionPosition = {
+  endOffset: number;
+  pageId: number;
+  startOffset: number;
+  surface: HighlightSurface;
+};
 
 type PageFootnote = {
   id: string;
@@ -63,6 +71,7 @@ const FOOTNOTE_REFERENCE_REGEX = new RegExp(
   "gu",
 );
 const FOOTNOTE_FOCUS_MS = 2200;
+const HIGHLIGHT_SURFACE_SELECTOR = "[data-reader-highlight-surface]";
 
 function currentScrollY() {
   return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
@@ -157,17 +166,69 @@ function splitPageFootnotes(text: string) {
   };
 }
 
-function renderHighlightedText(text: string, highlights: LocalHighlight[]) {
+function isPositionedHighlight(highlight: LocalHighlight): highlight is LocalHighlight & SelectionPosition {
+  return (
+    typeof highlight.pageId === "number" &&
+    typeof highlight.startOffset === "number" &&
+    typeof highlight.endOffset === "number" &&
+    (highlight.surface === "main" || highlight.surface === "footnote") &&
+    highlight.endOffset > highlight.startOffset
+  );
+}
+
+function getHighlightSurface(node: Node | null) {
+  const element = node instanceof Element ? node : node?.parentElement;
+  return element?.closest<HTMLElement>(HIGHLIGHT_SURFACE_SELECTOR) ?? null;
+}
+
+function surfacePosition(surface: HTMLElement): Pick<SelectionPosition, "pageId" | "surface"> | null {
+  const pageId = Number(surface.dataset.readerPageId);
+  const surfaceName = surface.dataset.readerHighlightSurface;
+  if (!Number.isFinite(pageId) || (surfaceName !== "main" && surfaceName !== "footnote")) return null;
+  return { pageId, surface: surfaceName };
+}
+
+function getSelectionPosition(selection: Selection, contentElement: HTMLElement): SelectionPosition | null {
+  if (selection.rangeCount === 0) return null;
+  const range = selection.getRangeAt(0);
+  const startSurface = getHighlightSurface(range.startContainer);
+  const endSurface = getHighlightSurface(range.endContainer);
+  if (!startSurface || startSurface !== endSurface || !contentElement.contains(startSurface)) return null;
+
+  const surfaceMeta = surfacePosition(startSurface);
+  if (!surfaceMeta) return null;
+
+  const selectedText = range.toString();
+  const leadingWhitespace = selectedText.match(/^\s*/)?.[0].length ?? 0;
+  const trailingWhitespace = selectedText.match(/\s*$/)?.[0].length ?? 0;
+  const trimmedLength = selectedText.length - leadingWhitespace - trailingWhitespace;
+  if (trimmedLength <= 0) return null;
+
+  const offsetRange = range.cloneRange();
+  offsetRange.selectNodeContents(startSurface);
+  offsetRange.setEnd(range.startContainer, range.startOffset);
+
+  const offsetBase = Number(startSurface.dataset.readerOffsetBase ?? 0);
+  const startOffset = offsetBase + offsetRange.toString().length + leadingWhitespace;
+  const endOffset = startOffset + trimmedLength;
+  return {
+    ...surfaceMeta,
+    endOffset,
+    startOffset,
+  };
+}
+
+function renderHighlightedText(text: string, highlights: LocalHighlight[], offsetBase = 0) {
   const matches = highlights
-    .map((highlight) => ({ color: highlight.color, highlightText: highlight.text.trim() }))
-    .filter(
-      (highlight, index, list) =>
-        highlight.highlightText.length > 0 &&
-        list.findIndex((item) => item.highlightText === highlight.highlightText) === index,
-    )
-    .map((highlight) => ({ ...highlight, index: text.indexOf(highlight.highlightText) }))
-    .filter((match) => match.index >= 0)
-    .sort((a, b) => a.index - b.index || b.highlightText.length - a.highlightText.length);
+    .filter(isPositionedHighlight)
+    .map((highlight) => ({
+      color: highlight.color,
+      end: Math.min(text.length, highlight.endOffset - offsetBase),
+      id: highlight.id,
+      start: Math.max(0, highlight.startOffset - offsetBase),
+    }))
+    .filter((match) => match.start < match.end)
+    .sort((a, b) => a.start - b.start || b.end - a.end);
 
   if (matches.length === 0) return text;
 
@@ -175,20 +236,20 @@ function renderHighlightedText(text: string, highlights: LocalHighlight[]) {
   let cursor = 0;
 
   matches.forEach((match) => {
-    if (match.index < cursor) return;
-    if (match.index > cursor) {
-      nodes.push(text.slice(cursor, match.index));
+    if (match.start < cursor) return;
+    if (match.start > cursor) {
+      nodes.push(text.slice(cursor, match.start));
     }
     nodes.push(
       <mark
         className="reader-highlight reader-inline-highlight"
-        key={`${match.index}-${match.highlightText}`}
+        key={`${match.id}-${match.start}-${match.end}`}
         style={getHighlightStyle(match.color)}
       >
-        {match.highlightText}
+        {text.slice(match.start, match.end)}
       </mark>,
     );
-    cursor = match.index + match.highlightText.length;
+    cursor = match.end;
   });
 
   if (cursor < text.length) {
@@ -223,7 +284,7 @@ function renderReaderText(
 
     if (markerIndex > cursor) {
       const chunk = text.slice(cursor, markerIndex);
-      nodes.push(<Fragment key={`text-${cursor}`}>{renderHighlightedText(chunk, highlights)}</Fragment>);
+      nodes.push(<Fragment key={`text-${cursor}`}>{renderHighlightedText(chunk, highlights, cursor)}</Fragment>);
     }
 
       nodes.push(
@@ -244,7 +305,7 @@ function renderReaderText(
   });
 
   if (cursor < text.length) {
-    nodes.push(<Fragment key={`text-${cursor}`}>{renderHighlightedText(text.slice(cursor), highlights)}</Fragment>);
+    nodes.push(<Fragment key={`text-${cursor}`}>{renderHighlightedText(text.slice(cursor), highlights, cursor)}</Fragment>);
   }
 
   return nodes;
@@ -265,6 +326,7 @@ export default function ChapterReader() {
   const { addHighlight, addNote, highlights, savePosition, settings, setSettings } = useLocalLibrary();
   const [tocOpen, setTocOpen] = useState(false);
   const [selection, setSelection] = useState("");
+  const [selectionPosition, setSelectionPosition] = useState<SelectionPosition | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [status, setStatus] = useState<ReaderStatus>(null);
   const [toolbarVisible, setToolbarVisible] = useState(true);
@@ -289,6 +351,10 @@ export default function ChapterReader() {
   const chapterHighlights = useMemo(
     () => highlights.filter((highlight) => highlight.chapterId === chapterIdNum),
     [chapterIdNum, highlights],
+  );
+  const positionedChapterHighlights = useMemo(
+    () => chapterHighlights.filter(isPositionedHighlight),
+    [chapterHighlights],
   );
   const showTourSelectionDemo = isTourOpen && activeStepId === "selection-actions";
   const showTourShareDemo =
@@ -421,10 +487,12 @@ export default function ChapterReader() {
 
   useEffect(() => {
     const onSelection = () => {
-      const selected = window.getSelection()?.toString().trim() ?? "";
-      const anchor = window.getSelection()?.anchorNode;
-      if (selected.length > 1 && anchor && contentRef.current?.contains(anchor)) {
+      const currentSelection = window.getSelection();
+      const selected = currentSelection?.toString().trim() ?? "";
+      const anchor = currentSelection?.anchorNode;
+      if (selected.length > 1 && currentSelection && anchor && contentRef.current?.contains(anchor)) {
         setSelection(selected);
+        setSelectionPosition(getSelectionPosition(currentSelection, contentRef.current));
       }
     };
     document.addEventListener("mouseup", onSelection);
@@ -465,8 +533,18 @@ export default function ChapterReader() {
     text: selection,
   });
 
+  const highlightPayload = () => {
+    if (!selectionPosition) return null;
+    return {
+      ...selectionPayload(),
+      ...selectionPosition,
+      color: highlightColor,
+    };
+  };
+
   const clearSelection = () => {
     setSelection("");
+    setSelectionPosition(null);
     setNoteDraft("");
     window.getSelection()?.removeAllRanges();
   };
@@ -633,12 +711,25 @@ export default function ChapterReader() {
                     </span>
                     <span className="h-px flex-1 bg-border" />
                   </div>
-                  {renderReaderText(page.mainText, chapterHighlights, page.footnoteTargets, language, handleFootnoteReference)}
+                  <span data-reader-highlight-surface="main" data-reader-page-id={page.id}>
+                    {renderReaderText(
+                      page.mainText,
+                      positionedChapterHighlights.filter(
+                        (highlight) => highlight.pageId === page.id && highlight.surface === "main",
+                      ),
+                      page.footnoteTargets,
+                      language,
+                      handleFootnoteReference,
+                    )}
+                  </span>
                   {settings.showFootnotes && (
                     <PageFootnotes
                       activeFootnoteId={activeFootnoteId}
                       footnotes={page.footnotes}
-                      highlights={chapterHighlights}
+                      highlights={positionedChapterHighlights.filter(
+                        (highlight) => highlight.pageId === page.id && highlight.surface === "footnote",
+                      )}
+                      pageId={page.id}
                     />
                   )}
                 </section>
@@ -729,11 +820,14 @@ export default function ChapterReader() {
           <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <button
               onClick={() => {
-                addHighlight({ ...selectionPayload(), color: highlightColor });
+                const nextHighlight = highlightPayload();
+                if (!nextHighlight) return;
+                addHighlight(nextHighlight);
                 showStatus("highlighted");
                 clearSelection();
               }}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!selectionPosition}
             >
               <Highlighter className="h-4 w-4" />
               {t("تظليل")}
@@ -966,30 +1060,45 @@ function PageFootnotes({
   activeFootnoteId,
   footnotes,
   highlights,
+  pageId,
 }: {
   activeFootnoteId: string | null;
   footnotes: PageFootnote[];
   highlights: LocalHighlight[];
+  pageId: number;
 }) {
   const { t } = useUiTranslations();
   if (footnotes.length === 0) return null;
+  let offsetBase = 0;
 
   return (
     <aside aria-label={t("حواشي الصفحة")} className="reader-footnotes mt-7">
       <div className="reader-footnotes-header">
         <span>{t("حواشي الصفحة")}</span>
       </div>
-      {footnotes.map((footnote) => (
-        <div
-          className={`reader-footnote${activeFootnoteId === footnote.id ? " reader-footnote--active" : ""}`}
-          id={footnote.id}
-          key={footnote.id}
-          tabIndex={-1}
-        >
-          {footnote.marker && <span className="reader-footnote-marker">{displayFootnoteMarker(footnote.marker)}</span>}
-          <p className="min-w-0 flex-1">{renderHighlightedText(footnote.text, highlights)}</p>
-        </div>
-      ))}
+      {footnotes.map((footnote) => {
+        const footnoteOffsetBase = offsetBase;
+        offsetBase += footnote.text.length + 1;
+
+        return (
+          <div
+            className={`reader-footnote${activeFootnoteId === footnote.id ? " reader-footnote--active" : ""}`}
+            id={footnote.id}
+            key={footnote.id}
+            tabIndex={-1}
+          >
+            {footnote.marker && <span className="reader-footnote-marker">{displayFootnoteMarker(footnote.marker)}</span>}
+            <p
+              className="min-w-0 flex-1"
+              data-reader-highlight-surface="footnote"
+              data-reader-offset-base={footnoteOffsetBase}
+              data-reader-page-id={pageId}
+            >
+              {renderHighlightedText(footnote.text, highlights, footnoteOffsetBase)}
+            </p>
+          </div>
+        );
+      })}
     </aside>
   );
 }
