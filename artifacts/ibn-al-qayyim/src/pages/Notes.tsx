@@ -58,7 +58,7 @@ interface DownloadAction {
   onSelect: () => void;
 }
 
-export default function Notes() {
+export default function Saved() {
   const { sortLocale, t } = useUiTranslations();
   const { deleteHighlight, deleteNote, deletePosition, highlights, notes, positions } = useLocalLibrary();
   const [shareQuote, setShareQuote] = useState<ShareQuote | null>(null);
@@ -69,7 +69,7 @@ export default function Notes() {
       <PageFrame containerClassName="pt-7 sm:pt-10">
         <header className="border-b border-border pb-5 sm:pb-6">
           <div>
-            <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">{t("الملاحظات")}</h1>
+            <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl lg:text-6xl">{t("المحفوظات")}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:mt-4 md:text-lg md:leading-8">
               {t("مواضع القراءة والتظليلات والملاحظات محفوظة محليا في هذا المتصفح.")}
             </p>

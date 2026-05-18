@@ -44,7 +44,7 @@ export default function Home() {
     books?.find((book) => book.workId === FEATURED_READING_WORK_ID);
   const readingCardBook = continueBook ?? featuredBook;
   const readingActionHref = continueBook
-    ? "/notes"
+    ? "/saved"
     : featuredBook
       ? `/work/${FEATURED_READING_WORK_ID}`
       : "/library";

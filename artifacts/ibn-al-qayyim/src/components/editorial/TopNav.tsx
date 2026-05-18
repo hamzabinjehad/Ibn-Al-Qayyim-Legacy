@@ -2,9 +2,9 @@ import { Link, useLocation, useSearch } from "wouter";
 import {
   Bookmark,
   Check,
-  ChevronDown,
   HelpCircle,
   Library,
+  Languages,
   Moon,
   Route,
   Search,
@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/hooks/useTheme";
-import { LANGUAGES, languageDefinition, pathForLanguage, useLanguage, type LanguageCode } from "@/lib/i18n";
+import { LANGUAGES, pathForLanguage, useLanguage, type LanguageCode } from "@/lib/i18n";
 import { useUiTranslations } from "@/lib/ui-translations";
 
 interface NavItem {
@@ -34,7 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/library", label: "المكتبة", icon: Library, match: (p: string) => p.startsWith("/library") || p.startsWith("/book") || p.startsWith("/editions") || p.startsWith("/work") || p.startsWith("/edition") },
   { href: "/reading-plan", label: "ترتيب القراءة", mobileLabel: "الخطة", icon: Route, match: (p: string) => p.startsWith("/reading-plan") },
   { href: "/search", label: "البحث", icon: Search, match: (p: string) => p.startsWith("/search") },
-  { href: "/notes", label: "الملاحظات", icon: Bookmark, match: (p: string) => p.startsWith("/notes") || p.startsWith("/profile") },
+  { href: "/saved", label: "المحفوظات", icon: Bookmark, match: (p: string) => p.startsWith("/saved") || p.startsWith("/notes") || p.startsWith("/profile") },
 ];
 
 const SITE_LOGO_SRC = `${import.meta.env.BASE_URL}site-logo.png`;
@@ -49,12 +49,18 @@ function languageName(code: LanguageCode, uiLanguage: LanguageCode) {
   return LANGUAGE_NAMES[uiLanguage][code];
 }
 
+function languageSwitchTarget(location: string, currentLanguage: LanguageCode, targetLanguage: LanguageCode) {
+  if (targetLanguage === currentLanguage) return { path: location, preserveSearch: true };
+  if (location === "/library") return { path: "/", preserveSearch: false };
+  if (location === "/reading-plan" && targetLanguage !== "ar") return { path: "/", preserveSearch: false };
+  return { path: location, preserveSearch: true };
+}
+
 export default function TopNav() {
   const [location] = useLocation();
   const search = useSearch();
   const { language } = useLanguage();
   const { t } = useUiTranslations();
-  const activeLanguage = languageDefinition(language);
   const activeLanguageName = languageName(language, language);
   const { startTour } = useOnboardingTour();
   const { dark, toggle } = useTheme();
@@ -104,15 +110,11 @@ export default function TopNav() {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={t("تغيير اللغة، اللغة الحالية: {language}", { language: activeLanguageName })}
-                  className="group inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground/25 hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9 sm:min-w-20 sm:gap-2 sm:px-2.5"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9 sm:w-9"
                   dir="ltr"
                   type="button"
                 >
-                  <span className="text-xs font-bold uppercase leading-none text-muted-foreground">{activeLanguage.code}</span>
-                  <span className="hidden max-w-24 truncate text-xs text-foreground sm:inline" dir={activeLanguage.direction}>
-                    {activeLanguageName}
-                  </span>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  <Languages className="h-4 w-4" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -122,8 +124,8 @@ export default function TopNav() {
                 sideOffset={6}
               >
                 {LANGUAGES.map((item) => {
-                  const targetPath = location === "/reading-plan" && item.code !== "ar" ? "/" : location;
-                  const href = `${pathForLanguage(item.code, targetPath)}${search ? `?${search}` : ""}`;
+                  const target = languageSwitchTarget(location, language, item.code);
+                  const href = `${pathForLanguage(item.code, target.path)}${target.preserveSearch && search ? `?${search}` : ""}`;
                   const active = item.code === language;
                   return (
                     <DropdownMenuItem

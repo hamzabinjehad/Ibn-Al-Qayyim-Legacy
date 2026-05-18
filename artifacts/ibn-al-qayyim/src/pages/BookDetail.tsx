@@ -7,14 +7,40 @@ import { DirectionalArrow, DirectionalChevron } from "@/components/editorial/Dir
 import PageFrame from "@/components/editorial/PageFrame";
 import BookCover from "@/components/BookCover";
 import { buildSourceEditUrl, buildTranslationIssueUrl } from "@/lib/contribution-links";
+import { useSeo } from "@/lib/seo";
 import { useStaticEdition } from "@/lib/static-library";
-import { useUiTranslations } from "@/lib/ui-translations";
+import { formatNumber, useUiTranslations } from "@/lib/ui-translations";
 
 export default function BookDetail() {
   const { language, t } = useUiTranslations();
   const { editionId, bookId } = useParams<{ editionId?: string; bookId?: string }>();
   const id = Number(editionId ?? bookId);
   const { data: edition, isLoading, isError, refetch } = useStaticEdition(id);
+  useSeo(language, {
+    canonicalPath: `/edition/${id}`,
+    description: edition
+      ? `${edition.titleAr} - ${formatNumber(edition.pageCount, language)} pages, ${formatNumber(edition.sectionCount, language)} sections.`
+      : undefined,
+    image: edition?.coverImageUrl,
+    jsonLd: edition
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Book",
+          author: {
+            "@type": "Person",
+            name: language === "ar" ? "ابن قيم الجوزية" : "Ibn al-Qayyim",
+          },
+          bookEdition: edition.editionLabel,
+          bookFormat: "EBook",
+          inLanguage: language,
+          name: edition.titleAr,
+          numberOfPages: edition.pageCount,
+          publisher: edition.publisher,
+        }
+      : undefined,
+    title: edition?.titleAr,
+    type: "book",
+  });
 
   if (isLoading) {
     return (

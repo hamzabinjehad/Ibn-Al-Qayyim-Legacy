@@ -6,14 +6,36 @@ import { ErrorState, LoadingState } from "@/components/editorial/DataState";
 import { DirectionalChevron } from "@/components/editorial/DirectionalIcon";
 import PageFrame from "@/components/editorial/PageFrame";
 import BookCover from "@/components/BookCover";
+import { useSeo } from "@/lib/seo";
 import { useStaticWork } from "@/lib/static-library";
 import { useUiTranslations } from "@/lib/ui-translations";
 
 export default function WorkDetail() {
-  const { t } = useUiTranslations();
+  const { language, t } = useUiTranslations();
   const { workId } = useParams<{ workId: string }>();
   const id = Number(workId);
   const { data: work, isLoading, isError, refetch } = useStaticWork(id);
+  useSeo(language, {
+    canonicalPath: `/work/${id}`,
+    description: work?.description,
+    image: work?.coverImageUrl,
+    jsonLd: work
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Book",
+          author: {
+            "@type": "Person",
+            name: language === "ar" ? "ابن قيم الجوزية" : "Ibn al-Qayyim",
+          },
+          bookFormat: "EBook",
+          inLanguage: language,
+          name: work.titleAr,
+          numberOfPages: work.pageCount,
+        }
+      : undefined,
+    title: work?.titleAr,
+    type: "book",
+  });
 
   if (isLoading) {
     return (

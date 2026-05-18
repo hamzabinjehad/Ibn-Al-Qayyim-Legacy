@@ -19,6 +19,7 @@ import {
   Search,
   Share2,
   StickyNote,
+  Trash2,
   Type,
   X,
 } from "lucide-react";
@@ -34,10 +35,11 @@ import { buildSourceEditUrl, buildTranslationIssueUrl } from "@/lib/contribution
 import { getHighlightStyle, HIGHLIGHT_PALETTE } from "@/lib/highlights";
 import { type LocalHighlight, stripHarakat, useLocalLibrary } from "@/lib/local-library";
 import { calculateBookPageProgress } from "@/lib/reading-progress";
+import { useSeo } from "@/lib/seo";
 import { type ChapterSummary, type PageDetail, useStaticBook, useStaticBookChapter } from "@/lib/static-library";
 import { pageText, readingMetaText, translateUi, useUiTranslations } from "@/lib/ui-translations";
 
-type ReaderStatus = "copied" | "highlighted" | "noted" | "saved" | null;
+type ReaderStatus = "copied" | "highlightDeleted" | "highlighted" | "noted" | "saved" | null;
 type HighlightColor = string;
 type HighlightSurface = "main" | "footnote";
 
@@ -72,6 +74,24 @@ const FOOTNOTE_REFERENCE_REGEX = new RegExp(
 );
 const FOOTNOTE_FOCUS_MS = 2200;
 const HIGHLIGHT_SURFACE_SELECTOR = "[data-reader-highlight-surface]";
+const MIN_READER_FONT_SIZE = 16;
+const MAX_READER_FONT_SIZE = 34;
+
+function clampReaderFontSize(value: number) {
+  return Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, value));
+}
+
+function normalizeNumericInput(value: string) {
+  return value
+    .replace(/[\u0660-\u0669]/g, (digit) => String(digit.charCodeAt(0) - 0x0660))
+    .replace(/[\u06f0-\u06f9]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0));
+}
+
+function parseReaderFontSize(value: string) {
+  const normalized = normalizeNumericInput(value).replace(/[^\d]/g, "");
+  if (!normalized) return null;
+  return clampReaderFontSize(Number(normalized));
+}
 
 function currentScrollY() {
   return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
@@ -218,12 +238,19 @@ function getSelectionPosition(selection: Selection, contentElement: HTMLElement)
   };
 }
 
-function renderHighlightedText(text: string, highlights: LocalHighlight[], offsetBase = 0) {
+function renderHighlightedText(
+  text: string,
+  highlights: LocalHighlight[],
+  offsetBase = 0,
+  onHighlightSelect?: (highlight: LocalHighlight) => void,
+  highlightActionLabel?: string,
+) {
   const matches = highlights
     .filter(isPositionedHighlight)
     .map((highlight) => ({
       color: highlight.color,
       end: Math.min(text.length, highlight.endOffset - offsetBase),
+      highlight,
       id: highlight.id,
       start: Math.max(0, highlight.startOffset - offsetBase),
     }))
@@ -243,8 +270,23 @@ function renderHighlightedText(text: string, highlights: LocalHighlight[], offse
     nodes.push(
       <mark
         className="reader-highlight reader-inline-highlight"
+        data-reader-highlight-id={match.id}
         key={`${match.id}-${match.start}-${match.end}`}
+        onClick={(event) => {
+          if (!onHighlightSelect) return;
+          if ((window.getSelection()?.toString().trim() ?? "").length > 0) return;
+          event.stopPropagation();
+          onHighlightSelect(match.highlight);
+        }}
+        onKeyDown={(event) => {
+          if (!onHighlightSelect || (event.key !== "Enter" && event.key !== " ")) return;
+          event.preventDefault();
+          onHighlightSelect(match.highlight);
+        }}
+        role={onHighlightSelect ? "button" : undefined}
         style={getHighlightStyle(match.color)}
+        tabIndex={onHighlightSelect ? 0 : undefined}
+        title={highlightActionLabel}
       >
         {text.slice(match.start, match.end)}
       </mark>,
@@ -265,12 +307,16 @@ function renderReaderText(
   footnoteTargets: Map<string, string>,
   language: "ar" | "de" | "en",
   onFootnoteReference: (footnoteId: string) => void,
+  onHighlightSelect?: (highlight: LocalHighlight) => void,
+  highlightActionLabel?: string,
 ) {
   const matches = Array.from(text.matchAll(FOOTNOTE_REFERENCE_REGEX)).filter((match) => {
     const marker = match[2] ?? match[0] ?? "";
     return footnoteTargets.has(normalizeFootnoteMarker(marker));
   });
-  if (matches.length === 0) return renderHighlightedText(text, highlights);
+  if (matches.length === 0) {
+    return renderHighlightedText(text, highlights, 0, onHighlightSelect, highlightActionLabel);
+  }
 
   const nodes: React.ReactNode[] = [];
   let cursor = 0;
@@ -284,7 +330,11 @@ function renderReaderText(
 
     if (markerIndex > cursor) {
       const chunk = text.slice(cursor, markerIndex);
-      nodes.push(<Fragment key={`text-${cursor}`}>{renderHighlightedText(chunk, highlights, cursor)}</Fragment>);
+      nodes.push(
+        <Fragment key={`text-${cursor}`}>
+          {renderHighlightedText(chunk, highlights, cursor, onHighlightSelect, highlightActionLabel)}
+        </Fragment>,
+      );
     }
 
       nodes.push(
@@ -305,7 +355,11 @@ function renderReaderText(
   });
 
   if (cursor < text.length) {
-    nodes.push(<Fragment key={`text-${cursor}`}>{renderHighlightedText(text.slice(cursor), highlights, cursor)}</Fragment>);
+    nodes.push(
+      <Fragment key={`text-${cursor}`}>
+        {renderHighlightedText(text.slice(cursor), highlights, cursor, onHighlightSelect, highlightActionLabel)}
+      </Fragment>,
+    );
   }
 
   return nodes;
@@ -323,7 +377,34 @@ export default function ChapterReader() {
   const chapterIdNum = Number(sectionId ?? chapterId);
   const { data: book } = useStaticBook(bookIdNum);
   const { data: chapter, isLoading, isError, refetch } = useStaticBookChapter(bookIdNum, chapterIdNum);
-  const { addHighlight, addNote, highlights, savePosition, settings, setSettings } = useLocalLibrary();
+  useSeo(language, {
+    canonicalPath: `/edition/${bookIdNum}/section/${chapterIdNum}`,
+    description: chapter
+      ? `${chapter.workTitle} - ${chapter.titleAr}. ${translateUi(language, "اقرأ النص الكامل مع الفهارس والحواشي.")}`
+      : undefined,
+    image: book?.coverImageUrl,
+    jsonLd:
+      book && chapter
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Chapter",
+            inLanguage: language,
+            isPartOf: {
+              "@type": "Book",
+              author: {
+                "@type": "Person",
+                name: language === "ar" ? "ابن قيم الجوزية" : "Ibn al-Qayyim",
+              },
+              name: book.titleAr,
+            },
+            name: chapter.titleAr,
+            pagination: `${chapter.startPage}-${chapter.endPage}`,
+          }
+        : undefined,
+    title: chapter ? `${chapter.titleAr} - ${chapter.workTitle}` : undefined,
+    type: "article",
+  });
+  const { addHighlight, addNote, deleteHighlight, highlights, savePosition, settings, setSettings } = useLocalLibrary();
   const [tocOpen, setTocOpen] = useState(false);
   const [selection, setSelection] = useState("");
   const [selectionPosition, setSelectionPosition] = useState<SelectionPosition | null>(null);
@@ -332,10 +413,13 @@ export default function ChapterReader() {
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const [shareText, setShareText] = useState<string | null>(null);
   const [highlightColor, setHighlightColor] = useState<HighlightColor>(HIGHLIGHT_PALETTE[0].value);
+  const highlightColorRef = useRef<HighlightColor>(HIGHLIGHT_PALETTE[0].value);
+  const [selectedHighlight, setSelectedHighlight] = useState<LocalHighlight | null>(null);
   const [activeFootnoteId, setActiveFootnoteId] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const selectionToolbarRef = useRef<HTMLDivElement>(null);
+  const highlightActionsRef = useRef<HTMLDivElement>(null);
   const { activeStepId, isTourOpen } = useOnboardingTour();
   const tourSelectionText = t("فإن في القلب شعثا لا يلمه إلا الإقبال على الله");
 
@@ -463,6 +547,7 @@ export default function ChapterReader() {
 
   useEffect(() => {
     clearSelection();
+    setSelectedHighlight(null);
     setActiveFootnoteId(null);
   }, [chapterIdNum]);
 
@@ -491,6 +576,7 @@ export default function ChapterReader() {
       const selected = currentSelection?.toString().trim() ?? "";
       const anchor = currentSelection?.anchorNode;
       if (selected.length > 1 && currentSelection && anchor && contentRef.current?.contains(anchor)) {
+        setSelectedHighlight(null);
         setSelection(selected);
         setSelectionPosition(getSelectionPosition(currentSelection, contentRef.current));
       }
@@ -525,6 +611,18 @@ export default function ChapterReader() {
     };
   }, [selection]);
 
+  useEffect(() => {
+    if (!selectedHighlight) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (highlightActionsRef.current?.contains(event.target as Node)) return;
+      setSelectedHighlight(null);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [selectedHighlight]);
+
   const selectionPayload = () => ({
     bookId: book!.id,
     bookTitle: book!.titleAr,
@@ -538,7 +636,7 @@ export default function ChapterReader() {
     return {
       ...selectionPayload(),
       ...selectionPosition,
-      color: highlightColor,
+      color: highlightColorRef.current,
     };
   };
 
@@ -548,6 +646,16 @@ export default function ChapterReader() {
     setNoteDraft("");
     window.getSelection()?.removeAllRanges();
   };
+
+  const selectHighlightColor = (color: HighlightColor) => {
+    highlightColorRef.current = color;
+    setHighlightColor(color);
+  };
+
+  const handleHighlightSelect = useCallback((highlight: LocalHighlight) => {
+    clearSelection();
+    setSelectedHighlight(highlight);
+  }, []);
 
   const handleCopyChapter = async () => {
     if (!book || !chapter) return;
@@ -720,6 +828,8 @@ export default function ChapterReader() {
                       page.footnoteTargets,
                       language,
                       handleFootnoteReference,
+                      handleHighlightSelect,
+                      t("حذف التظليل"),
                     )}
                   </span>
                   {settings.showFootnotes && (
@@ -729,6 +839,7 @@ export default function ChapterReader() {
                       highlights={positionedChapterHighlights.filter(
                         (highlight) => highlight.pageId === page.id && highlight.surface === "footnote",
                       )}
+                      onHighlightSelect={handleHighlightSelect}
                       pageId={page.id}
                     />
                   )}
@@ -776,6 +887,7 @@ export default function ChapterReader() {
           <span className="inline-flex items-center gap-2">
             <Check className="h-4 w-4 text-emerald-600" />
             {status === "copied" && t("تم النسخ")}
+            {status === "highlightDeleted" && t("تم حذف التظليل")}
             {status === "highlighted" && t("تم حفظ التظليل")}
             {status === "noted" && t("تم حفظ الملاحظة")}
             {status === "saved" && t("تم حفظ الموضع")}
@@ -810,7 +922,8 @@ export default function ChapterReader() {
                   className="h-7 w-7 rounded-full border border-border ring-offset-2 ring-offset-background transition hover:scale-105 data-[selected=true]:ring-2 data-[selected=true]:ring-foreground"
                   data-selected={highlightColor === color.value}
                   key={color.value}
-                  onClick={() => setHighlightColor(color.value)}
+                  onClick={() => selectHighlightColor(color.value)}
+                  onPointerDown={(event) => event.preventDefault()}
                   style={{ background: color.bg }}
                   type="button"
                 />
@@ -870,6 +983,42 @@ export default function ChapterReader() {
               </a>
             )}
           </div>
+        </div>
+      )}
+
+      {selectedHighlight && !selection && (
+        <div
+          ref={highlightActionsRef}
+          className="reader-chrome fixed bottom-[calc(9.25rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-lg p-3 md:bottom-20"
+        >
+          <div className="flex items-start gap-3">
+            <p
+              className="reader-highlight line-clamp-2 flex-1 rounded-md px-3 py-2 text-sm leading-7"
+              style={getHighlightStyle(selectedHighlight.color)}
+            >
+              {selectedHighlight.text}
+            </p>
+            <button
+              onClick={() => setSelectedHighlight(null)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label={t("إغلاق")}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              deleteHighlight(selectedHighlight.id);
+              setSelectedHighlight(null);
+              showStatus("highlightDeleted");
+            }}
+            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted sm:w-auto"
+            type="button"
+          >
+            <Trash2 className="h-4 w-4" />
+            {t("حذف التظليل")}
+          </button>
         </div>
       )}
 
@@ -975,6 +1124,29 @@ function ReaderToolbar({
 }) {
   const { t } = useUiTranslations();
   const controlClass = "reader-control inline-flex h-11 items-center justify-center px-3 text-sm";
+  const fontSizeInputRef = useRef<HTMLInputElement>(null);
+  const [fontSizeDraft, setFontSizeDraft] = useState(String(settings.fontSize));
+
+  useEffect(() => {
+    if (document.activeElement === fontSizeInputRef.current) return;
+    setFontSizeDraft(String(settings.fontSize));
+  }, [settings.fontSize]);
+
+  const commitFontSizeDraft = () => {
+    const nextFontSize = parseReaderFontSize(fontSizeDraft);
+    if (nextFontSize === null) {
+      setFontSizeDraft(String(settings.fontSize));
+      return;
+    }
+
+    setSettings((current) => ({ ...current, fontSize: nextFontSize }));
+    setFontSizeDraft(String(nextFontSize));
+  };
+
+  const stepFontSize = (delta: number) => {
+    setSettings((current) => ({ ...current, fontSize: clampReaderFontSize(current.fontSize + delta) }));
+  };
+
   if (!isVisible) {
     return (
       <button
@@ -995,17 +1167,38 @@ function ReaderToolbar({
           <span className="hidden sm:inline">{t("المحتويات")}</span>
         </button>
         <button
-          onClick={() => setSettings((current) => ({ ...current, fontSize: Math.max(16, current.fontSize - 2) }))}
+          onClick={() => stepFontSize(-2)}
           className={`${controlClass} w-11 px-0`}
           aria-label={t("تصغير الخط")}
         >
           <Minus className="h-4 w-4" />
         </button>
-        <span className="hidden h-11 items-center rounded-md border border-border bg-background px-3 text-sm tabular-nums text-muted-foreground sm:inline-flex">
-          {settings.fontSize}
-        </span>
+        <input
+          ref={fontSizeInputRef}
+          aria-label={t("حجم الخط")}
+          className="reader-control h-11 w-16 px-2 text-center text-sm tabular-nums text-muted-foreground"
+          inputMode="numeric"
+          max={MAX_READER_FONT_SIZE}
+          min={MIN_READER_FONT_SIZE}
+          onBlur={commitFontSizeDraft}
+          onChange={(event) => setFontSizeDraft(event.target.value.replace(/[^\d\u0660-\u0669\u06f0-\u06f9]/g, ""))}
+          onFocus={(event) => event.currentTarget.select()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              commitFontSizeDraft();
+              event.currentTarget.blur();
+            }
+            if (event.key === "Escape") {
+              setFontSizeDraft(String(settings.fontSize));
+              event.currentTarget.blur();
+            }
+          }}
+          title={`${MIN_READER_FONT_SIZE}-${MAX_READER_FONT_SIZE}`}
+          type="text"
+          value={fontSizeDraft}
+        />
         <button
-          onClick={() => setSettings((current) => ({ ...current, fontSize: Math.min(34, current.fontSize + 2) }))}
+          onClick={() => stepFontSize(2)}
           className={`${controlClass} w-11 px-0`}
           aria-label={t("تكبير الخط")}
         >
@@ -1060,11 +1253,13 @@ function PageFootnotes({
   activeFootnoteId,
   footnotes,
   highlights,
+  onHighlightSelect,
   pageId,
 }: {
   activeFootnoteId: string | null;
   footnotes: PageFootnote[];
   highlights: LocalHighlight[];
+  onHighlightSelect: (highlight: LocalHighlight) => void;
   pageId: number;
 }) {
   const { t } = useUiTranslations();
@@ -1094,7 +1289,7 @@ function PageFootnotes({
               data-reader-offset-base={footnoteOffsetBase}
               data-reader-page-id={pageId}
             >
-              {renderHighlightedText(footnote.text, highlights, footnoteOffsetBase)}
+              {renderHighlightedText(footnote.text, highlights, footnoteOffsetBase, onHighlightSelect, t("حذف التظليل"))}
             </p>
           </div>
         );

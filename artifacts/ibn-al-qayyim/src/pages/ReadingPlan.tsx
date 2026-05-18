@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
-import { BookOpen, Diamond, Layers, Library, Route, type LucideIcon } from "lucide-react";
+import { Diamond, Route } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import { LoadingState } from "@/components/editorial/DataState";
 import { DirectionalArrow } from "@/components/editorial/DirectionalIcon";
@@ -159,11 +159,6 @@ export default function ReadingPlan() {
           </section>
         )}
 
-        <section className="mt-7 grid gap-3 border-t border-border pt-6 sm:mt-8 sm:gap-4 sm:pt-7 md:grid-cols-3">
-          <PlanStat icon={Layers} label="المجموع" value="أربعة وستون مجلداً تقريباً" />
-          <PlanStat icon={Library} label="الأعمال" value={`${PLAN_ITEMS.length} عملاً`} />
-          <PlanStat icon={BookOpen} label="الوتيرة" value="ورد يومي ثابت لمدة سنة" />
-        </section>
       </PageFrame>
     </AppShell>
   );
@@ -215,20 +210,3 @@ function ReadingPlanRow({
   );
 }
 
-function PlanStat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="surface-card p-3.5 sm:p-4">
-      <Icon className="h-5 w-5 text-foreground" />
-      <p className="mt-4 text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-base font-semibold leading-7">{value}</p>
-    </div>
-  );
-}

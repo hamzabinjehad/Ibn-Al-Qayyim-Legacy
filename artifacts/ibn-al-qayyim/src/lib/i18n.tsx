@@ -61,8 +61,6 @@ export function LanguageProvider({
   useEffect(() => {
     document.documentElement.lang = language;
     document.documentElement.dir = definition.direction;
-    document.title =
-      language === "de" ? "Ibn al-Qayyim Vermächtnis" : language === "en" ? "Ibn al-Qayyim Legacy" : "تراث ابن القيم";
   }, [definition.direction, language]);
 
   return (

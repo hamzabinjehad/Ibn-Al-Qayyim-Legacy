@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ibn-al-qayyim-legacy.vercel.app/sitemap.xml

@@ -33,6 +33,7 @@ interface TurathSourceBook {
   category?: string;
   data?: NonNullable<ArabicSourceBook["البيانات"]>;
   id?: string;
+  index?: SourceIndexEntry[];
   pages?: Array<{
     headings?: string[];
     page?: number;
@@ -73,6 +74,7 @@ interface SourceBook {
   kind: "original" | "translation";
   languageCode: string;
   languageName: string;
+  indexEntries?: SourceIndexEntry[];
   pages: SourcePage[];
   reviewerName?: string;
   sourceFormat: "organized-arabic" | "translation" | "turath-flat";
@@ -85,12 +87,14 @@ interface SourceBook {
 }
 
 interface RawSourcePage {
+  headings?: string[];
   sourcePageNumber?: number;
   text: string;
   volume: string;
 }
 
 interface SourcePage {
+  headings: string[];
   pageNumber: number;
   sourcePageNumber: number;
   text: string;
@@ -164,8 +168,15 @@ interface SectionSummary {
   startPage: number;
   title: string;
   titleAr: string;
-  type: "bab" | "fasl" | "heading";
+  type: "bab" | "fasl" | "heading" | "topic";
   workId: number;
+}
+
+interface SourceIndexEntry {
+  level?: number | string;
+  page?: number | string;
+  page_num?: number | string;
+  title?: string;
 }
 
 interface PageDetail {
@@ -377,10 +388,13 @@ function getWorkCategory(baseTitle: string, group: SourceBook[]): string {
 }
 
 function buildWorkDescription(category: string, group: SourceBook[]): string {
-  const publishers = uniqueMetadata(group.map((source) => cleanMetadataValue(source.data["الناشر"])));
-  const investigators = uniqueMetadata(group.map((source) => cleanMetadataValue(source.data["المحقق"])));
+  const publishedGroup = group.filter((source) => source.status === "published");
+  const publishedArabicGroup = publishedGroup.filter((source) => source.languageCode === "ar");
+  const descriptionGroup = publishedArabicGroup.length > 0 ? publishedArabicGroup : publishedGroup.length > 0 ? publishedGroup : group;
+  const publishers = uniqueMetadata(descriptionGroup.map((source) => cleanMetadataValue(source.data["الناشر"])));
+  const investigators = uniqueMetadata(descriptionGroup.map((source) => cleanMetadataValue(source.data["المحقق"])));
   const editionLabels = uniqueMetadata(
-    group.map((source) => {
+    descriptionGroup.map((source) => {
       const edition = extractEdition(source.title, source.data);
       return edition.editionLabel ?? cleanMetadataValue(source.data["الطبعة"]);
     }),
@@ -390,7 +404,7 @@ function buildWorkDescription(category: string, group: SourceBook[]): string {
   if (investigators.length > 0) facts.push(`التحقيق: ${formatMetadataList(investigators)}`);
   if (publishers.length > 0) facts.push(`الناشر: ${formatMetadataList(publishers)}`);
   else if (editionLabels.length > 0) facts.push(`الطبعة: ${formatMetadataList(editionLabels)}`);
-  facts.push(editionCountLabel(group.length));
+  facts.push(editionCountLabel(descriptionGroup.length));
 
   return facts.join(". ");
 }
@@ -533,11 +547,37 @@ function pickNumber(record: Record<string, unknown>, keys: string[]): number | u
   return undefined;
 }
 
+function normalizeIndexEntries(value: unknown): SourceIndexEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((entry): SourceIndexEntry | null => {
+      const record = asRecord(entry);
+      if (!record) return null;
+      const title = pickString(record, ["title", "العنوان", "name", "label"]);
+      const page = pickNumber(record, ["page", "page_num", "صفحة"]);
+      const level = pickNumber(record, ["level", "depth", "المستوى"]);
+      if (!title || page === undefined) return null;
+      return { level, page, title } satisfies SourceIndexEntry;
+    })
+    .filter((entry): entry is SourceIndexEntry => entry !== null);
+}
+
 function languageCodeFromSource(value: string | undefined, filePath: string): string {
   const comparable = `${value ?? ""} ${path.basename(filePath)}`.toLowerCase();
   if (/deutsch|german|_de\b|\(deutsch\)/i.test(comparable)) return "de";
   if (/english|englisch|_en\b|\(english\)/i.test(comparable)) return "en";
   return "ar";
+}
+
+function isTranslationPlaceholder(text: string): boolean {
+  const normalized = text.trim().toUpperCase();
+  return (
+    normalized.startsWith("[") &&
+    normalized.endsWith("]") &&
+    normalized.includes("BERSETZ") &&
+    (normalized.includes("FEHLER") || normalized.includes("NOCH NICHT"))
+  );
 }
 
 function normalizeTranslatedSourceBook(raw: unknown, filePath: string): SourceBook | null {
@@ -556,6 +596,7 @@ function normalizeTranslatedSourceBook(raw: unknown, filePath: string): SourceBo
     .map(asRecord)
     .filter((section): section is Record<string, unknown> => section !== null);
 
+  let hasTranslationPlaceholder = false;
   const rawPages = sections.flatMap((section) => {
     const pages = Array.isArray(section.Seiten) ? section.Seiten : [];
     const volume = pickString(section, ["Abschnitt", "Teil", "title"]) ?? title;
@@ -564,7 +605,9 @@ function normalizeTranslatedSourceBook(raw: unknown, filePath: string): SourceBo
       .filter((page): page is Record<string, unknown> => page !== null)
       .map((page) => {
         const text = pickString(page, ["deutscher_Text", "english_Text", "translated_Text", "Text", "text"]) ?? "";
+        if (isTranslationPlaceholder(text)) hasTranslationPlaceholder = true;
         return {
+          headings: [],
           sourcePageNumber: pickNumber(page, ["Seite", "page", "page_num"]),
           text: text === "[ÜBERSETZUNGSFEHLER]" ? "" : text,
           volume,
@@ -575,6 +618,7 @@ function normalizeTranslatedSourceBook(raw: unknown, filePath: string): SourceBo
 
   const pages = rawPages.map((page, orderIndex) => ({
     ...page,
+    headings: page.headings ?? [],
     pageNumber: orderIndex,
     sourcePageNumber: page.sourcePageNumber ?? orderIndex,
   }));
@@ -590,12 +634,13 @@ function normalizeTranslatedSourceBook(raw: unknown, filePath: string): SourceBo
     kind: "translation",
     languageCode,
     languageName: language.name,
+    indexEntries: [],
     pages,
     reviewerName: pickString(record, ["reviewerName", "Reviewer", "مراجع"]),
     sourceFormat: "translation",
     sourceId: 0,
     sourceTitle,
-    status: "published",
+    status: hasTranslationPlaceholder ? "draft" : "published",
     title,
     translatorName: pickString(record, ["translatorName", "Translator", "Übersetzer", "مترجم"]),
     volumes: sections.length || 1,
@@ -609,6 +654,7 @@ function normalizeSourceBook(raw: unknown, filePath: string): SourceBook | null 
   const turath = raw as TurathSourceBook;
   if (turath.title && Array.isArray(turath.pages) && isArabicBookTitle(turath.title)) {
     const rawPages = turath.pages.map((page) => ({
+      headings: Array.isArray(page.headings) ? page.headings : [],
       sourcePageNumber:
         typeof page.page_num === "number" ? page.page_num : typeof page.page === "number" ? page.page : undefined,
       text: page.text ?? "",
@@ -616,6 +662,7 @@ function normalizeSourceBook(raw: unknown, filePath: string): SourceBook | null 
     }));
     const pages = reorderSourcePages(turath.title, rawPages).map((page, orderIndex) => ({
       ...page,
+      headings: page.headings ?? [],
       pageNumber: orderIndex,
       sourcePageNumber: page.sourcePageNumber ?? orderIndex,
     }));
@@ -631,6 +678,7 @@ function normalizeSourceBook(raw: unknown, filePath: string): SourceBook | null 
       kind: "original",
       languageCode: "ar",
       languageName: "Arabic",
+      indexEntries: normalizeIndexEntries(turath.index),
       pages,
       sourceFormat: "turath-flat",
       sourceId: typeof turath.source_id === "number" ? turath.source_id : 0,
@@ -655,6 +703,7 @@ function normalizeSourceBook(raw: unknown, filePath: string): SourceBook | null 
   const rawPages = parts
     .flatMap((part) =>
       (part["الصفحات"] ?? []).map((page) => ({
+        headings: [],
         sourcePageNumber: typeof page.page === "number" ? page.page : undefined,
         text: page.text ?? "",
         volume: part["الجزء"] ?? "",
@@ -663,6 +712,7 @@ function normalizeSourceBook(raw: unknown, filePath: string): SourceBook | null 
   const pages = reorderSourcePages(title, rawPages)
     .map((page, orderIndex) => ({
       ...page,
+      headings: page.headings ?? [],
       pageNumber: orderIndex,
       sourcePageNumber: page.sourcePageNumber ?? orderIndex,
     }));
@@ -678,6 +728,7 @@ function normalizeSourceBook(raw: unknown, filePath: string): SourceBook | null 
     kind: "original",
     languageCode: "ar",
     languageName: "Arabic",
+    indexEntries: normalizeIndexEntries((arabic as { index?: unknown; "الفهرس"?: unknown }).index ?? (arabic as { "الفهرس"?: unknown })["الفهرس"]),
     pages,
     sourceFormat: "organized-arabic",
     sourceId: typeof (arabic as { source_id?: unknown }).source_id === "number" ? (arabic as { source_id: number }).source_id : 0,
@@ -784,62 +835,209 @@ function sectionTitleKey(title: string) {
     .slice(0, 54);
 }
 
-function classifySectionTitle(rawTitle: string): { title: string; type: SectionSummary["type"] } | null {
+function isReferenceLikeTitle(title: string) {
+  const comparableTitle = stripArabicMarks(title);
+  return (
+    /^صفحة\s*\d+$/u.test(comparableTitle) ||
+    /^[\d\s٠-٩۰-۹:،.,؛\-–/]+$/u.test(comparableTitle) ||
+    /^[\u0600-\u06FF\s]+[:：]\s*[\d٠-٩۰-۹]/u.test(comparableTitle) ||
+    /^[\u0600-\u06FF\s]{2,30}\s+[\d٠-٩۰-۹]+$/u.test(comparableTitle) ||
+    /^\d+\s*[-–]\s*/u.test(comparableTitle) ||
+    /^\[?\d+\/[أبجدهوزحطيكلمنسعفصقرشتثخذضظغ]\]?$/u.test(comparableTitle) ||
+    /^(?:ص|ج|رقم|حاشية|هامش)\s*[\d٠-٩۰-۹]/u.test(comparableTitle) ||
+    /[{}]/u.test(comparableTitle)
+  );
+}
+
+function isGenericTopicTitle(title: string) {
+  const comparableTitle = stripArabicMarks(title);
+  const words = comparableTitle.split(/\s+/).filter(Boolean);
+  return (
+    containsArabic(title) &&
+    title.length >= 3 &&
+    title.length <= 120 &&
+    words.length <= 14 &&
+    !isReferenceLikeTitle(title) &&
+    !/^(?:قال|وقال|فقال|قلت|وقلت|قالوا|فإن|ومن|وعن|عن)(?:\s|$)/u.test(comparableTitle) &&
+    !/[.؟!]$/u.test(comparableTitle)
+  );
+}
+
+function isLeadTopicCandidate(title: string, normalizedText: string) {
+  const afterTitle = normalizedText.slice(title.length).trimStart();
+  return /^(?:بسم الله|الحمد لله|أما بعد)/u.test(afterTitle) && isGenericTopicTitle(title);
+}
+
+function classifySectionTitle(
+  rawTitle: string,
+  options: { allowGenericTopic?: boolean } = {},
+): { title: string; type: SectionSummary["type"] } | null {
   const title = cleanSectionTitle(rawTitle);
   const comparableTitle = stripArabicMarks(title);
   if (/^ف[\u0610-\u061A\u064B-\u0650\u0652-\u065F\u06D6-\u06ED]*ص\u0651/u.test(title)) return null;
   if (!title || title.length > 140) return null;
-  if (/^صفحة\s*\d+$/u.test(comparableTitle)) return null;
-  if (/^[\d\s٠-٩۰-۹:،.,؛\-–/]+$/u.test(comparableTitle)) return null;
-  if (/^[\u0600-\u06FF]+\s*:\s*[\d٠-٩۰-۹]/u.test(comparableTitle)) return null;
-  if (/^\d+\s*[-–]\s*/u.test(comparableTitle)) return null;
-  if (/^\[?\d+\/[أبجدهوزحطيكلمنسعفصقرشتثخذضظغ]\]?$/u.test(comparableTitle)) return null;
+  if (isReferenceLikeTitle(title)) return null;
 
   if (/^(?:كتاب|الباب|باب)(?:\b|\s)/u.test(comparableTitle)) return { title, type: "bab" };
   if (/^فصل(?:\b|\s|[:：]|$)/u.test(comparableTitle)) return { title, type: "fasl" };
   if (/^(?:مقدمة|المقدمة|تمهيد|تقديم|خطبة)(?:\b|\s|$)/u.test(comparableTitle)) return { title, type: "heading" };
+  if (options.allowGenericTopic && isGenericTopicTitle(title)) return { title, type: "topic" };
   return null;
 }
 
-function detectSectionTitles(text: string, options: { scanInlineFasl?: boolean } = {}): Array<{ title: string; type: SectionSummary["type"] }> {
+function detectSectionTitles(
+  text: string,
+  options: { pageHeadings?: string[]; scanInlineFasl?: boolean } = {},
+): Array<{ title: string; type: SectionSummary["type"] }> {
   const normalized = text.replace(/\s+/g, " ").trim();
-  const candidates: string[] = [];
+  const candidates: Array<{ allowGenericTopic?: boolean; title: string }> = [];
+  options.pageHeadings?.forEach((title) => candidates.push({ allowGenericTopic: true, title }));
   const prefix = normalized.match(/^(.{0,150}?)(?=\s+(?:بسم الله|الحمد لله|أما بعد|قال|فصل|الباب|باب|كتاب|$))/u)?.[1];
-  if (prefix) candidates.push(prefix);
+  if (prefix) candidates.push({ allowGenericTopic: isLeadTopicCandidate(prefix, normalized), title: prefix });
 
   for (const match of normalized.matchAll(/\[([^\[\]]{2,140})\]/gu)) {
-    candidates.push(match[1] ?? "");
+    candidates.push({ allowGenericTopic: true, title: match[1] ?? "" });
   }
 
   const direct = normalized.match(/^(?:(كتاب\s+[\u0600-\u06FF].{0,110})|(الباب\s+[\u0600-\u06FF\d].{0,110})|(باب\s+[\u0600-\u06FF\d].{0,110})|(فصل(?:\s|:).{0,110})|(مقدمة(?:\s+[\u0600-\u06FF].{0,80})?))/u);
-  if (direct) candidates.unshift(direct[1] ?? direct[2] ?? direct[3] ?? direct[4] ?? direct[5] ?? "");
+  if (direct) candidates.unshift({ title: direct[1] ?? direct[2] ?? direct[3] ?? direct[4] ?? direct[5] ?? "" });
 
   if (options.scanInlineFasl) {
     for (const match of normalized.matchAll(/(?:^|[\s(])((?:ف[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*ص[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*ل[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*)(?:\s|[):：])[^.!؟؛]{0,120})/gu)) {
-      candidates.push(match[1] ?? "");
+      candidates.push({ title: match[1] ?? "" });
     }
   }
 
   const seen = new Set<string>();
   return candidates
-    .map(classifySectionTitle)
+    .map((candidate) => classifySectionTitle(candidate.title, { allowGenericTopic: candidate.allowGenericTopic }))
     .filter((item): item is { title: string; type: SectionSummary["type"] } => item !== null)
     .filter((item) => {
-      const key = `${item.type}:${item.title}`;
+      const key = `${item.type}:${sectionTitleKey(item.title)}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
 }
 
-function buildSections(source: SourceBook, editionId: number, workId: number, nextSectionId: () => number): SectionSummary[] {
+function indexEntryNumber(entry: SourceIndexEntry, keys: Array<"level" | "page" | "page_num">) {
+  for (const key of keys) {
+    const value = entry[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function pageNumberForSourcePage(source: SourceBook, sourcePageNumber: number | undefined) {
+  if (sourcePageNumber === undefined) return undefined;
+
+  const exact = source.pages.find((page) => page.sourcePageNumber === sourcePageNumber);
+  if (exact) return exact.pageNumber;
+
+  const next = source.pages.find((page) => page.sourcePageNumber > sourcePageNumber);
+  if (next) return next.pageNumber;
+
+  if (sourcePageNumber >= 0 && sourcePageNumber < source.pages.length) return sourcePageNumber;
+  if (sourcePageNumber > 0 && sourcePageNumber <= source.pages.length) return sourcePageNumber - 1;
+  return source.pages.at(-1)?.pageNumber;
+}
+
+function sectionDepth(section: SectionSummary, sectionById: Map<number, SectionSummary>): number {
+  let depth = 0;
+  let current = section.parentId ? sectionById.get(section.parentId) : undefined;
+  while (current) {
+    depth += 1;
+    current = current.parentId ? sectionById.get(current.parentId) : undefined;
+  }
+  return depth;
+}
+
+function isDescendantOf(section: SectionSummary, ancestorId: number, sectionById: Map<number, SectionSummary>) {
+  let currentParentId = section.parentId;
+  while (currentParentId) {
+    if (currentParentId === ancestorId) return true;
+    currentParentId = sectionById.get(currentParentId)?.parentId ?? null;
+  }
+  return false;
+}
+
+function finalizeSectionRanges(source: SourceBook, sections: SectionSummary[]) {
+  const lastPage = source.pages.at(-1)?.pageNumber ?? sections.at(-1)?.startPage ?? 1;
+  const sectionById = new Map(sections.map((section) => [section.id, section] as const));
+  const depthById = new Map<number, number>();
+  const depthFor = (section: SectionSummary) => {
+    const cached = depthById.get(section.id);
+    if (cached !== undefined) return cached;
+    const depth = sectionDepth(section, sectionById);
+    depthById.set(section.id, depth);
+    return depth;
+  };
+
+  sections.forEach((section, index) => {
+    section.orderIndex = index;
+    const depth = depthFor(section);
+    const nextBoundary = sections
+      .slice(index + 1)
+      .find((candidate) => !isDescendantOf(candidate, section.id, sectionById) && depthFor(candidate) <= depth);
+    section.endPage = nextBoundary ? Math.max(section.startPage, nextBoundary.startPage - 1) : lastPage;
+  });
+}
+
+function buildSectionsFromSourceIndex(
+  source: SourceBook,
+  editionId: number,
+  workId: number,
+  nextSectionId: () => number,
+): SectionSummary[] {
+  const indexEntries = source.indexEntries ?? [];
+  if (indexEntries.length === 0) return [];
+
   const sections: SectionSummary[] = [];
-  let currentRootId: number | null = null;
+  const stack: Array<{ id: number; level: number }> = [];
+
+  indexEntries.forEach((entry) => {
+    const classified = classifySectionTitle(entry.title ?? "", { allowGenericTopic: true });
+    const sourcePageNumber = indexEntryNumber(entry, ["page", "page_num"]);
+    const startPage = pageNumberForSourcePage(source, sourcePageNumber);
+    if (!classified || startPage === undefined) return;
+
+    const level = Math.max(1, indexEntryNumber(entry, ["level"]) ?? (classified.type === "fasl" ? 2 : 1));
+    while (stack.length > 0 && stack[stack.length - 1]!.level >= level) stack.pop();
+
+    const id = nextSectionId();
+    sections.push({
+      direction: source.direction,
+      editionId,
+      endPage: startPage,
+      id,
+      languageCode: source.languageCode,
+      orderIndex: sections.length,
+      parentId: stack.at(-1)?.id ?? null,
+      startPage,
+      title: classified.title,
+      titleAr: classified.title,
+      type: classified.type,
+      workId,
+    });
+    stack.push({ id, level });
+  });
+
+  return sections;
+}
+
+function buildSectionsFromPageText(source: SourceBook, editionId: number, workId: number, nextSectionId: () => number): SectionSummary[] {
+  const sections: SectionSummary[] = [];
+  let currentBabId: number | null = null;
+  let currentFaslId: number | null = null;
   let previousTitle = "";
   const scanInlineFasl = titleKey(source.title).includes("هداية الحيارى");
 
   source.pages.forEach((page) => {
-    detectSectionTitles(page.text, { scanInlineFasl }).forEach((detected) => {
+    detectSectionTitles(page.text, { pageHeadings: page.headings, scanInlineFasl }).forEach((detected) => {
       if (detected.title === previousTitle) return;
       const detectedKey = sectionTitleKey(detected.title);
       const duplicateOnPage = sections.some(
@@ -854,8 +1052,14 @@ function buildSections(source: SourceBook, editionId: number, workId: number, ne
       previousTitle = detected.title;
 
       const id = nextSectionId();
-      const parentId = detected.type === "fasl" ? currentRootId : null;
-      if (detected.type === "bab") currentRootId = id;
+      const parentId =
+        detected.type === "fasl" ? currentBabId : detected.type === "topic" ? (currentFaslId ?? currentBabId) : null;
+      if (detected.type === "bab") {
+        currentBabId = id;
+        currentFaslId = null;
+      } else if (detected.type === "fasl") {
+        currentFaslId = id;
+      }
 
       sections.push({
         direction: source.direction,
@@ -873,6 +1077,13 @@ function buildSections(source: SourceBook, editionId: number, workId: number, ne
       });
     });
   });
+
+  return sections;
+}
+
+function buildSections(source: SourceBook, editionId: number, workId: number, nextSectionId: () => number): SectionSummary[] {
+  const sections = buildSectionsFromSourceIndex(source, editionId, workId, nextSectionId);
+  if (sections.length === 0) sections.push(...buildSectionsFromPageText(source, editionId, workId, nextSectionId));
 
   const firstPage = source.pages[0]?.pageNumber ?? 0;
   if (sections.length > 0 && sections[0]!.startPage > firstPage) {
@@ -915,12 +1126,7 @@ function buildSections(source: SourceBook, editionId: number, workId: number, ne
     });
   }
 
-  sections.forEach((section, index) => {
-    section.orderIndex = index;
-    const next = sections[index + 1];
-    section.endPage = next ? Math.max(section.startPage, next.startPage - 1) : (source.pages.at(-1)?.pageNumber ?? section.startPage);
-  });
-
+  finalizeSectionRanges(source, sections);
   return sections;
 }
 
@@ -1216,7 +1422,10 @@ function main() {
         const edition = extractEdition(source.title, source.data);
         const sections = buildSections(source, editionId, workId, nextSectionId);
         const pages: PageDetail[] = source.pages.map((page, orderIndex) => {
-          const section = sections.find((item) => page.pageNumber >= item.startPage && page.pageNumber <= item.endPage);
+          const section = sections
+            .slice()
+            .reverse()
+            .find((item) => page.pageNumber >= item.startPage && page.pageNumber <= item.endPage);
           return {
             direction: source.direction,
             editionId,

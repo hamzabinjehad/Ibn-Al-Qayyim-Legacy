@@ -59,7 +59,9 @@ export function getHighlightTone(color: string) {
   const normalizedColor = color.toLowerCase();
   return (
     HIGHLIGHT_PALETTE.find(
-      (item) => item.value === normalizedColor || item.legacyValues.some((value) => value === normalizedColor),
+      (item) =>
+        item.value.toLowerCase() === normalizedColor ||
+        item.legacyValues.some((value) => value.toLowerCase() === normalizedColor),
     ) ?? HIGHLIGHT_PALETTE[0]
   );
 }

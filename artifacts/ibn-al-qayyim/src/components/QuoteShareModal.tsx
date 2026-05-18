@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  BookOpen,
   Check,
   Copy,
   Download,
+  Globe2,
   ImageDown,
+  Link as LinkIcon,
   MessageCircle,
   Palette,
+  Pencil,
+  Send,
   Share2,
   Sparkles,
   Twitter,
@@ -23,8 +28,16 @@ interface Props {
   onClose: () => void;
 }
 
-type QuotePresetKey = "manuscript" | "mihrab";
+type QuotePresetKey = "cover" | "manuscript" | "mihrab";
 type ShareFormat = "square" | "story";
+type CopiedKind = "text" | "image" | "link";
+
+type ShareTextOptions = {
+  showSource: boolean;
+  showSite: boolean;
+  siteLabel: string;
+  sourceUrl?: string;
+};
 
 type ShareColors = {
   accent: string;
@@ -44,7 +57,7 @@ type QuotePreset = {
   dark?: boolean;
 };
 
-const quotePresets: QuotePreset[] = [
+const baseQuotePresets: QuotePreset[] = [
   {
     key: "manuscript",
     title: "مخطوط",
@@ -112,6 +125,11 @@ function hexToRgb(hex: string) {
   };
 }
 
+function colorLuminance(hex: string) {
+  const { r, g, b } = hexToRgb(hex);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+
 function withAlpha(hex: string, alpha: number) {
   const { r, g, b } = hexToRgb(hex);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
@@ -125,8 +143,8 @@ function mixColors(first: string, second: string, amount: number) {
   return `#${toHex(mix(a.r, b.r))}${toHex(mix(a.g, b.g))}${toHex(mix(a.b, b.b))}`;
 }
 
-function normalizeQuote(text: string) {
-  return text.replace(/\s+/g, " ").trim();
+function normalizeQuote(text: string | null | undefined) {
+  return (text ?? "").replace(/\s+/g, " ").trim();
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -315,6 +333,42 @@ function drawMihrab(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: n
   ctx.restore();
 }
 
+function drawCoverMotif(
+  ctx: CanvasRenderingContext2D,
+  preset: QuotePreset,
+  width: number,
+  height: number,
+  direction: TextDirection,
+) {
+  ctx.save();
+  const bookWidth = width * 0.23;
+  const bookHeight = height * 0.68;
+  const x = direction === "rtl" ? width - bookWidth - width * 0.075 : width * 0.075;
+  const y = height * 0.16;
+
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = preset.accent;
+  roundRect(ctx, x, y, bookWidth, bookHeight, 26);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = preset.line;
+  ctx.lineWidth = 5;
+  roundRect(ctx, x + 22, y + 26, bookWidth - 44, bookHeight - 52, 16);
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = "#ffffff";
+  const stripeX = direction === "rtl" ? x + bookWidth - 46 : x + 32;
+  roundRect(ctx, stripeX, y + 44, 16, bookHeight - 88, 8);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.26;
+  drawDiamond(ctx, x + bookWidth / 2, y + bookHeight * 0.26, 32, preset.accent);
+  drawDiamond(ctx, x + bookWidth / 2, y + bookHeight * 0.74, 22, preset.line);
+  ctx.restore();
+}
+
 function drawBrand(
   ctx: CanvasRenderingContext2D,
   preset: QuotePreset,
@@ -396,6 +450,26 @@ function drawCardBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, 
   drawFineTexture(ctx, preset, width, height);
 }
 
+function createCoverPreset(coverColor: string | undefined): QuotePreset {
+  const cover = sanitizeColor(coverColor, "#2f7a67");
+  const isLight = colorLuminance(cover) > 0.72;
+  const background = isLight ? "#24362f" : mixColors(cover, "#12100d", 0.58);
+  const accent = isLight ? "#d0aa65" : mixColors(cover, "#f1d28a", 0.45);
+
+  return {
+    key: "cover",
+    title: "غلاف الكتاب",
+    description: "يربط البطاقة بلون الكتاب ومصدر الاقتباس",
+    accent,
+    background,
+    surface: mixColors(background, "#ffffff", 0.08),
+    ink: "#fff7e6",
+    muted: mixColors(accent, "#ffffff", 0.38),
+    line: mixColors(accent, "#ffffff", 0.12),
+    dark: true,
+  };
+}
+
 type GenerateImageInput = {
   brandSubtitle: string;
   brandTitle: string;
@@ -409,6 +483,7 @@ type GenerateImageInput = {
   format: ShareFormat;
   language: LanguageCode;
   showSource: boolean;
+  showSite: boolean;
 };
 
 function generateImageForPreset({
@@ -424,6 +499,7 @@ function generateImageForPreset({
   format,
   language,
   showSource,
+  showSite,
 }: GenerateImageInput) {
   const { width, height } = formatDimensions[format];
   const canvas = document.createElement("canvas");
@@ -440,12 +516,23 @@ function generateImageForPreset({
   const cardY = format === "story" ? 150 : 86;
   const cardW = width - padding * 2;
   const cardH = height - cardY * 2;
-  const quoteMaxH = showSource ? cardH * 0.47 : cardH * 0.58;
-  const quoteStart = format === "story" ? cardY + cardH * 0.31 : cardY + cardH * 0.32;
+  const siteTitle = normalizeQuote(brandTitle);
+  const shouldShowSite = showSite && siteTitle.length > 0;
+  const quoteMaxH = showSource
+    ? cardH * (shouldShowSite ? 0.47 : 0.54)
+    : cardH * (shouldShowSite ? 0.58 : 0.65);
+  const quoteStart =
+    format === "story"
+      ? cardY + cardH * (shouldShowSite ? 0.31 : 0.23)
+      : cardY + cardH * (shouldShowSite ? 0.32 : 0.24);
 
   ctx.direction = direction;
   ctx.textBaseline = "alphabetic";
   drawCardBackground(ctx, resolvedPreset, width, height);
+
+  if (resolvedPreset.key === "cover") {
+    drawCoverMotif(ctx, resolvedPreset, width, height, direction);
+  }
 
   if (resolvedPreset.key === "mihrab") {
     drawMihrab(ctx, resolvedPreset, width, height);
@@ -464,7 +551,9 @@ function generateImageForPreset({
 
   const textX = isRtl ? cardX + cardW - 84 : cardX + 84;
   const brandX = isRtl ? cardX + cardW - 64 : cardX + 64;
-  drawBrand(ctx, resolvedPreset, brandX, cardY + 98, fontFamily, direction, brandTitle, brandSubtitle);
+  if (shouldShowSite) {
+    drawBrand(ctx, resolvedPreset, brandX, cardY + 98, fontFamily, direction, siteTitle, brandSubtitle);
+  }
 
   ctx.fillStyle = resolvedPreset.accent;
   ctx.font = `700 ${format === "story" ? 112 : 88}px ${fontFamily}`;
@@ -514,11 +603,6 @@ function generateImageForPreset({
     );
   }
 
-  ctx.textAlign = isRtl ? "left" : "right";
-  ctx.fillStyle = withAlpha(resolvedPreset.muted, resolvedPreset.dark ? 0.9 : 0.78);
-  ctx.font = `400 ${format === "story" ? 22 : 18}px ${fontFamily}`;
-  ctx.fillText(brandTitle, isRtl ? cardX + 70 : cardX + cardW - 70, cardY + cardH - 72);
-
   return canvas.toDataURL("image/png");
 }
 
@@ -536,7 +620,10 @@ function generateImagesForPreset(input: GenerateImageInput) {
   const cardY = input.format === "story" ? 150 : 86;
   const cardW = width - padding * 2;
   const cardH = height - cardY * 2;
-  const quoteMaxH = input.showSource ? cardH * 0.47 : cardH * 0.58;
+  const shouldShowSite = input.showSite && normalizeQuote(input.brandTitle).length > 0;
+  const quoteMaxH = input.showSource
+    ? cardH * (shouldShowSite ? 0.47 : 0.54)
+    : cardH * (shouldShowSite ? 0.58 : 0.65);
   const quoteWidth = cardW - 170;
   const quoteWeight = input.preset.key === "mihrab" ? 600 : 700;
   const startFontSize = input.format === "story" ? 62 : 54;
@@ -566,9 +653,39 @@ function buildShareText(
   chapterTitle: string,
   language: LanguageCode,
   pageNumber?: number,
+  options: ShareTextOptions = { showSource: true, showSite: false, siteLabel: "" },
 ) {
   const page = pageNumber !== undefined ? ` / ${pageText(pageNumber, language)}` : "";
-  return `${normalizeQuote(text)}\n\n- ${translateAttribution(language)}\n${bookTitle} / ${chapterTitle}${page}`;
+  const details: string[] = [];
+  const siteLabel = normalizeQuote(options.siteLabel);
+
+  if (options.showSource) {
+    details.push(`- ${translateAttribution(language)}`);
+    details.push(`${bookTitle} / ${chapterTitle}${page}`);
+  }
+
+  if (options.showSite) {
+    if (siteLabel) details.push(siteLabel);
+    if (options.sourceUrl) details.push(options.sourceUrl);
+  }
+
+  return [normalizeQuote(text), details.join("\n")].filter(Boolean).join("\n\n");
+}
+
+function buildXShareUrl(text: string, sourceUrl?: string) {
+  const params = new URLSearchParams({ text });
+  if (sourceUrl) params.set("url", sourceUrl);
+  return `https://twitter.com/intent/tweet?${params.toString()}`;
+}
+
+function buildWhatsAppShareUrl(text: string) {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
+function buildTelegramShareUrl(text: string, sourceUrl?: string) {
+  const params = new URLSearchParams({ text });
+  if (sourceUrl) params.set("url", sourceUrl);
+  return `https://t.me/share/url?${params.toString()}`;
 }
 
 function translateAttribution(language: LanguageCode) {
@@ -577,18 +694,27 @@ function translateAttribution(language: LanguageCode) {
   return "ابن القيم الجوزية رحمه الله";
 }
 
-export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNumber, onClose }: Props) {
+export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNumber, coverColor, onClose }: Props) {
   const { direction, language, t } = useUiTranslations();
-  const initialAccent = quotePresets[0].accent;
+  const defaultSiteLabel = t("موروث ابن القيم");
+  const siteSubtitleLabel = t("موقع الاقتباس");
+  const coverPreset = useMemo(() => createCoverPreset(coverColor), [coverColor]);
+  const quotePresets = useMemo(() => [coverPreset, ...baseQuotePresets], [coverPreset]);
+  const initialAccent = coverPreset.accent;
   const [imageDataUrls, setImageDataUrls] = useState<string[]>([]);
-  const [activePreset, setActivePreset] = useState<QuotePresetKey>("manuscript");
+  const [activePreset, setActivePreset] = useState<QuotePresetKey>("cover");
   const [format, setFormat] = useState<ShareFormat>("square");
   const [showSource, setShowSource] = useState(true);
+  const [showSite, setShowSite] = useState(false);
+  const [includeLink, setIncludeLink] = useState(true);
+  const [currentUrl, setCurrentUrl] = useState("");
+  const [siteLabel, setSiteLabel] = useState(defaultSiteLabel);
+  const [editableText, setEditableText] = useState(text);
   const [colors, setColors] = useState<ShareColors>({
     accent: initialAccent,
-    background: quotePresets[0].background,
+    background: coverPreset.background,
   });
-  const [copied, setCopied] = useState<"text" | "image" | null>(null);
+  const [copied, setCopied] = useState<CopiedKind | null>(null);
   const [canNativeShare, setCanNativeShare] = useState(false);
   const [canCopyImage, setCanCopyImage] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -596,12 +722,43 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
 
   const activePresetConfig = quotePresets.find((preset) => preset.key === activePreset) ?? quotePresets[0];
   const imageCount = imageDataUrls.length;
+  const sourceUrl = showSite && includeLink && currentUrl ? currentUrl : undefined;
+  const shareTextOptions = useMemo(
+    () => ({ showSource, showSite, siteLabel, sourceUrl }),
+    [showSource, showSite, siteLabel, sourceUrl],
+  );
+  const nativeShareTextOptions = useMemo(
+    () => ({ showSource, showSite, siteLabel }),
+    [showSource, showSite, siteLabel],
+  );
+  const nativeShareText = useMemo(
+    () => buildShareText(editableText, bookTitle, chapterTitle, language, pageNumber, nativeShareTextOptions),
+    [bookTitle, chapterTitle, editableText, language, nativeShareTextOptions, pageNumber],
+  );
   const shareText = useMemo(
-    () => buildShareText(text, bookTitle, chapterTitle, language, pageNumber),
-    [bookTitle, chapterTitle, language, pageNumber, text],
+    () => buildShareText(editableText, bookTitle, chapterTitle, language, pageNumber, shareTextOptions),
+    [bookTitle, chapterTitle, editableText, language, pageNumber, shareTextOptions],
+  );
+  const xShareUrl = useMemo(
+    () => buildXShareUrl(sourceUrl ? nativeShareText : shareText, sourceUrl),
+    [nativeShareText, shareText, sourceUrl],
+  );
+  const whatsAppShareUrl = useMemo(() => buildWhatsAppShareUrl(shareText), [shareText]);
+  const telegramShareUrl = useMemo(
+    () => buildTelegramShareUrl(sourceUrl ? nativeShareText : shareText, sourceUrl),
+    [nativeShareText, shareText, sourceUrl],
   );
 
   useEffect(() => {
+    setEditableText(text);
+  }, [text]);
+
+  useEffect(() => {
+    setSiteLabel(defaultSiteLabel);
+  }, [defaultSiteLabel]);
+
+  useEffect(() => {
+    setCurrentUrl(window.location.href);
     setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
     setCanCopyImage(
       typeof navigator !== "undefined" &&
@@ -613,9 +770,9 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
   useEffect(() => {
     setImageDataUrls(
       generateImagesForPreset({
-        brandSubtitle: t("بطاقة الاقتباس"),
-        brandTitle: t("موروث ابن القيم"),
-        text,
+        brandSubtitle: siteSubtitleLabel,
+        brandTitle: siteLabel,
+        text: editableText,
         bookTitle,
         chapterTitle,
         pageNumber,
@@ -625,9 +782,24 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
         format,
         language,
         showSource,
+        showSite,
       }),
     );
-  }, [activePresetConfig, bookTitle, chapterTitle, colors, direction, format, language, pageNumber, showSource, t, text]);
+  }, [
+    activePresetConfig,
+    bookTitle,
+    chapterTitle,
+    colors,
+    direction,
+    editableText,
+    format,
+    language,
+    pageNumber,
+    showSite,
+    showSource,
+    siteLabel,
+    siteSubtitleLabel,
+  ]);
 
   const selectPreset = (preset: QuotePreset) => {
     setActivePreset(preset.key);
@@ -637,7 +809,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
     });
   };
 
-  const flashCopied = (kind: "text" | "image") => {
+  const flashCopied = (kind: CopiedKind) => {
     setCopied(kind);
     window.setTimeout(() => setCopied(null), 2200);
   };
@@ -663,9 +835,13 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
 
   const handleCopyImage = async () => {
     if (imageDataUrls.length === 0 || !canCopyImage) return;
-    const blobs = await Promise.all(imageDataUrls.map((imageDataUrl) => dataUrlToBlob(imageDataUrl)));
-    await navigator.clipboard.write(blobs.map((blob) => new ClipboardItem({ [blob.type]: blob })));
-    flashCopied("image");
+    try {
+      const blobs = await Promise.all(imageDataUrls.map((imageDataUrl) => dataUrlToBlob(imageDataUrl)));
+      await navigator.clipboard.write(blobs.map((blob) => new ClipboardItem({ [blob.type]: blob })));
+      flashCopied("image");
+    } catch {
+      setShareError(t("تعذر نسخ الصورة. يمكنك تحميلها بدلا من ذلك."));
+    }
   };
 
   const handleNativeShare = async () => {
@@ -674,6 +850,12 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
     setShareError(null);
 
     try {
+      const shareData: ShareData = {
+        title: t("اقتباس من {bookTitle}", { bookTitle }),
+        text: nativeShareText,
+      };
+      if (sourceUrl) shareData.url = sourceUrl;
+
       if (imageDataUrls.length > 0) {
         const blobs = await Promise.all(imageDataUrls.map((imageDataUrl) => dataUrlToBlob(imageDataUrl)));
         const files = blobs.map(
@@ -681,12 +863,12 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
             new File([blob], `quote-${activePreset}-${format}-${index + 1}.png`, { type: blob.type }),
         );
         if (navigator.canShare?.({ files })) {
-          await navigator.share({ title: t("اقتباس من {bookTitle}", { bookTitle }), text: shareText, files });
+          await navigator.share({ ...shareData, files });
           return;
         }
       }
 
-      await navigator.share({ title: t("اقتباس من {bookTitle}", { bookTitle }), text: shareText });
+      await navigator.share(shareData);
     } catch (error) {
       if ((error as { name?: string }).name !== "AbortError") {
         setShareError(t("تعذرت المشاركة المباشرة. يمكنك نسخ النص أو تحميل الصورة."));
@@ -696,20 +878,39 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
     }
   };
 
-  const handleTwitter = () =>
-    window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+  const handlePrimaryShare = async () => {
+    if (!canNativeShare) {
+      setShareError(t("المشاركة المباشرة غير مدعومة في هذا المتصفح. استخدم واتساب أو تليجرام أو نسخ النص."));
+      return;
+    }
 
-  const handleWhatsApp = () =>
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
+    await handleNativeShare();
+  };
 
   const handleCopyText = async () => {
+    setShareError(null);
     await copyText(shareText);
     flashCopied("text");
   };
+
+  const handleCopyLink = async () => {
+    if (!currentUrl) return;
+    setShareError(null);
+    await copyText(currentUrl);
+    flashCopied("link");
+  };
+
+  const handleExternalShare = (url: string) => {
+    setShareError(null);
+    const popup = window.open(url, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      setShareError(t("تعذر فتح نافذة المشاركة. استخدم المشاركة المباشرة أو انسخ النص."));
+    }
+  };
+
+  const primaryShareClass = canNativeShare
+    ? "bg-primary text-primary-foreground hover:opacity-90"
+    : "border border-border bg-muted text-muted-foreground hover:bg-muted/80";
 
   return (
     <div
@@ -717,11 +918,11 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
       onClick={onClose}
     >
       <div
-        className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-lg border border-border bg-background shadow-2xl lg:grid-cols-[25rem_minmax(0,1fr)]"
+        className="mx-auto grid w-full max-w-7xl overflow-hidden rounded-lg border border-border bg-background shadow-2xl lg:grid-cols-[27rem_minmax(0,1fr)]"
         dir={direction}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="order-1 border-b border-border bg-muted/35 p-4 lg:order-2 lg:border-b-0 lg:border-s lg:p-6">
+        <div className="order-2 border-t border-border bg-muted/35 p-4 lg:border-s lg:border-t-0 lg:p-6">
           <div className="mx-auto flex max-w-[38rem] items-center justify-center lg:min-h-[calc(100vh-5rem)]">
             <div className="w-full">
               <div className="mb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -760,7 +961,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
           </div>
         </div>
 
-        <aside className="order-2 flex flex-col lg:order-1">
+        <aside className="order-1 flex flex-col">
           <header className="flex items-center justify-between border-b border-border px-5 py-4">
             <div className="flex min-w-0 items-center gap-3">
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -782,7 +983,104 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
           </header>
 
           <div className="flex-1 px-5 py-4" data-tour="quote-card-tools">
-            <section>
+            <section className="rounded-md border border-border bg-muted/35 p-3" data-tour="quote-card-actions">
+              <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <Share2 className="h-4 w-4" />
+                {t("وجهات المشاركة")}
+              </div>
+              <button
+                onClick={handlePrimaryShare}
+                disabled={sharing}
+                aria-disabled={!canNativeShare}
+                className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md px-3 py-3 text-center text-sm font-semibold leading-5 transition disabled:cursor-not-allowed disabled:opacity-60 ${primaryShareClass}`}
+                type="button"
+                title={
+                  canNativeShare
+                    ? t("مشاركة مباشرة")
+                    : t("المشاركة المباشرة غير مدعومة في هذا المتصفح. استخدم واتساب أو تليجرام أو نسخ النص.")
+                }
+              >
+                <Share2 className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 truncate">{sharing ? t("جاري المشاركة...") : t("مشاركة مباشرة")}</span>
+              </button>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleExternalShare(whatsAppShareUrl)}
+                  className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-md bg-[#1f9d61] px-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  aria-label={t("واتساب")}
+                  title={t("واتساب")}
+                  type="button"
+                >
+                  <MessageCircle className="h-4 w-4 shrink-0" />
+                  <span className="hidden min-w-0 truncate sm:inline">{t("واتساب")}</span>
+                </button>
+                <button
+                  onClick={() => handleExternalShare(telegramShareUrl)}
+                  className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-md bg-[#229ed9] px-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  aria-label={t("تليجرام")}
+                  title={t("تليجرام")}
+                  type="button"
+                >
+                  <Send className="h-4 w-4 shrink-0" />
+                  <span className="hidden min-w-0 truncate sm:inline">{t("تليجرام")}</span>
+                </button>
+                <button
+                  onClick={() => handleExternalShare(xShareUrl)}
+                  className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-md bg-[#111111] px-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  aria-label="X"
+                  title="X"
+                  type="button"
+                >
+                  <Twitter className="h-4 w-4 shrink-0" />
+                  <span className="hidden min-w-0 truncate sm:inline">X</span>
+                </button>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleCopyText}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold transition-colors hover:bg-muted"
+                  type="button"
+                >
+                  {copied === "text" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  {copied === "text" ? t("تم نسخ النص") : t("نسخ النص")}
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!currentUrl}
+                  type="button"
+                >
+                  {copied === "link" ? <Check className="h-4 w-4 text-emerald-600" /> : <LinkIcon className="h-4 w-4" />}
+                  {copied === "link" ? t("تم نسخ الرابط") : t("نسخ الرابط")}
+                </button>
+              </div>
+            </section>
+
+            <section className="mt-5 rounded-md border border-border bg-background p-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <Pencil className="h-4 w-4" />
+                  {t("نص المشاركة")}
+                </div>
+                <button
+                  className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                  disabled={editableText === text}
+                  onClick={() => setEditableText(text)}
+                  type="button"
+                >
+                  {t("استعادة النص الأصلي")}
+                </button>
+              </div>
+              <textarea
+                aria-label={t("نص المشاركة")}
+                className="min-h-32 w-full resize-y rounded-md border border-border bg-muted/30 px-3 py-2 font-serif text-sm leading-7 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/35 focus:bg-background focus:ring-1 focus:ring-ring"
+                dir={direction}
+                onChange={(event) => setEditableText(event.target.value)}
+                value={editableText}
+              />
+            </section>
+
+            <section className="mt-5">
               <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                 <Sparkles className="h-4 w-4" />
                 {t("شكل البطاقة")}
@@ -793,7 +1091,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                     key={preset.key}
                     type="button"
                     onClick={() => selectPreset(preset)}
-                    className="group grid grid-cols-[auto_1fr] items-start gap-3 rounded-md border border-border p-3 text-right transition hover:border-foreground data-[active=true]:border-foreground data-[active=true]:bg-muted"
+                    className="group grid grid-cols-[auto_1fr] items-start gap-3 rounded-md border border-border p-3 text-start transition hover:border-foreground data-[active=true]:border-foreground data-[active=true]:bg-muted"
                     data-active={activePreset === preset.key}
                   >
                     <span
@@ -814,7 +1112,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
             </section>
 
             <section className="mt-5">
-              <p className="mb-3 text-xs font-semibold text-muted-foreground">{t("المقاس والمصدر")}</p>
+              <p className="mb-3 text-xs font-semibold text-muted-foreground">{t("المقاس والتفاصيل")}</p>
               <div className="grid grid-cols-2 gap-2">
                 {(Object.keys(formatDimensions) as ShareFormat[]).map((option) => (
                   <button
@@ -829,15 +1127,56 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                   </button>
                 ))}
               </div>
-              <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
-                <span className="font-semibold text-foreground">{t("إظهار المصدر")}</span>
-                <input
-                  checked={showSource}
-                  className="h-4 w-4 accent-foreground"
-                  onChange={(event) => setShowSource(event.target.checked)}
-                  type="checkbox"
-                />
-              </label>
+              <div className="mt-3 grid gap-2">
+                <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 font-semibold text-foreground">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    {t("إظهار المصدر")}
+                  </span>
+                  <input
+                    checked={showSource}
+                    className="h-4 w-4 accent-foreground"
+                    onChange={(event) => setShowSource(event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+                <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 font-semibold text-foreground">
+                    <Globe2 className="h-4 w-4 text-muted-foreground" />
+                    {t("إظهار الموقع")}
+                  </span>
+                  <input
+                    checked={showSite}
+                    className="h-4 w-4 accent-foreground"
+                    onChange={(event) => setShowSite(event.target.checked)}
+                    type="checkbox"
+                  />
+                </label>
+                {showSite ? (
+                  <div className="rounded-md border border-border bg-muted/30 p-3">
+                    <label className="block text-xs font-semibold text-muted-foreground" htmlFor="quote-share-site-label">
+                      {t("اسم الموقع")}
+                    </label>
+                    <input
+                      id="quote-share-site-label"
+                      className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/35 focus:ring-1 focus:ring-ring"
+                      dir={direction}
+                      onChange={(event) => setSiteLabel(event.target.value)}
+                      value={siteLabel}
+                    />
+                    <label className="mt-3 flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm">
+                      <span className="font-semibold text-foreground">{t("إرفاق رابط القراءة")}</span>
+                      <input
+                        checked={includeLink && Boolean(currentUrl)}
+                        className="h-4 w-4 accent-foreground"
+                        disabled={!currentUrl}
+                        onChange={(event) => setIncludeLink(event.target.checked)}
+                        type="checkbox"
+                      />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
             </section>
 
             <section className="mt-5 rounded-md border border-border bg-background p-4">
@@ -864,14 +1203,22 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
             </section>
 
             <section className="mt-5 rounded-md border border-border bg-muted/40 p-4">
-              <p className="line-clamp-4 font-serif text-base leading-8 text-foreground">“{normalizeQuote(text)}”</p>
-              <p className="mt-3 text-xs leading-6 text-muted-foreground">
-                {chapterTitle}
-                {pageNumber !== undefined ? ` / ${pageText(pageNumber, language)}` : ""}
-              </p>
+              <p className="line-clamp-4 font-serif text-base leading-8 text-foreground">“{normalizeQuote(editableText)}”</p>
+              {showSource ? (
+                <p className="mt-3 text-xs leading-6 text-muted-foreground">
+                  {chapterTitle}
+                  {pageNumber !== undefined ? ` / ${pageText(pageNumber, language)}` : ""}
+                </p>
+              ) : null}
+              {showSite && normalizeQuote(siteLabel) ? (
+                <p className="mt-2 truncate text-xs leading-6 text-muted-foreground">
+                  {normalizeQuote(siteLabel)}
+                  {sourceUrl ? ` / ${sourceUrl}` : ""}
+                </p>
+              ) : null}
             </section>
 
-            <section className="mt-5 grid grid-cols-2 gap-2" data-tour="quote-card-actions">
+            <section className="mt-5 grid grid-cols-2 gap-2">
               <button
                 onClick={handleDownload}
                 className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
@@ -880,18 +1227,6 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                 <Download className="h-4 w-4" />
                 {t("تحميل الصورة")}
               </button>
-
-              {canNativeShare && (
-                <button
-                  onClick={handleNativeShare}
-                  disabled={sharing}
-                  className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-semibold transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                  type="button"
-                >
-                  <Share2 className="h-4 w-4" />
-                  {sharing ? t("جاري المشاركة...") : t("مشاركة مباشرة")}
-                </button>
-              )}
 
               {canCopyImage && (
                 <button
@@ -903,31 +1238,6 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                   {copied === "image" ? t("تم نسخ الصورة") : t("نسخ الصورة")}
                 </button>
               )}
-
-              <button
-                onClick={handleWhatsApp}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#1f9d61] px-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                type="button"
-              >
-                <MessageCircle className="h-4 w-4" />
-                {t("واتساب")}
-              </button>
-              <button
-                onClick={handleTwitter}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#111111] px-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                type="button"
-              >
-                <Twitter className="h-4 w-4" />
-                X
-              </button>
-              <button
-                onClick={handleCopyText}
-                className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-muted px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted/75"
-                type="button"
-              >
-                {copied === "text" ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                {copied === "text" ? t("تم نسخ النص") : t("نسخ النص")}
-              </button>
             </section>
 
             {shareError ? <p className="mt-3 text-xs leading-6 text-destructive">{shareError}</p> : null}

@@ -27,6 +27,7 @@ const TITLE_CLASS: Record<Size, string> = {
 };
 
 const AUTHOR_DISPLAY_NAME = "\u0627\u0628\u0646 \u0627\u0644\u0642\u064A\u0645";
+const COVER_VARIANT_COUNT = 4;
 
 const COVER_PALETTES = [
   { deep: "#0d1f1a", mid: "#245747", light: "#6f9b86", gold: "#f3d98a" },
@@ -79,6 +80,13 @@ function splitCoverTitle(value: string) {
   };
 }
 
+function getTitleDensity(value: string) {
+  const length = value.replace(/\s+/g, "").length;
+  if (length > 34) return "long";
+  if (length > 20) return "medium";
+  return "short";
+}
+
 export default function BookCover({
   coverColor,
   coverImageAlt,
@@ -90,7 +98,8 @@ export default function BookCover({
   badge,
   className = "",
 }: BookCoverProps) {
-  const palette = COVER_PALETTES[getTitleHash(title) % COVER_PALETTES.length]!;
+  const titleHash = getTitleHash(title);
+  const palette = COVER_PALETTES[titleHash % COVER_PALETTES.length]!;
   const accent =
     coverColor && !isNeutralColor(coverColor) && !isWarmRedColor(coverColor)
       ? coverColor
@@ -100,6 +109,8 @@ export default function BookCover({
   const coverTextStyle = { color: "var(--cover-ink)", WebkitTextFillColor: "var(--cover-ink)" } as CSSProperties;
   const [imageFailed, setImageFailed] = useState(false);
   const canShowImage = !!coverImageUrl && !imageFailed;
+  const coverVariant = titleHash % COVER_VARIANT_COUNT;
+  const titleDensity = getTitleDensity(mainTitle);
 
   useEffect(() => {
     setImageFailed(false);
@@ -109,6 +120,8 @@ export default function BookCover({
     <div
       className={`book-cover flex items-center justify-center text-center ${canShowImage ? `book-cover--image ${SIZE_CLASS[size]} px-0` : SIZE_CLASS[size]} ${className}`}
       data-cover-size={size}
+      data-cover-variant={coverVariant}
+      data-title-density={titleDensity}
       style={{
         "--cover-accent": accent,
         "--cover-deep": palette.deep,
@@ -122,26 +135,32 @@ export default function BookCover({
       {badge && <div className="absolute left-2 top-2 z-10">{badge}</div>}
 
       {canShowImage ? (
-        <img
-          alt={coverImageAlt ?? title}
-          className="book-cover-image"
-          decoding="async"
-          loading="lazy"
-          onError={() => setImageFailed(true)}
-          src={coverImageUrl}
-        />
+        <>
+          <div className="book-cover-page-stack" aria-hidden="true" />
+          <img
+            alt={coverImageAlt ?? title}
+            className="book-cover-image"
+            decoding="async"
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+            src={coverImageUrl}
+          />
+          <div className="book-cover-image-sheen" aria-hidden="true" />
+        </>
       ) : (
         <>
+          <div className="book-cover-pattern" aria-hidden="true" />
           <div className="book-cover-frame" aria-hidden="true" />
           <div className="book-cover-glow" aria-hidden="true" />
           <div className="book-cover-top-rule" aria-hidden="true" />
           <div className="book-cover-bottom-rule" aria-hidden="true" />
+          <div className="book-cover-center-seal" aria-hidden="true" />
 
           <div className="book-cover-author relative z-10" style={coverTextStyle}>
             {AUTHOR_DISPLAY_NAME}
           </div>
 
-          <div className="book-cover-title-panel relative z-10 w-[88%]">
+          <div className="book-cover-title-panel relative z-10 w-[88%]" dir="auto">
             <h3
               className={`book-cover-title ${TITLE_CLASS[size]}`}
               style={coverTextStyle}

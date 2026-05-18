@@ -35,6 +35,9 @@ const TARGET_OPTIONS: Array<{ description: string; label: string; value: SearchT
   { description: "احصر البحث في قسم أو فصل محدد.", label: "داخل قسم", value: "section" },
 ];
 
+const INITIAL_SEARCH_RESULT_COUNT = 12;
+const SEARCH_RESULT_BATCH_SIZE = 12;
+
 const HARAKAT = /[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/;
 
 function numberParam(value: string | null) {
@@ -155,8 +158,14 @@ function targetLabel(target: SearchTarget, t: (key: string) => string, bookTitle
   return t("كل المكتبة");
 }
 
+function showMoreResultsText(remaining: number, language: string, formatNumber: (value: number) => string) {
+  if (language === "de") return `${formatNumber(remaining)} weitere Ergebnisse anzeigen`;
+  if (language === "en") return `Show ${formatNumber(remaining)} more results`;
+  return `\u0639\u0631\u0636 ${formatNumber(remaining)} \u0646\u062a\u064a\u062c\u0629 \u0623\u062e\u0631\u0649`;
+}
+
 export default function Search() {
-  const { direction, language, sortLocale, t } = useUiTranslations();
+  const { direction, formatNumber, language, sortLocale, t } = useUiTranslations();
   const search = useSearch();
   const searchState = useMemo(() => searchStateFromParams(search), [search]);
 
@@ -167,6 +176,7 @@ export default function Search() {
   const [selectedEditionId, setSelectedEditionId] = useState<number | undefined>(searchState.editionId);
   const [selectedSectionId, setSelectedSectionId] = useState<number | undefined>(searchState.sectionId);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [visibleResultCount, setVisibleResultCount] = useState(INITIAL_SEARCH_RESULT_COUNT);
   const [, navigate] = useLocation();
 
   useEffect(() => {
@@ -190,6 +200,15 @@ export default function Search() {
     sectionId: target === "section" ? selectedSectionId : undefined,
   });
   const filteredResults = useMemo(() => applyFilters(results, scope, sort, sortLocale), [results, scope, sort, sortLocale]);
+  const visibleResults = useMemo(
+    () => filteredResults.slice(0, visibleResultCount),
+    [filteredResults, visibleResultCount],
+  );
+  const remainingResultCount = Math.max(filteredResults.length - visibleResults.length, 0);
+
+  useEffect(() => {
+    setVisibleResultCount(INITIAL_SEARCH_RESULT_COUNT);
+  }, [submittedQuery, scope, sort, target, selectedEditionId, selectedSectionId]);
 
   const submit = () => {
     const next = new URLSearchParams();
@@ -369,7 +388,7 @@ export default function Search() {
                   {searchResultsText(filteredResults.length, submittedQuery, language)}
                 </p>
                 <div className="space-y-3">
-                  {filteredResults.map((result) => (
+                  {visibleResults.map((result) => (
                     <Link
                       href={`/edition/${result.editionId}/section/${result.chapterId}#page-${result.pageNumber}`}
                       className="interactive-card block p-3.5 sm:p-5"
@@ -399,6 +418,22 @@ export default function Search() {
                     </Link>
                   ))}
                 </div>
+                {remainingResultCount > 0 && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      className="reader-control inline-flex h-11 items-center justify-center gap-2 px-5 text-sm font-semibold"
+                      onClick={() => setVisibleResultCount((count) => count + SEARCH_RESULT_BATCH_SIZE)}
+                      type="button"
+                    >
+                      {showMoreResultsText(
+                        Math.min(remainingResultCount, SEARCH_RESULT_BATCH_SIZE),
+                        language,
+                        formatNumber,
+                      )}
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </section>

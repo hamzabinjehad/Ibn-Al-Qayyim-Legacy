@@ -6,6 +6,7 @@
   "scripts": {
     "extract-ibn-qayyim": "tsx ./src/extract-ibn-qayyim.ts",
     "generate-static-library": "tsx ./src/generate-static-library.ts",
+    "generate-seo-files": "tsx ./src/generate-seo-files.ts",
     "import-book-covers": "tsx ./src/import-book-covers.ts",
     "translate-daa-wa-dawaa-de": "tsx ./src/translate-book-to-german.ts --source-title الداء --edition-title عطاءات",
     "validate-german-translation": "tsx ./src/validate-german-translation.ts",

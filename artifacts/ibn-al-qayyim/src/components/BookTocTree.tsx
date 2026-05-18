@@ -43,12 +43,12 @@ function buildTree(sections: SectionSummary[]): SectionNode[] {
 
 function collectDefaultOpenIds(nodes: SectionNode[], currentSectionId: number | undefined, defaultOpenLevel: number) {
   const openIds = new Set<number>();
-  function visit(node: SectionNode, ancestors: number[]) {
-    if (node.children.length > 0 && node.orderIndex <= defaultOpenLevel) openIds.add(node.id);
+  function visit(node: SectionNode, ancestors: number[], depth: number) {
+    if (node.children.length > 0 && depth < defaultOpenLevel) openIds.add(node.id);
     if (node.id === currentSectionId) ancestors.forEach((id) => openIds.add(id));
-    node.children.forEach((child) => visit(child, [...ancestors, node.id]));
+    node.children.forEach((child) => visit(child, [...ancestors, node.id], depth + 1));
   }
-  nodes.forEach((node) => visit(node, []));
+  nodes.forEach((node) => visit(node, [], 0));
   return openIds;
 }
 

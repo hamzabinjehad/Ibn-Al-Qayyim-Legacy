@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OnboardingTourProvider } from "@/components/OnboardingTour";
 import PwaInstallPromptModal from "@/components/PwaInstallPromptModal";
 import { LanguageProvider, languageFromPath, normalizeLanguage, type LanguageCode } from "@/lib/i18n";
+import { useSeo } from "@/lib/seo";
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Home = lazy(() => import("@/pages/Home"));
@@ -14,7 +15,7 @@ const BookDetail = lazy(() => import("@/pages/BookDetail"));
 const BookEditions = lazy(() => import("@/pages/BookEditions"));
 const ChapterReader = lazy(() => import("@/pages/ChapterReader"));
 const Search = lazy(() => import("@/pages/Search"));
-const Notes = lazy(() => import("@/pages/Notes"));
+const Saved = lazy(() => import("@/pages/Notes"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,8 @@ function PageLoader() {
 }
 
 function Router({ language }: { language: LanguageCode }) {
+  useSeo(language);
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
@@ -49,8 +52,9 @@ function Router({ language }: { language: LanguageCode }) {
         <Route path="/book/:bookId" component={BookDetail} />
         <Route path="/book/:bookId/chapter/:chapterId" component={ChapterReader} />
         <Route path="/search" component={Search} />
-        <Route path="/notes" component={Notes} />
-        <Route path="/profile" component={Notes} />
+        <Route path="/saved" component={Saved} />
+        <Route path="/notes" component={Saved} />
+        <Route path="/profile" component={Saved} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { prioritizeFeaturedEdition } from "@/lib/featured-reading";
 import { useLanguage, type LanguageCode, type TextDirection } from "@/lib/i18n";
-import { translateUi } from "@/lib/ui-translations";
+import { formatNumber, translateUi } from "@/lib/ui-translations";
 
 const DATA_BASE = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/library-data`;
 const DATA_BASE_CANDIDATES = Array.from(new Set([DATA_BASE, "/library-data"]));
@@ -82,7 +82,7 @@ export interface SectionSummary {
   startPage: number;
   title: string;
   titleAr: string;
-  type: "bab" | "fasl" | "heading";
+  type: "bab" | "fasl" | "heading" | "topic";
   workId: number;
 }
 
@@ -269,16 +269,16 @@ function localizedEditionAvailabilityText(
   if (language === "de")
     return count === 1
       ? "1 Ausgabe verfügbar"
-      : `${count.toLocaleString("de-DE")} Ausgaben verfügbar`;
+      : `${formatNumber(count, language)} Ausgaben verfügbar`;
   if (language === "en")
     return count === 1
       ? "1 edition available"
-      : `${count.toLocaleString("en")} editions available`;
+      : `${formatNumber(count, language)} editions available`;
   return count === 1
     ? "طبعة واحدة متاحة"
     : count === 2
       ? "طبعتان متاحتان"
-      : `${count.toLocaleString("ar-SA")} طبعات متاحة`;
+      : `${formatNumber(count, language)} طبعات متاحة`;
 }
 
 function localizeWork(
@@ -416,6 +416,7 @@ export function sectionTypeLabel(
 ) {
   if (type === "bab") return translateUi(language, "باب");
   if (type === "fasl") return translateUi(language, "فصل");
+  if (type === "topic") return translateUi(language, "موضوع");
   return translateUi(language, "عنوان");
 }
 
