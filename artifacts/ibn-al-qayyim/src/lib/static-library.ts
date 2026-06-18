@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { prioritizeFeaturedEdition } from "@/lib/featured-reading";
 import { useLanguage, type LanguageCode, type TextDirection } from "@/lib/i18n";
 import { formatNumber, translateUi } from "@/lib/ui-translations";
+import { cleanSectionTitleForDisplay } from "@/lib/section-title";
 
 const DATA_BASE = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/library-data`;
 const DATA_BASE_CANDIDATES = Array.from(new Set([DATA_BASE, "/library-data"]));
@@ -82,7 +83,7 @@ export interface SectionSummary {
   startPage: number;
   title: string;
   titleAr: string;
-  type: "bab" | "fasl" | "heading" | "topic";
+  type: "bab" | "fasl" | "masala" | "faida" | "qaida" | "tanbih" | "matlub" | "khatima" | "heading" | "topic";
   workId: number;
 }
 
@@ -418,7 +419,13 @@ export function sectionTypeLabel(
 ) {
   if (type === "bab") return translateUi(language, "باب");
   if (type === "fasl") return translateUi(language, "فصل");
-  if (type === "topic") return translateUi(language, "موضوع");
+  if (type === "masala") return translateUi(language, "مسألة");
+  if (type === "faida") return translateUi(language, "فائدة");
+  if (type === "qaida") return translateUi(language, "قاعدة");
+  if (type === "tanbih") return translateUi(language, "تنبيه");
+  if (type === "matlub") return translateUi(language, "مطلب");
+  if (type === "khatima") return translateUi(language, "خاتمة");
+  if (type === "topic") return translateUi(language, "مطلب");
   return translateUi(language, "عنوان");
 }
 
@@ -749,7 +756,7 @@ export function useStaticSearch(
             bookTitle: doc.bookTitle,
             category: doc.category,
             chapterId: doc.sectionId ?? doc.pageId,
-            chapterTitle: doc.sectionTitle,
+            chapterTitle: cleanSectionTitleForDisplay(doc.sectionTitle),
             editionId: doc.editionId,
             languageCode: doc.languageCode,
             matchCount: titleMatches + contentMatches,

@@ -201,7 +201,9 @@ async function main() {
         // Skip if already has footnotes
         if (page.text.includes("_________")) continue;
 
-        const sqliteId = pageToId.get(`${sqlitePart}|${page.page}`);
+        // Fallback to "null" part for single-volume books where SQLite stores NULL
+        const sqliteId = pageToId.get(`${sqlitePart}|${page.page}`)
+          ?? pageToId.get(`null|${page.page}`);
         if (sqliteId === undefined) continue;
 
         const rawFoot = footMap.get(sqliteId) ?? "";

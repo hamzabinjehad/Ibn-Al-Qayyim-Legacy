@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+﻿import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -168,7 +168,7 @@ interface SectionSummary {
   startPage: number;
   title: string;
   titleAr: string;
-  type: "bab" | "fasl" | "heading" | "topic";
+  type: "bab" | "fasl" | "masala" | "faida" | "qaida" | "tanbih" | "matlub" | "khatima" | "heading" | "topic";
   workId: number;
 }
 
@@ -815,6 +815,53 @@ function hasLocalCoverFile(cover: BookCoverMetadata | undefined): cover is BookC
   return existsSync(path.join(PUBLIC_DIR, cover.coverImageUrl.replace(/^\//, "")));
 }
 
+/**
+ * Injects a [[H:title]] heading marker into a page's text when a section starts
+ * at the first line of that page.  This makes section headings visually prominent
+ * in the ChapterReader without requiring re-extraction from the source API.
+ *
+ * Strategy:
+ *  1. If the text already contains [[H:...]] markers (turath.io re-extraction), skip.
+ *  2. Find sections whose startPage equals this page's pageNumber.
+ *  3. Check if the normalized first line of the text matches the section title.
+ *  4. If it matches, replace the first line with [[H:title]] so the renderer
+ *     can display it as a styled heading instead of plain body text.
+ */
+function injectPageHeadings(text: string, pageNumber: number, sections: SectionSummary[]): string {
+  if (text.includes("[[H:")) return text; // Already annotated
+
+  const startingSections = sections.filter((s) => s.startPage === pageNumber);
+  if (startingSections.length === 0) return text;
+
+  let result = text;
+  for (const section of startingSections) {
+    const title = section.title?.trim();
+    if (!title || title.length < 3) continue;
+    const next = tryWrapLeadingTitle(result, title);
+    if (next !== result) { result = next; break; }
+  }
+  return result;
+}
+
+function tryWrapLeadingTitle(text: string, title: string): string {
+  const trimmed = text.trimStart();
+  const newlinePos = trimmed.indexOf("\n");
+  const firstLine = (newlinePos >= 0 ? trimmed.slice(0, newlinePos) : trimmed).trim();
+  if (!firstLine) return text;
+
+  const normLine = sectionTitleKey(firstLine);
+  const normTitle = sectionTitleKey(title);
+  if (normTitle.length < 3) return text;
+
+  // Accept if first line IS the title, or starts with enough of it (≥ 80% overlap)
+  const overlapLen = Math.min(normLine.length, normTitle.length);
+  if (normLine.slice(0, overlapLen) === normTitle.slice(0, overlapLen) && overlapLen >= Math.floor(normTitle.length * 0.8)) {
+    const rest = newlinePos >= 0 ? trimmed.slice(newlinePos + 1).trimStart() : "";
+    return rest ? `[[H:${title}]]\n\n${rest}` : `[[H:${title}]]`;
+  }
+  return text;
+}
+
 function cleanSectionTitle(title: string) {
   return title
     .replace(/\s+/g, " ")
@@ -868,18 +915,59 @@ function isLeadTopicCandidate(title: string, normalizedText: string) {
   return /^(?:بسم الله|الحمد لله|أما بعد)/u.test(afterTitle) && isGenericTopicTitle(title);
 }
 
+// Strip leading type-keyword from a section title so type info is not duplicated
+// in both the `type` field and the stored title text.
+function stripTypeKeywordFromTitle(title: string, type: SectionSummary["type"]): string {
+  const D = "[ؐ-ًؚ-ٟۖ-ۭ]*";
+  let re: RegExp | null = null;
+  if (type === "fasl") re = new RegExp(`^ف${D}ص${D}ل${D}${D}[\\s:،.ٌ]*`, "u");
+  else if (type === "masala") re = new RegExp(`^م${D}س${D}[أئ]${D}ل${D}ة${D}[\\s:،.]*`, "u");
+  else if (type === "faida") re = new RegExp(`^ف${D}ا${D}ئ${D}د${D}ة${D}[\\s:،.]*`, "u");
+  else if (type === "qaida") re = new RegExp(`^ق${D}ا${D}ع${D}د${D}ة${D}[\\s:،.]*`, "u");
+  else if (type === "tanbih") re = new RegExp(`^ت${D}ن${D}ب${D}ي${D}ه${D}[\\s:،.]*`, "u");
+  else if (type === "matlub") re = new RegExp(`^م${D}ط${D}ل${D}ب${D}[\\s:،.]*`, "u");
+  if (!re) return title;
+  const m = title.match(re);
+  if (!m || m[0].length >= title.length) return title;
+  return title.slice(m[0].length).trim();
+}
+
 function classifySectionTitle(
   rawTitle: string,
   options: { allowGenericTopic?: boolean } = {},
 ): { title: string; type: SectionSummary["type"] } | null {
   const title = cleanSectionTitle(rawTitle);
   const comparableTitle = stripArabicMarks(title);
-  if (/^ف[\u0610-\u061A\u064B-\u0650\u0652-\u065F\u06D6-\u06ED]*ص\u0651/u.test(title)) return null;
+  if (/^ف[ؐ-ًؚ-ِْ-ٟۖ-ۭ]*صّ/u.test(title)) return null;
   if (!title || title.length > 140) return null;
   if (isReferenceLikeTitle(title)) return null;
 
   if (/^(?:كتاب|الباب|باب)(?:\b|\s)/u.test(comparableTitle)) return { title, type: "bab" };
-  if (/^فصل(?:\b|\s|[:：]|$)/u.test(comparableTitle)) return { title, type: "fasl" };
+  if (/^فصل(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
+    const stripped = stripTypeKeywordFromTitle(title, "fasl");
+    return { title: stripped.length >= 3 ? stripped : title, type: "fasl" };
+  }
+  if (/^(?:مسألة|مسئلة)(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
+    const stripped = stripTypeKeywordFromTitle(title, "masala");
+    return { title: stripped.length >= 3 ? stripped : title, type: "masala" };
+  }
+  if (/^(?:فائدة|فوائد)(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
+    const stripped = stripTypeKeywordFromTitle(title, "faida");
+    return { title: stripped.length >= 3 ? stripped : title, type: "faida" };
+  }
+  if (/^قاعدة(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
+    const stripped = stripTypeKeywordFromTitle(title, "qaida");
+    return { title: stripped.length >= 3 ? stripped : title, type: "qaida" };
+  }
+  if (/^تنبيه(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
+    const stripped = stripTypeKeywordFromTitle(title, "tanbih");
+    return { title: stripped.length >= 3 ? stripped : title, type: "tanbih" };
+  }
+  if (/^مطلب(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
+    const stripped = stripTypeKeywordFromTitle(title, "matlub");
+    return { title: stripped.length >= 3 ? stripped : title, type: "matlub" };
+  }
+  if (/^(?:خاتمة|الخاتمة)(?:\b|\s|$)/u.test(comparableTitle)) return { title, type: "khatima" };
   if (/^(?:مقدمة|المقدمة|تمهيد|تقديم|خطبة)(?:\b|\s|$)/u.test(comparableTitle)) return { title, type: "heading" };
   if (options.allowGenericTopic && isGenericTopicTitle(title)) return { title, type: "topic" };
   return null;
@@ -892,15 +980,15 @@ function detectSectionTitles(
   const normalized = text.replace(/\s+/g, " ").trim();
   const candidates: Array<{ allowGenericTopic?: boolean; title: string }> = [];
   options.pageHeadings?.forEach((title) => candidates.push({ allowGenericTopic: true, title }));
-  const prefix = normalized.match(/^(.{0,150}?)(?=\s+(?:بسم الله|الحمد لله|أما بعد|قال|فصل|الباب|باب|كتاب|$))/u)?.[1];
+  const prefix = normalized.match(/^(.{0,150}?)(?=\s+(?:بسم الله|الحمد لله|أما بعد|قال|فصل|الباب|باب|كتاب|مسألة|مسئلة|فائدة|قاعدة|تنبيه|مطلب|$))/u)?.[1];
   if (prefix) candidates.push({ allowGenericTopic: isLeadTopicCandidate(prefix, normalized), title: prefix });
 
   for (const match of normalized.matchAll(/\[([^\[\]]{2,140})\]/gu)) {
     candidates.push({ allowGenericTopic: true, title: match[1] ?? "" });
   }
 
-  const direct = normalized.match(/^(?:(كتاب\s+[\u0600-\u06FF].{0,110})|(الباب\s+[\u0600-\u06FF\d].{0,110})|(باب\s+[\u0600-\u06FF\d].{0,110})|(فصل(?:\s|:).{0,110})|(مقدمة(?:\s+[\u0600-\u06FF].{0,80})?))/u);
-  if (direct) candidates.unshift({ title: direct[1] ?? direct[2] ?? direct[3] ?? direct[4] ?? direct[5] ?? "" });
+  const direct = normalized.match(/^(?:(كتاب\s+[؀-ۿ].{0,110})|(الباب\s+[؀-ۿ\d].{0,110})|(باب\s+[؀-ۿ\d].{0,110})|(فصل(?:\s|:).{0,110})|(مسألة(?:\s|:).{0,110})|(مسئلة(?:\s|:).{0,110})|(فائدة(?:\s|:).{0,110})|(قاعدة(?:\s|:).{0,110})|(تنبيه(?:\s|:).{0,110})|(مطلب(?:\s|:).{0,110})|(مقدمة(?:\s+[؀-ۿ].{0,80})?))/u);
+  if (direct) candidates.unshift({ title: direct[1] ?? direct[2] ?? direct[3] ?? direct[4] ?? direct[5] ?? direct[6] ?? direct[7] ?? direct[8] ?? direct[9] ?? direct[10] ?? direct[11] ?? "" });
 
   if (options.scanInlineFasl) {
     for (const match of normalized.matchAll(/(?:^|[\s(])((?:ف[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*ص[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*ل[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*)(?:\s|[):：])[^.!؟؛]{0,120})/gu)) {
@@ -1052,15 +1140,16 @@ function buildSectionsFromPageText(source: SourceBook, editionId: number, workId
       previousTitle = detected.title;
 
       const id = nextSectionId();
+      const isSub = detected.type === "topic" || detected.type === "masala" || detected.type === "faida" ||
+        detected.type === "qaida" || detected.type === "tanbih" || detected.type === "matlub" || detected.type === "khatima";
       const parentId =
-        detected.type === "fasl" ? currentBabId : detected.type === "topic" ? (currentFaslId ?? currentBabId) : null;
+        detected.type === "fasl" ? currentBabId : isSub ? (currentFaslId ?? currentBabId) : null;
       if (detected.type === "bab") {
         currentBabId = id;
         currentFaslId = null;
       } else if (detected.type === "fasl") {
         currentFaslId = id;
       }
-
       sections.push({
         direction: source.direction,
         editionId,
@@ -1450,7 +1539,7 @@ function main() {
             pageNumber: page.pageNumber,
             sectionId: section?.id ?? null,
             sourcePageNumber: page.sourcePageNumber,
-            text: page.text,
+            text: source.languageCode === "ar" ? injectPageHeadings(page.text, page.pageNumber, sections) : page.text,
             volume: page.volume,
             workId,
           };
