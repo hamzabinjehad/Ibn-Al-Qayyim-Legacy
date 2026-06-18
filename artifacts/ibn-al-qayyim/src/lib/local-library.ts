@@ -50,6 +50,7 @@ export interface ReaderSettings {
   fontSize: number;
   showHarakat: boolean;
   showFootnotes: boolean;
+  showPageMarkers: boolean;
 }
 
 const KEYS = {
@@ -65,6 +66,7 @@ const DEFAULT_SETTINGS: ReaderSettings = {
   fontSize: 22,
   showFootnotes: true,
   showHarakat: true,
+  showPageMarkers: true,
 };
 
 function readStorage<T>(key: string, fallback: T): T {
@@ -90,6 +92,7 @@ function normalizeReaderSettings(settings: Partial<ReaderSettings>): ReaderSetti
     fontFamily: settings.fontFamily === "naskh" ? "naskh" : "amiri",
     showFootnotes: settings.showFootnotes ?? DEFAULT_SETTINGS.showFootnotes,
     showHarakat: settings.showHarakat ?? DEFAULT_SETTINGS.showHarakat,
+    showPageMarkers: settings.showPageMarkers ?? DEFAULT_SETTINGS.showPageMarkers,
   };
 }
 

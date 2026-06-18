@@ -9,8 +9,8 @@
   "scope": ".",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#ffffff",
-  "theme_color": "#4f4778",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
   "categories": ["books", "education", "reference"],
   "icons": [
     {

@@ -141,3 +141,6 @@ overrides:
   "@expo/ngrok-bin>@expo/ngrok-bin-win32-ia32": "-"
   "@expo/ngrok-bin>@expo/ngrok-bin-win32-x64": "-"
   esbuild: "0.27.3"
+
+allowBuilds:
+  better-sqlite3: set this to true or false

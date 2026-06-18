@@ -1,5 +1,5 @@
 import { Link, useParams } from "wouter";
-import { BookMarked, ExternalLink, Github, MessageSquareWarning, Search } from "lucide-react";
+import { BookMarked, Check, ExternalLink, Github, Loader2, MessageSquareWarning, Search, Trash2, WifiOff } from "lucide-react";
 import BookTocTree from "@/components/BookTocTree";
 import AppShell from "@/components/editorial/AppShell";
 import { ErrorState, LoadingState } from "@/components/editorial/DataState";
@@ -7,6 +7,7 @@ import { DirectionalArrow, DirectionalChevron } from "@/components/editorial/Dir
 import PageFrame from "@/components/editorial/PageFrame";
 import BookCover from "@/components/BookCover";
 import { buildSourceEditUrl, buildTranslationIssueUrl } from "@/lib/contribution-links";
+import { useOfflineBook } from "@/hooks/useOfflineBook";
 import { useSeo } from "@/lib/seo";
 import { useStaticEdition } from "@/lib/static-library";
 import { formatNumber, useUiTranslations } from "@/lib/ui-translations";
@@ -16,6 +17,8 @@ export default function BookDetail() {
   const { editionId, bookId } = useParams<{ editionId?: string; bookId?: string }>();
   const id = Number(editionId ?? bookId);
   const { data: edition, isLoading, isError, refetch } = useStaticEdition(id);
+  const { status: offlineStatus, save: saveOffline, remove: removeOffline } = useOfflineBook(id);
+
   useSeo(language, {
     canonicalPath: `/edition/${id}`,
     description: edition
@@ -117,6 +120,41 @@ export default function BookDetail() {
                 {t("البحث داخل الكتاب")}
                 <Search className="h-4 w-4" />
               </Link>
+              {offlineStatus === "saved" ? (
+                <div className="inline-flex h-11 items-center gap-1 rounded-lg border border-border bg-background text-sm font-semibold">
+                  <span className="flex items-center gap-2 px-4 text-green-700 dark:text-green-400">
+                    <Check className="h-4 w-4" />
+                    {t("متاح بدون إنترنت")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeOffline}
+                    className="flex h-full items-center gap-1.5 border-s border-border px-3 text-muted-foreground transition-colors hover:text-foreground"
+                    title={t("حذف النسخة المحفوظة")}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={offlineStatus === "saving" || offlineStatus === "checking"}
+                  onClick={saveOffline}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45 disabled:opacity-60 sm:justify-start"
+                >
+                  {offlineStatus === "saving" ? (
+                    <>
+                      {t("جارٍ الحفظ…")}
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    <>
+                      {t("حفظ بدون إنترنت")}
+                      <WifiOff className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              )}
               {correctionIssueUrl && (
                 <a
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold transition-colors hover:border-foreground hover:bg-muted/45 sm:justify-start"

@@ -25,9 +25,17 @@ function slugify(title: string): string {
 }
 
 function stripHtml(html: string): string {
-  return html
+  // Preserve title spans as [[H:text]] markers before stripping other tags
+  const withHeadings = html.replace(
+    /<span\b[^>]*data-type=["']title["'][^>]*>([\s\S]*?)<\/span>/gi,
+    (_match, inner: string) => {
+      const text = inner.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+      return text ? `\n[[H:${text}]]\n` : "\n";
+    }
+  );
+
+  return withHeadings
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<span\b[^>]*data-type=["']title["'][^>]*>/gi, "\n")
     .replace(/<\/(?:p|div|section|article|h[1-6]|li|tr|span)>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "extract-ibn-qayyim": "tsx ./src/extract-ibn-qayyim.ts",
+    "extract-from-shamela": "tsx ./src/extract-from-shamela.ts",
+    "enrich-with-footnotes": "tsx ./src/enrich-with-footnotes.ts",
     "generate-static-library": "tsx ./src/generate-static-library.ts",
     "generate-seo-files": "tsx ./src/generate-seo-files.ts",
     "import-book-covers": "tsx ./src/import-book-covers.ts",
@@ -13,6 +15,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@types/sql.js": "^1.4.11",
+    "shamela": "^1.5.3",
+    "sql.js": "^1.14.1",
     "turath-sdk": "^1.1.0"
   },
   "devDependencies": {

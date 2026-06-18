@@ -1341,8 +1341,23 @@ function writeLanguageBundle(params: {
     .filter((doc) => workIds.has(doc.workId) && doc.languageCode === languageCode)
     .map((doc) => localizedSearchDocumentForBundle(doc, languageCode, languageEditionsById, workTitlesById));
   const searchShards = writeShards(path.join(targetDir, "search-index"), "part", languageSearchIndex);
+
+  // Build an edition-to-shard-indices map so the frontend can load only the
+  // shards relevant to a specific edition when doing book-scoped searches.
+  const editionShards: Record<number, number[]> = {};
+  let shardOffset = 0;
+  searchShards.forEach((shard, shardIdx) => {
+    languageSearchIndex.slice(shardOffset, shardOffset + shard.count).forEach((doc) => {
+      if (!editionShards[doc.editionId]) editionShards[doc.editionId] = [];
+      if (!editionShards[doc.editionId]!.includes(shardIdx))
+        editionShards[doc.editionId]!.push(shardIdx);
+    });
+    shardOffset += shard.count;
+  });
+
   writeJson(path.join(targetDir, "search-index", "manifest.json"), {
     count: languageSearchIndex.length,
+    editionShards,
     languageCode,
     shards: searchShards,
   });

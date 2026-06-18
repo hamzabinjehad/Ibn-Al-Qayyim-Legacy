@@ -154,6 +154,8 @@ interface SearchDocument {
 
 interface SearchManifest {
   count: number;
+  editionShards?: Record<number, number[]>;
+  languageCode?: string;
   shards: Array<{ count: number; file: string }>;
 }
 
@@ -651,48 +653,6 @@ export function useStaticBookChapter(
   };
 }
 
-export function useStaticChapter(chapterId: number | undefined) {
-  const { language } = useLanguage();
-  return useQuery({
-    enabled: !!chapterId,
-    queryKey: ["static-library", language, "chapter-compat", chapterId],
-    queryFn: async () => {
-      const editions = (
-        await fetchJson<EditionSummary[]>(language, "editions.json")
-      ).filter((edition) => matchesLanguage(edition, language));
-      for (const editionSummary of editions) {
-        const edition = localizeEditionDetail(
-          await fetchJson<EditionDetail>(
-            language,
-            `editions/${editionSummary.id}.json`,
-          ),
-          language,
-        );
-        if (!edition.sections.some((section) => section.id === chapterId))
-          continue;
-        const found = edition.sections.find((item) => item.id === chapterId)!;
-        const pages = edition.pages.filter(
-          (page) =>
-            page.pageNumber >= found.startPage &&
-            page.pageNumber <= found.endPage,
-        );
-        return toChapterDetail({
-          ...found,
-          category: edition.category,
-          content: pages.map((page) => page.text).join("\n\n"),
-          editionTitle: edition.titleAr,
-          nextSectionId: null,
-          pages,
-          prevSectionId: null,
-          workTitle: edition.workTitleAr,
-        });
-      }
-      throw new Error(`Chapter ${chapterId} not found`);
-    },
-    staleTime: Infinity,
-  });
-}
-
 export function useStaticSearch(
   query: string,
   options: {
@@ -723,26 +683,38 @@ export function useStaticSearch(
       );
       const normalizedQuery = normalizeArabic(query);
       const matches: LibrarySearchResult[] = [];
+
+      // When searching within a specific edition, use the editionShards index to
+      // load only the shards that contain that edition's pages instead of all shards.
+      const targetShardIndices =
+        options.bookId && manifest.editionShards
+          ? (manifest.editionShards[options.bookId] ?? null)
+          : null;
+
+      const shardsToSearch = targetShardIndices
+        ? manifest.shards.filter((_, i) => targetShardIndices.includes(i))
+        : manifest.shards;
+
       let reachedRequestedBook = false;
 
-      for (const shard of manifest.shards) {
+      for (const shard of shardsToSearch) {
         const docs = await fetchJson<SearchDocument[]>(
           language,
           `search-index/${shard.file}`,
         );
-        if (
-          options.bookId &&
-          reachedRequestedBook &&
-          docs.every((doc) => doc.editionId !== options.bookId)
-        ) {
-          break;
-        }
 
-        if (
-          options.bookId &&
-          docs.some((doc) => doc.editionId === options.bookId)
-        ) {
-          reachedRequestedBook = true;
+        // When no editionShards index is available, fall back to the sequential
+        // early-exit heuristic: stop once we've passed the target edition's shards.
+        if (!targetShardIndices && options.bookId) {
+          if (
+            reachedRequestedBook &&
+            docs.every((doc) => doc.editionId !== options.bookId)
+          ) {
+            break;
+          }
+          if (docs.some((doc) => doc.editionId === options.bookId)) {
+            reachedRequestedBook = true;
+          }
         }
 
         docs.forEach((doc) => {

@@ -426,84 +426,166 @@
     text-align-last: auto;
   }
 
+  /* Clickable footnote reference in text — styled as superscript */
   .reader-footnote-ref {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.6em;
-    margin-inline: 0.1em;
-    border: 1px solid hsl(var(--border));
-    border-radius: 999px;
-    background: hsl(var(--muted) / 0.56);
-    color: hsl(var(--foreground));
-    font-family: var(--app-font-sans);
-    font-size: 0.64em;
-    font-weight: 700;
-    line-height: 1.55;
+    display: inline;
     vertical-align: super;
-    transition:
-      border-color 160ms ease,
-      background-color 160ms ease,
-      color 160ms ease;
+    font-size: 0.64em;
+    line-height: 1;
+    font-family: var(--app-font-sans);
+    font-weight: 700;
+    color: hsl(var(--muted-foreground));
+    background: none;
+    border: none;
+    padding: 0 0.05em;
+    margin-inline: 0.05em;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+    transition: color 120ms ease;
   }
 
   .reader-footnote-ref:hover {
-    border-color: hsl(var(--foreground) / 0.52);
-    background: hsl(var(--foreground));
-    color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    text-decoration: underline solid;
   }
 
   .reader-footnote-ref:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+    border-radius: 2px;
   }
 
+  /* Non-clickable footnote reference — visual superscript only */
+  .reader-fn-plain {
+    font-size: 0.64em;
+    line-height: 1;
+    font-family: var(--app-font-sans);
+    font-weight: 600;
+    color: hsl(var(--muted-foreground) / 0.8);
+    vertical-align: super;
+    user-select: none;
+    margin-inline: 0.05em;
+  }
+
+  /* Quranic verse — amber/warm-gold, inherits book font */
+  .reader-quran-verse {
+    color: #8b6914;
+    font-weight: 600;
+  }
+
+  .dark .reader-quran-verse {
+    color: #d4a843;
+  }
+
+  /* Surah:Ayah reference shown after the verse */
+  .reader-quran-ref {
+    font-size: 0.78em;
+    color: hsl(var(--muted-foreground));
+    font-family: var(--app-font-sans);
+    font-weight: 400;
+  }
+
+  /* Chapter type badge (باب / فصل) above the title in reader header */
+  .reader-section-badge {
+    display: inline-block;
+    margin-bottom: 0.75em;
+    padding: 0.2em 0.9em;
+    border: 1px solid hsl(var(--border));
+    border-radius: 9999px;
+    font-family: var(--app-font-sans);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Paragraph block — rendered instead of whitespace-pre-wrap */
+  .reader-paragraph {
+    margin-block: 0 0.85em;
+    white-space: pre-line;
+  }
+  .reader-paragraph:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Inline section headings from [[H:…]] markers */
+  .reader-inline-heading {
+    display: block;
+    margin-block: 0.5em 0.25em;
+    padding-block: 0.35em;
+    border-block: 1px solid hsl(var(--border) / 0.5);
+    text-align: center;
+    font-size: 1.05em;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    letter-spacing: 0.01em;
+  }
+
+  /* Heading hierarchy variants */
+  .reader-heading-bab {
+    font-size: 1.2em;
+    border-block-color: hsl(var(--border));
+    border-block-width: 1.5px;
+    padding-block: 0.45em;
+  }
+
+  .reader-heading-sub {
+    font-size: 0.92em;
+    font-weight: 600;
+    font-style: italic;
+    border-block: none;
+    padding-block: 0;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* ((Topic)) — Shamela double-paren section label, styled like a sub-heading */
+  .reader-topic-paren {
+    display: block;
+    font-weight: 700;
+    text-align: center;
+    margin-block: 0.6em 0.2em;
+    color: hsl(var(--foreground));
+    letter-spacing: 0.01em;
+  }
+
+  /* [Topic] — Shamela single-bracket inline topic marker */
+  .reader-topic-bracket {
+    font-weight: 700;
+    color: hsl(var(--foreground) / 0.85);
+  }
+
+  /* أحدها: والثاني: القول الأول: — enumeration / argument labels */
+  .reader-enum-label {
+    font-weight: 700;
+    color: #5a7a5a;
+  }
+  .dark .reader-enum-label {
+    color: #8aad8a;
+  }
+
+  /* Footnote section — clean scholarly style */
   .reader-footnotes {
     border-top: 1px solid hsl(var(--border));
-    border-bottom: 1px solid hsl(var(--border));
-    padding: 0.9rem 0 0.65rem;
+    padding-top: 0.85rem;
+    margin-top: 0;
     color: hsl(var(--muted-foreground));
-    font-size: 0.72em;
-    line-height: 2;
+    font-size: 0.78em;
+    line-height: 1.85;
   }
 
   .reader-footnotes-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.7rem;
-    color: hsl(var(--foreground));
-    font-family: var(--app-font-sans);
-    font-size: 0.8em;
-    font-weight: 700;
-    line-height: 1.8;
-  }
-
-  .reader-footnotes-header::after {
-    content: "";
-    height: 1px;
-    flex: 1;
-    background: hsl(var(--border));
+    display: none;
   }
 
   .reader-footnote {
     display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-    border-inline-start: 2px solid hsl(var(--border));
-    border-radius: 0.5rem;
-    background: hsl(var(--muted) / 0.3);
-    padding: 0.45rem 0.7rem;
+    align-items: baseline;
+    gap: 0.55rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
     scroll-margin-top: 8rem;
-    transition:
-      border-color 180ms ease,
-      background-color 180ms ease,
-      box-shadow 180ms ease;
-  }
-
-  .reader-footnote:first-child {
-    margin-top: 0;
+    transition: background-color 160ms ease;
   }
 
   .reader-footnote:focus {
@@ -511,22 +593,20 @@
   }
 
   .reader-footnote--active {
-    border-inline-start-color: hsl(var(--foreground));
-    background: hsl(var(--muted) / 0.68);
-    box-shadow: 0 0 0 0.45rem hsl(var(--muted) / 0.68);
+    background: hsl(var(--muted) / 0.55);
   }
 
   .reader-footnote-marker {
-    display: inline-flex;
-    min-width: 2.25rem;
-    justify-content: center;
-    border: 1px solid hsl(var(--border));
-    border-radius: 999px;
-    padding: 0 0.45rem;
-    color: hsl(var(--foreground));
+    flex-shrink: 0;
     font-family: var(--app-font-sans);
-    font-size: 0.85em;
-    line-height: 1.8;
+    font-size: 0.82em;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    min-width: 1.2rem;
+    line-height: inherit;
+    border: none;
+    padding: 0;
+    border-radius: 0;
   }
 
   .safe-bottom {
