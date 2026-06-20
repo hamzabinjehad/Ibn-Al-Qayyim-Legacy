@@ -60,10 +60,10 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 allowBuilds:
-  - '@swc/core'
-  - esbuild
-  - msw
-  - unrs-resolver
+  '@swc/core': true
+  esbuild: true
+  msw: true
+  unrs-resolver: true
 
 overrides:
   # Keep only native packages needed by this Windows workspace.
