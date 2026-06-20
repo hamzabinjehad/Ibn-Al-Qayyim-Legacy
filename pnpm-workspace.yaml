@@ -59,6 +59,12 @@ onlyBuiltDependencies:
   - msw
   - unrs-resolver
 
+allowBuilds:
+  - '@swc/core'
+  - esbuild
+  - msw
+  - unrs-resolver
+
 overrides:
   # Keep only native packages needed by this Windows workspace.
   "esbuild>@esbuild/darwin-arm64": "-"
