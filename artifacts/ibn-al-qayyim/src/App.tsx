@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Analytics } from "@vercel/analytics/react";
 import { OnboardingTourProvider } from "@/components/OnboardingTour";
 import PwaInstallPromptModal from "@/components/PwaInstallPromptModal";
 import { LanguageProvider, languageFromPath, normalizeLanguage, type LanguageCode } from "@/lib/i18n";
@@ -77,6 +78,7 @@ function App() {
           </OnboardingTourProvider>
         </WouterRouter>
       </LanguageProvider>
+      <Analytics />
     </QueryClientProvider>
   );
 }
