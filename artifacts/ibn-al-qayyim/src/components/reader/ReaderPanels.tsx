@@ -1,19 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
-  Bookmark,
   Copy,
-  Eye,
-  EyeOff,
   Highlighter,
   ListTree,
+  Maximize2,
   MessageSquareText,
-  Minus,
-  Plus,
+  Minimize2,
   SeparatorHorizontal,
   Share2,
   StickyNote,
-  Type,
 } from "lucide-react";
 import BookTocTree from "@/components/BookTocTree";
 import { DirectionalArrow } from "@/components/editorial/DirectionalIcon";
@@ -25,11 +21,9 @@ import {
   clampReaderFontSize,
   displayFootnoteMarker,
   isPositionedHighlight,
-  MAX_READER_FONT_SIZE,
-  MIN_READER_FONT_SIZE,
-  parseReaderFontSize,
   type PageFootnote,
 } from "@/lib/reader-utils";
+import { cleanBabTitle, stripSectionTypePrefix } from "@/lib/section-title";
 
 export function renderHighlightedText(
   text: string,
@@ -99,7 +93,7 @@ export function TourSelectionActionsDemo({ text }: { text: string }) {
 
   return (
     <div
-      className="reader-chrome fixed bottom-[calc(9.25rem+env(safe-area-inset-bottom))] left-1/2 z-50 max-h-[45vh] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 overflow-y-auto rounded-lg p-3 md:bottom-20 md:max-h-none"
+      className="reader-bar-bottom reader-chrome fixed left-1/2 z-50 max-h-[55vh] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 overflow-y-auto rounded-lg p-3 md:max-h-none"
       data-tour="reader-selection-demo"
       dir={direction}
     >
@@ -145,159 +139,254 @@ export function TourSelectionActionsDemo({ text }: { text: string }) {
   );
 }
 
+function BarBtn({
+  "aria-label": ariaLabel,
+  active,
+  children,
+  onClick,
+}: {
+  "aria-label": string;
+  active?: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-label={ariaLabel}
+      aria-pressed={active}
+      title={ariaLabel}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 active:scale-90 ${
+        active
+          ? "bg-foreground/[.12] text-foreground ring-1 ring-inset ring-foreground/20"
+          : "text-foreground/55 hover:bg-foreground/[.07] hover:text-foreground"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
 export function ReaderToolbar({
-  isVisible,
-  onHide,
-  onShow,
+  bookProgress,
+  isFocusMode,
   onToc,
+  onToggleFocus,
   settings,
   setSettings,
 }: {
-  isVisible: boolean;
-  onHide: () => void;
-  onShow: () => void;
+  bookProgress: number;
+  isFocusMode: boolean;
   onToc: () => void;
+  onToggleFocus: () => void;
   settings: ReturnType<typeof useLocalLibrary>["settings"];
   setSettings: ReturnType<typeof useLocalLibrary>["setSettings"];
 }) {
   const { t } = useUiTranslations();
-  const controlClass = "reader-control inline-flex h-11 items-center justify-center px-3 text-sm";
-  const fontSizeInputRef = useRef<HTMLInputElement>(null);
-  const [fontSizeDraft, setFontSizeDraft] = useState(String(settings.fontSize));
+  const [visible, setVisible] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (document.activeElement === fontSizeInputRef.current) return;
-    setFontSizeDraft(String(settings.fontSize));
-  }, [settings.fontSize]);
-
-  const commitFontSizeDraft = () => {
-    const nextFontSize = parseReaderFontSize(fontSizeDraft);
-    if (nextFontSize === null) {
-      setFontSizeDraft(String(settings.fontSize));
-      return;
-    }
-    setSettings((current) => ({ ...current, fontSize: nextFontSize }));
-    setFontSizeDraft(String(nextFontSize));
-  };
+    const show = () => {
+      setVisible(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setVisible(false), 3000);
+    };
+    show();
+    document.addEventListener("mousemove", show);
+    document.addEventListener("touchstart", show, { passive: true });
+    return () => {
+      document.removeEventListener("mousemove", show);
+      document.removeEventListener("touchstart", show);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const stepFontSize = (delta: number) => {
-    setSettings((current) => ({ ...current, fontSize: clampReaderFontSize(current.fontSize + delta) }));
+    setSettings((c) => ({ ...c, fontSize: clampReaderFontSize(c.fontSize + delta) }));
   };
-
-  if (!isVisible) {
-    return (
-      <button
-        onClick={onShow}
-        className="reader-chrome fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-3 z-40 inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold md:bottom-4 md:left-4"
-      >
-        <Eye className="h-4 w-4" />
-        {t("إظهار الشريط")}
-      </button>
-    );
-  }
 
   return (
     <div
-      className="reader-chrome fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 rounded-none border-x-0 border-b-0 md:bottom-0"
+      role="toolbar"
+      aria-label={t("أدوات القراءة")}
       data-tour="reader-toolbar"
+      className={`reader-bar-bottom fixed inset-x-0 z-40 flex justify-center transition-all duration-500 ${
+        visible
+          ? "translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-5 opacity-0"
+      }`}
     >
-      <div className="safe-bottom scrollbar-none mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-2.5 sm:scrollbar-soft sm:px-4 sm:py-3">
+      <div className="reader-chrome relative flex max-w-[calc(100vw-2rem)] items-center gap-0.5 overflow-hidden rounded-full px-2 py-1 shadow-xl">
+
+        {/* Reading progress — thin strip along the top edge of the pill */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-foreground/10" aria-hidden="true">
+          <div
+            className="h-full bg-foreground/35 transition-[width] duration-500"
+            style={{ width: `${Math.min(100, Math.max(0, bookProgress))}%` }}
+          />
+        </div>
+
+        {/* TOC */}
+        <BarBtn aria-label={t("المحتويات")} onClick={onToc}>
+          <ListTree className="h-[1.05rem] w-[1.05rem]" />
+        </BarBtn>
+
+        <span className="mx-0.5 h-5 w-px bg-foreground/12" aria-hidden="true" />
+
+        {/* Font size: small أ baseline-aligned with large أ */}
         <button
-          onClick={onToc}
-          className={`${controlClass} w-11 gap-2 px-0 sm:w-auto sm:px-3`}
-          aria-label={t("المحتويات")}
+          onClick={() => stepFontSize(-2)}
+          title={t("تصغير الخط")}
+          className="inline-flex h-10 w-8 items-end justify-center pb-[0.45rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90"
+          aria-label={t("تصغير الخط")}
+          type="button"
         >
-          <ListTree className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("المحتويات")}</span>
-        </button>
-        <button onClick={() => stepFontSize(-2)} className={`${controlClass} w-11 px-0`} aria-label={t("تصغير الخط")}>
-          <Minus className="h-4 w-4" />
-        </button>
-        <input
-          ref={fontSizeInputRef}
-          aria-label={t("حجم الخط")}
-          className="reader-control h-11 w-16 px-2 text-center text-sm tabular-nums text-muted-foreground"
-          inputMode="numeric"
-          max={MAX_READER_FONT_SIZE}
-          min={MIN_READER_FONT_SIZE}
-          onBlur={commitFontSizeDraft}
-          onChange={(event) =>
-            setFontSizeDraft(event.target.value.replace(/[^\d٠-٩۰-۹]/g, ""))
-          }
-          onFocus={(event) => event.currentTarget.select()}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              commitFontSizeDraft();
-              event.currentTarget.blur();
-            }
-            if (event.key === "Escape") {
-              setFontSizeDraft(String(settings.fontSize));
-              event.currentTarget.blur();
-            }
-          }}
-          title={`${MIN_READER_FONT_SIZE}-${MAX_READER_FONT_SIZE}`}
-          type="text"
-          value={fontSizeDraft}
-        />
-        <button onClick={() => stepFontSize(2)} className={`${controlClass} w-11 px-0`} aria-label={t("تكبير الخط")}>
-          <Plus className="h-4 w-4" />
+          <span className="select-none font-bold leading-none" style={{ fontSize: "0.65rem" }} aria-hidden="true">أ</span>
         </button>
         <button
-          onClick={() =>
-            setSettings((current) => ({
-              ...current,
-              fontFamily: current.fontFamily === "amiri" ? "naskh" : "amiri",
-            }))
-          }
-          className={`${controlClass} w-11 gap-2 px-0 sm:w-auto sm:px-3`}
-          aria-pressed={settings.fontFamily === "amiri"}
+          onClick={() => stepFontSize(2)}
+          title={t("تكبير الخط")}
+          className="inline-flex h-10 w-8 items-end justify-center pb-[0.15rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90"
+          aria-label={t("تكبير الخط")}
+          type="button"
+        >
+          <span className="select-none font-bold leading-none" style={{ fontSize: "1.4rem" }} aria-hidden="true">أ</span>
+        </button>
+
+        <span className="mx-0.5 h-5 w-px bg-foreground/12" aria-hidden="true" />
+
+        {/* Font family — segmented pill: active font shown inverted */}
+        <div
+          className="flex items-center overflow-hidden rounded-full border border-foreground/15"
+          dir="ltr"
+          role="group"
           aria-label={t("نوع الخط")}
         >
-          <Type className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("نوع الخط")}</span>
-        </button>
-        <button
-          onClick={() => setSettings((current) => ({ ...current, showHarakat: !current.showHarakat }))}
-          className={`${controlClass} w-11 gap-2 px-0 sm:w-auto sm:px-3`}
-          aria-pressed={settings.showHarakat}
-          aria-label={settings.showHarakat ? t("إخفاء التشكيل") : t("إظهار التشكيل")}
+          <button
+            onClick={() => setSettings((c) => ({ ...c, fontFamily: "amiri" }))}
+            aria-pressed={settings.fontFamily === "amiri"}
+            aria-label={t("خط أميري")}
+            title={t("خط أميري")}
+            className={`inline-flex h-8 w-8 items-center justify-center transition-colors duration-150 ${
+              settings.fontFamily === "amiri"
+                ? "bg-foreground text-background"
+                : "text-foreground/55 hover:text-foreground"
+            }`}
+            style={{ fontFamily: "var(--app-font-serif)" }}
+            type="button"
+          >
+            <span className="select-none text-sm font-bold leading-none" aria-hidden="true">أ</span>
+          </button>
+          <span className="h-4 w-px bg-foreground/15" aria-hidden="true" />
+          <button
+            onClick={() => setSettings((c) => ({ ...c, fontFamily: "naskh" }))}
+            aria-pressed={settings.fontFamily !== "amiri"}
+            aria-label={t("خط النسخ")}
+            title={t("خط النسخ")}
+            className={`inline-flex h-8 w-8 items-center justify-center transition-colors duration-150 ${
+              settings.fontFamily !== "amiri"
+                ? "bg-foreground text-background"
+                : "text-foreground/55 hover:text-foreground"
+            }`}
+            style={{ fontFamily: "var(--app-font-sans)" }}
+            type="button"
+          >
+            <span className="select-none text-sm font-bold leading-none" aria-hidden="true">أ</span>
+          </button>
+        </div>
+
+        {/* Harakat */}
+        <BarBtn
+          aria-label={t("التشكيل")}
+          active={settings.showHarakat}
+          onClick={() => setSettings((c) => ({ ...c, showHarakat: !c.showHarakat }))}
         >
-          <Bookmark className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {settings.showHarakat ? t("إخفاء التشكيل") : t("إظهار التشكيل")}
-          </span>
-        </button>
-        <button
-          onClick={() => setSettings((current) => ({ ...current, showFootnotes: !current.showFootnotes }))}
-          className={`${controlClass} w-11 gap-2 px-0 sm:w-auto sm:px-3`}
-          aria-pressed={settings.showFootnotes}
-          aria-label={settings.showFootnotes ? t("إخفاء الحواشي") : t("إظهار الحواشي")}
+          <span className="select-none text-sm font-bold leading-none" aria-hidden="true">تَ</span>
+        </BarBtn>
+
+        {/* Footnotes */}
+        <BarBtn
+          aria-label={t("الحواشي")}
+          active={settings.showFootnotes}
+          onClick={() => setSettings((c) => ({ ...c, showFootnotes: !c.showFootnotes }))}
         >
-          <MessageSquareText className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {settings.showFootnotes ? t("إخفاء الحواشي") : t("إظهار الحواشي")}
-          </span>
-        </button>
-        <button
-          onClick={() => setSettings((current) => ({ ...current, showPageMarkers: !current.showPageMarkers }))}
-          className={`${controlClass} w-11 gap-2 px-0 sm:w-auto sm:px-3`}
-          aria-pressed={settings.showPageMarkers}
-          aria-label={settings.showPageMarkers ? t("إخفاء الفاصل") : t("إظهار الفاصل")}
+          <MessageSquareText className="h-[1.05rem] w-[1.05rem]" />
+        </BarBtn>
+
+        {/* Page markers */}
+        <BarBtn
+          aria-label={t("فاصل الصفحات")}
+          active={settings.showPageMarkers}
+          onClick={() => setSettings((c) => ({ ...c, showPageMarkers: !c.showPageMarkers }))}
         >
-          <SeparatorHorizontal className="h-4 w-4" />
-          <span className="hidden sm:inline">
-            {settings.showPageMarkers ? t("إخفاء الفاصل") : t("إظهار الفاصل")}
-          </span>
-        </button>
-        <button
-          onClick={onHide}
-          className={`${controlClass} ms-auto w-11 gap-2 px-0 sm:w-auto sm:px-3`}
-          aria-label={t("إخفاء الشريط")}
+          <SeparatorHorizontal className="h-[1.05rem] w-[1.05rem]" />
+        </BarBtn>
+
+        <span className="mx-0.5 h-5 w-px bg-foreground/12" aria-hidden="true" />
+
+        {/* Focus mode */}
+        <BarBtn
+          aria-label={isFocusMode ? t("إلغاء وضع التركيز") : t("وضع التركيز")}
+          active={isFocusMode}
+          onClick={onToggleFocus}
         >
-          <EyeOff className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("إخفاء الشريط")}</span>
-        </button>
+          {isFocusMode
+            ? <Minimize2 className="h-[1.05rem] w-[1.05rem]" />
+            : <Maximize2 className="h-[1.05rem] w-[1.05rem]" />
+          }
+        </BarBtn>
       </div>
+    </div>
+  );
+}
+
+export function FocusModeOverlay({ isFocusMode }: { isFocusMode: boolean }) {
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cursor auto-hide after 3s idle
+  useEffect(() => {
+    if (!isFocusMode) return;
+    const html = document.documentElement;
+    const onMove = () => {
+      html.classList.remove("focus-cursor-hidden");
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+      cursorTimerRef.current = setTimeout(
+        () => html.classList.add("focus-cursor-hidden"),
+        3000,
+      );
+    };
+    document.addEventListener("mousemove", onMove);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      html.classList.remove("focus-cursor-hidden");
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+    };
+  }, [isFocusMode]);
+
+  // Scroll progress bar
+  useEffect(() => {
+    if (!isFocusMode) return;
+    const onScroll = () => {
+      const el = document.documentElement;
+      const total = el.scrollHeight - el.clientHeight;
+      setScrollProgress(total > 0 ? Math.min(100, Math.round((el.scrollTop / total) * 100)) : 0);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isFocusMode]);
+
+  if (!isFocusMode) return null;
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[61] h-0.5 bg-border/30">
+      <div
+        className="h-full bg-primary/50 transition-[width] duration-150"
+        style={{ width: `${scrollProgress}%` }}
+      />
     </div>
   );
 }
@@ -321,8 +410,10 @@ export function PageFootnotes({
 
   return (
     <aside aria-label={t("حواشي الصفحة")} className="reader-footnotes mt-7">
-      <div className="reader-footnotes-header">
-        <span>{t("حواشي الصفحة")}</span>
+      <div className="flourish-rule mb-3 text-muted-foreground/50">
+        <span className="flourish-rule__ornament flourish-rule__ornament--hollow" />
+        <span className="flourish-rule__ornament" />
+        <span className="flourish-rule__ornament flourish-rule__ornament--hollow" />
       </div>
       {footnotes.map((footnote) => {
         const footnoteOffsetBase = offsetBase;
@@ -405,11 +496,13 @@ export function ChapterNav({
   label: string;
   role: "back" | "forward";
 }) {
+  const displayTitle =
+    cleanBabTitle(stripSectionTypePrefix(chapter.titleAr, chapter.type)) || chapter.titleAr;
   return (
     <Link href={`/edition/${chapter.editionId}/section/${chapter.id}`} className="interactive-card p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 line-clamp-2 font-semibold leading-7">
-        {chapter.titleAr}
+        {displayTitle}
         <DirectionalArrow className="ms-2 inline h-4 w-4" role={role} />
       </p>
     </Link>

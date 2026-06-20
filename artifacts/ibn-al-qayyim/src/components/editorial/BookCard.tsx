@@ -4,10 +4,10 @@ import type { BookSummary, EditionSummary, WorkSummary } from "@/lib/static-libr
 import BookCover from "@/components/BookCover";
 import { DirectionalArrow } from "./DirectionalIcon";
 import ProgressLine from "./ProgressLine";
-import { editionCountText, useUiTranslations } from "@/lib/ui-translations";
+import { editionCountText, formatNumber, useUiTranslations } from "@/lib/ui-translations";
 
 export function WorkCard({ work, progress }: { work: WorkSummary; progress?: number }) {
-  const { language } = useUiTranslations();
+  const { language, t } = useUiTranslations();
   const roundedProgress = typeof progress === "number" ? Math.round(progress) : null;
   return (
     <Link
@@ -23,13 +23,18 @@ export function WorkCard({ work, progress }: { work: WorkSummary; progress?: num
         className="mx-auto !h-36 !w-24 sm:!h-52 sm:!w-36"
       />
       <div className="mt-4 flex flex-1 flex-col text-center">
-        <h3 className="line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
+        <h3 className="line-clamp-2 text-base font-semibold leading-7">
           {work.titleAr}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
           {editionCountText(work.editionCount, language)}
         </p>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground sm:mt-3">{work.description}</p>
+        {work.pageCount > 0 && (
+          <p className="mt-2 text-xs text-muted-foreground/70">
+            {formatNumber(work.pageCount, language)} {t("صفحة")}
+          </p>
+        )}
       </div>
       {roundedProgress !== null && (
         <ProgressLine className="mt-4" value={roundedProgress} />
@@ -57,6 +62,9 @@ export function WorkRow({ work }: { work: WorkSummary }) {
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">
           {editionCountText(work.editionCount, language)}
+          {work.pageCount > 0 && (
+            <span className="ms-2 opacity-70">· {formatNumber(work.pageCount, language)} {t("صفحة")}</span>
+          )}
         </p>
         <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-7 sm:mt-2 sm:text-lg sm:leading-8">{work.titleAr}</h3>
         <p className="mt-1 line-clamp-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-2 sm:leading-7">{work.description}</p>
@@ -90,7 +98,7 @@ export function BookCard({ book, progress }: { book: BookSummary; progress?: num
         className="mx-auto !h-36 !w-24 sm:!h-52 sm:!w-36"
       />
       <div className="mt-4 flex flex-1 flex-col text-center">
-        <h3 className="line-clamp-2 text-base font-semibold leading-7 transition-colors group-hover:text-muted-foreground">
+        <h3 className="line-clamp-2 text-base font-semibold leading-7">
           {book.titleAr}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">

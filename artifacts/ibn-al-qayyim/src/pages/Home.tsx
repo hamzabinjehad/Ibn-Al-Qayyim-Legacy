@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Search } from "lucide-react";
+import { BookOpen, ImageDown, Quote, Search } from "lucide-react";
 import AppShell from "@/components/editorial/AppShell";
 import BookCover from "@/components/BookCover";
 import {
@@ -12,11 +12,13 @@ import { DirectionalArrow } from "@/components/editorial/DirectionalIcon";
 import PageFrame from "@/components/editorial/PageFrame";
 import ProgressLine from "@/components/editorial/ProgressLine";
 import SectionHeader from "@/components/editorial/SectionHeader";
+import QuoteShareModal from "@/components/QuoteShareModal";
 import {
   FEATURED_READING_EDITION_ID,
   FEATURED_READING_WORK_ID,
   prioritizeFeaturedWork,
 } from "@/lib/featured-reading";
+import { getDailyQuote } from "@/lib/daily-quote";
 import { useLocalLibrary } from "@/lib/local-library";
 import {
   type BookSummary,
@@ -33,6 +35,8 @@ export default function Home() {
   const { data: works, isLoading, isError, refetch } = useStaticWorks();
   const { data: books } = useStaticBooks();
   const { positions } = useLocalLibrary();
+  const dailyQuote = useMemo(() => getDailyQuote(), []);
+  const [showDailyQuoteShare, setShowDailyQuoteShare] = useState(false);
 
   const latestPosition = positions[0];
   const allWorks = useMemo(() => prioritizeFeaturedWork(works ?? []), [works]);
@@ -103,6 +107,37 @@ export default function Home() {
             </button>
           </form>
         </section>
+
+        {/* Daily quote */}
+        <section className="mx-auto mt-8 max-w-3xl md:mt-10">
+          <blockquote className="surface-card group relative overflow-hidden p-5 sm:p-6">
+            <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
+              style={{ backgroundImage: "repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 14px)" }}
+            />
+            <div className="relative">
+              <Quote className="mb-3 h-5 w-5 text-muted-foreground/50" aria-hidden="true" />
+              <p className="font-display text-base leading-9 text-foreground sm:text-lg sm:leading-10" dir="rtl">
+                {dailyQuote.text}
+              </p>
+              <footer className="mt-4 flex items-center justify-between gap-3">
+                <cite className="text-xs font-semibold not-italic text-muted-foreground">
+                  {t("الإمام ابن قيم الجوزية")} — {dailyQuote.source}
+                </cite>
+                <button
+                  type="button"
+                  onClick={() => setShowDailyQuoteShare(true)}
+                  className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-[0.65rem] font-semibold text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-muted hover:text-foreground"
+                  title={t("مشاركة أو تحميل كصورة")}
+                >
+                  <Quote className="h-2.5 w-2.5" />
+                  {t("اقتباس اليوم")}
+                  <ImageDown className="h-3 w-3 opacity-50 transition-opacity group-hover:opacity-100" />
+                </button>
+              </footer>
+            </div>
+          </blockquote>
+        </section>
+
 
         <section className="mt-8 md:mt-12">
           <div className="min-w-0 space-y-8">
@@ -188,6 +223,14 @@ export default function Home() {
           </div>
         </section>
       </PageFrame>
+      {showDailyQuoteShare && (
+        <QuoteShareModal
+          text={dailyQuote.text}
+          bookTitle={dailyQuote.source}
+          chapterTitle={t("اقتباس اليوم")}
+          onClose={() => setShowDailyQuoteShare(false)}
+        />
+      )}
     </AppShell>
   );
 }

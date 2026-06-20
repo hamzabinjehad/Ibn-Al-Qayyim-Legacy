@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Search, X } from "lucide-react";
 import { DisclosureChevron } from "@/components/editorial/DirectionalIcon";
@@ -69,6 +69,38 @@ function normalizeForSearch(s: string): string {
     .toLowerCase();
 }
 
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const normalizedText = normalizeForSearch(text);
+  const normalizedQuery = normalizeForSearch(query);
+  const idx = normalizedText.indexOf(normalizedQuery);
+  if (idx < 0) return text;
+
+  // Build a map from normalized-text index → original-text index.
+  // Diacritics normalize to "" (0 norm chars); all others produce 1.
+  const normToOrig: number[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const nc = normalizeForSearch(text[i]!);
+    for (let j = 0; j < nc.length; j++) normToOrig.push(i);
+  }
+
+  const origStart = normToOrig[idx] ?? text.length;
+  const endNormIdx = idx + normalizedQuery.length;
+  let origEnd = endNormIdx < normToOrig.length ? (normToOrig[endNormIdx] ?? text.length) : text.length;
+  // Include any trailing diacritics that belong to the last matched character.
+  while (origEnd < text.length && normalizeForSearch(text[origEnd]!) === "") origEnd++;
+
+  return (
+    <>
+      {text.slice(0, origStart)}
+      <mark className="rounded-sm bg-amber-200/70 text-inherit dark:bg-amber-700/60">
+        {text.slice(origStart, origEnd)}
+      </mark>
+      {text.slice(origEnd)}
+    </>
+  );
+}
+
 function nodeMatchesFilter(node: SectionNode, query: string): boolean {
   if (!query) return true;
   const q = normalizeForSearch(query);
@@ -112,6 +144,17 @@ export default function BookTocTree({
   const tree = useMemo(() => buildTree(resolvedSections), [resolvedSections]);
 
   const [filterQuery, setFilterQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!resolvedCurrentId) return;
+    const frame = requestAnimationFrame(() => {
+      const el = containerRef.current?.querySelector<HTMLElement>("[data-current]");
+      if (!el) return;
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [resolvedCurrentId]);
 
   const displayPageByPageNumber = useMemo(() => {
     const pageMap = new Map<number, number>();
@@ -154,28 +197,43 @@ export default function BookTocTree({
   );
 
   const treeContent = (
-    <div className={cn("space-y-1.5", compact && "space-y-1")}>
+    <div className="space-y-px">
       {showFilter && (
-        <div className={cn("relative mb-2", compact && "mb-1.5")}>
-          <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-            placeholder={t("ابحث في الفهرس")}
-            className={cn(
-              "h-8 w-full rounded-md border border-border bg-background ps-8 pe-8 text-xs transition-colors focus:border-foreground focus:outline-none",
-              compact && "h-7 text-[0.7rem]",
+        <div className={cn("mb-2 flex items-center gap-1.5", compact && "mb-1.5")}>
+          <div className={cn("relative flex-1")}>
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              placeholder={t("ابحث في الفهرس")}
+              className={cn(
+                "h-8 w-full rounded-md border border-border bg-background ps-8 pe-8 text-xs transition-colors focus:border-foreground focus:outline-none",
+                compact && "h-7 text-[0.7rem]",
+              )}
+              dir="rtl"
+            />
+            {filterQuery && (
+              <button
+                type="button"
+                onClick={() => setFilterQuery("")}
+                className="absolute end-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                aria-label={t("مسح البحث")}
+              >
+                <X className="h-3 w-3" />
+              </button>
             )}
-            dir="rtl"
-          />
-          {filterQuery && (
+          </div>
+          {openIds.size > 0 && !filterQuery && (
             <button
               type="button"
-              onClick={() => setFilterQuery("")}
-              className="absolute end-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
-              aria-label={t("مسح البحث")}
+              onClick={() => setOpenIds(new Set())}
+              className={cn(
+                "shrink-0 rounded-md border border-border px-2 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground",
+                compact ? "h-7" : "h-8",
+              )}
+              title={t("طي الكل")}
             >
-              <X className="h-3 w-3" />
+              {t("طي")}
             </button>
           )}
         </div>
@@ -202,23 +260,23 @@ export default function BookTocTree({
   );
 
   return (
-    <div className={cn("space-y-2", compact && "space-y-1", className)}>
-      {editionTitle ? (
-        <div className={cn("rounded-lg border border-border bg-background/60", compact && "rounded-md")}>
-          <div className={cn("flex items-center justify-between gap-3 border-b border-border px-4 py-3", compact && "px-3 py-2")}>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">{t("الكتاب")}</p>
-              <p className={cn("line-clamp-2 font-semibold leading-7 text-foreground", compact && "text-xs leading-6")}>{editionTitle}</p>
-            </div>
-            <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs tabular-nums text-muted-foreground">{totalChildren}</span>
-          </div>
-          <div className={cn("p-2", compact && "p-1.5")}>
-            {treeContent}
-          </div>
+    <div ref={containerRef} className={cn(className)}>
+      {editionTitle && (
+        <div
+          className={cn(
+            "mb-2 flex items-center justify-between gap-2 border-b border-border/50 pb-2",
+            compact ? "mb-1.5 pb-1.5" : "mb-2.5 pb-2.5",
+          )}
+        >
+          <p className={cn("truncate font-bold text-foreground", compact ? "text-xs" : "text-sm")}>
+            {editionTitle}
+          </p>
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground/70">
+            {totalChildren}
+          </span>
         </div>
-      ) : (
-        treeContent
       )}
+      {treeContent}
     </div>
   );
 }
@@ -253,17 +311,68 @@ function BookTocNode({
   const isOpen = openIds.has(node.id);
   const isHeading = node.type === "heading";
   const isBab = node.type === "bab";
-  const isTopic = node.type === "topic" || node.type === "masala" || node.type === "faida" ||
+  const isTopic =
+    node.type === "topic" || node.type === "masala" || node.type === "faida" ||
     node.type === "qaida" || node.type === "tanbih" || node.type === "matlub" || node.type === "khatima";
-  const childCount = useMemo(() => countDescendants(node), [node]);
   const href = `/edition/${editionId}/section/${node.id}`;
 
   const filteredChildren = useMemo(
-    () =>
-      filterQuery
-        ? node.children.filter((c) => nodeMatchesFilter(c, filterQuery))
-        : node.children,
+    () => filterQuery ? node.children.filter((c) => nodeMatchesFilter(c, filterQuery)) : node.children,
     [node.children, filterQuery],
+  );
+
+  const stripped = stripSectionTypePrefix(node.titleAr, node.type);
+  const displayTitle = node.type === "bab" ? cleanBabTitle(stripped) : stripped;
+  const typeLabel = sectionTypeLabel(node.type, language);
+  const startPage = displayPageByPageNumber.get(node.startPage) ?? node.startPage;
+  const endPage = displayPageByPageNumber.get(node.endPage) ?? node.endPage;
+
+  // Shared row content: [type badge] [title] [page]
+  const rowContent = (
+    <>
+      <span
+        className={cn(
+          "shrink-0 rounded font-normal leading-none",
+          compact ? "text-[0.6rem]" : "text-[0.68rem]",
+          isHeading
+            ? "bg-muted px-1.5 py-0.5 text-muted-foreground"
+            : "text-muted-foreground/55",
+          isCurrent && !isHeading && "text-foreground/50",
+        )}
+      >
+        {typeLabel}
+      </span>
+      <span
+        className={cn(
+          "min-w-0 flex-1 leading-6",
+          isHeading
+            ? cn("font-bold text-foreground", compact ? "text-xs" : "text-sm")
+            : isBab
+            ? cn("font-semibold", compact ? "text-xs" : "text-sm", !isCurrent && "text-foreground/85")
+            : isTopic
+            ? cn(compact ? "text-[0.68rem]" : "text-xs")
+            : cn(compact ? "text-xs" : "text-sm"),
+          isCurrent && "text-foreground",
+        )}
+      >
+        {highlightMatch(displayTitle, filterQuery)}
+      </span>
+      <PageRangeLabel endPage={endPage} language={language} startPage={startPage} />
+    </>
+  );
+
+  // Shared active/hover classes for the clickable row area
+  const rowCls = cn(
+    "flex min-w-0 flex-1 items-center gap-2 rounded-md transition-colors",
+    compact ? "py-1.5 ps-2 pe-2" : "py-[0.4rem] ps-2.5 pe-2.5",
+    isCurrent
+      ? "border-s-2 border-s-foreground/50 bg-muted/45 text-foreground"
+      : cn(
+          "border-s-2 border-s-transparent",
+          isHeading
+            ? "text-foreground hover:bg-muted/30"
+            : "text-muted-foreground hover:bg-muted/35 hover:text-foreground",
+        ),
   );
 
   if (!hasChildren) {
@@ -271,92 +380,48 @@ function BookTocNode({
       <Link
         href={href}
         onClick={onSelect}
-        className={cn(
-          // heading: centered card
-          isHeading &&
-            "grid grid-cols-[minmax(3.75rem,auto)_minmax(0,1fr)_minmax(3.75rem,auto)] items-center gap-3 rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm leading-7 transition-colors hover:border-foreground/40 hover:bg-muted/60",
-          // bab: bold with left accent
-          isBab &&
-            "flex items-center justify-between gap-3 rounded-lg border border-transparent border-s-2 border-s-foreground/20 bg-muted/5 px-4 py-2.5 text-sm font-medium leading-7 transition-colors hover:border-s-foreground/40 hover:bg-muted/40",
-          // topic/مطلب: smaller, more muted
-          isTopic &&
-            "flex items-center justify-between gap-3 rounded-md border border-transparent px-3 py-1.5 text-xs leading-6 transition-colors hover:border-border/50 hover:bg-muted/30",
-          // fasl: default
-          !isHeading &&
-            !isBab &&
-            !isTopic &&
-            "flex items-center justify-between gap-3 rounded-lg border border-transparent px-4 py-3 text-sm leading-7 transition-colors hover:border-border hover:bg-muted/50",
-          // compact overrides
-          compact &&
-            (isHeading
-              ? "grid-cols-[minmax(3.25rem,auto)_minmax(0,1fr)_minmax(3.25rem,auto)] px-3 py-2 text-xs leading-6"
-              : isBab
-                ? "px-3 py-1.5 text-xs leading-6"
-                : isTopic
-                  ? "px-2.5 py-1 text-[0.7rem] leading-5"
-                  : "px-3 py-2 text-xs leading-6"),
-          node.parentId && "ms-4",
-          isCurrent ? "border-border bg-muted text-foreground" : "text-muted-foreground",
-        )}
+        data-current={isCurrent || undefined}
+        className={cn(rowCls, isHeading && cn("mt-2", compact && "mt-1.5"))}
       >
-        {isHeading && <span aria-hidden="true" />}
-        <SectionTitle centered={isHeading} compact={compact} language={language} node={node} />
-        <PageRangeLabel
-          endPage={displayPageByPageNumber.get(node.endPage) ?? node.endPage}
-          language={language}
-          startPage={displayPageByPageNumber.get(node.startPage) ?? node.startPage}
-        />
+        {rowContent}
       </Link>
     );
   }
 
   return (
     <div
-      className={cn(
-        "rounded-lg border border-border",
-        // bab at root level gets a stronger left accent
-        isBab && !node.parentId && "border-s-[3px] border-s-foreground/25",
-        node.parentId && "ms-4",
-        compact && "rounded-md",
-      )}
+      data-current={isCurrent || undefined}
+      className={isHeading ? cn("mt-2", compact && "mt-1.5") : undefined}
     >
-      <div className={cn("flex items-stretch gap-1 p-1", isCurrent && "bg-muted")}>
+      <div className="flex items-center gap-0.5">
+        {/* Chevron — expand / collapse only */}
         <button
           type="button"
           aria-expanded={isOpen}
           onClick={() => toggleNode(node.id)}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2 text-start transition-colors hover:bg-muted/70",
-            compact && "gap-2 px-2 py-1.5",
+            "flex shrink-0 items-center justify-center rounded-md transition-colors",
+            "text-muted-foreground/45 hover:bg-muted/50 hover:text-muted-foreground",
+            compact ? "h-7 w-6" : "h-8 w-7",
           )}
         >
-          <DisclosureChevron className="h-4 w-4 shrink-0 text-muted-foreground" open={isOpen} />
-          <SectionTitle
-            compact={compact}
-            language={language}
-            node={node}
-            strong={isBab || isHeading}
+          <DisclosureChevron
+            className={cn("shrink-0", compact ? "h-3 w-3" : "h-3.5 w-3.5")}
+            open={isOpen}
           />
-          <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs tabular-nums text-muted-foreground">{childCount}</span>
         </button>
-        <Link
-          href={href}
-          onClick={onSelect}
-          className={cn(
-            "inline-flex min-w-16 items-center justify-center rounded-md px-2 text-xs tabular-nums text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-            isCurrent && "bg-background text-foreground",
-          )}
-          aria-label={`${translateReadLabel(language, node.titleAr)}`}
-        >
-          <PageRangeLabel
-            endPage={displayPageByPageNumber.get(node.endPage) ?? node.endPage}
-            language={language}
-            startPage={displayPageByPageNumber.get(node.startPage) ?? node.startPage}
-          />
+        {/* Clickable title → navigates to section */}
+        <Link href={href} onClick={onSelect} className={rowCls}>
+          {rowContent}
         </Link>
       </div>
       {isOpen && (
-        <div className={cn("space-y-1 border-t border-border p-2", compact && "p-1.5")}>
+        <div
+          className={cn(
+            "mt-px space-y-px border-s border-border/45 pb-0.5",
+            compact ? "ms-3 ps-2" : "ms-[0.875rem] ps-2.5",
+          )}
+        >
           {filteredChildren.map((child) => (
             <BookTocNode
               compact={compact}
@@ -376,12 +441,6 @@ function BookTocNode({
       )}
     </div>
   );
-}
-
-function translateReadLabel(language: LanguageCode, title: string) {
-  if (language === "de") return `${title} lesen`;
-  if (language === "en") return `Read ${title}`;
-  return `قراءة ${title}`;
 }
 
 function PageRangeLabel({
@@ -409,50 +468,3 @@ function PageRangeLabel({
   );
 }
 
-function SectionTitle({
-  centered = false,
-  compact,
-  language,
-  node,
-  strong = false,
-}: {
-  centered?: boolean;
-  compact: boolean;
-  language?: LanguageCode;
-  node: SectionNode;
-  strong?: boolean;
-}) {
-  const stripped = stripSectionTypePrefix(node.titleAr, node.type);
-  const displayTitle = node.type === "bab" ? cleanBabTitle(stripped) : stripped;
-  const showTypeBadge = node.type !== "heading";
-
-  return (
-    <span
-      className={cn(
-        centered
-          ? "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 text-center leading-6"
-          : "flex min-w-0 flex-1 items-baseline gap-3 leading-7",
-        compact && (centered ? "gap-1 text-xs leading-5" : "gap-2 text-xs leading-6"),
-        strong && "font-semibold text-foreground",
-      )}
-    >
-      {showTypeBadge && (
-        <span
-          className={cn(
-            "shrink-0 font-normal text-muted-foreground",
-            centered
-              ? "rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold"
-              : node.type === "topic"
-                ? "text-[0.65rem]"
-                : "text-xs",
-          )}
-        >
-          {sectionTypeLabel(node.type, language)}
-        </span>
-      )}
-      <span className={cn("line-clamp-2 min-w-0 flex-1", centered && "w-full flex-none font-semibold text-foreground")}>
-        {displayTitle}
-      </span>
-    </span>
-  );
-}

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "extract-quotes": "tsx ./src/extract-quotes.ts",
     "extract-ibn-qayyim": "tsx ./src/extract-ibn-qayyim.ts",
     "extract-from-shamela": "tsx ./src/extract-from-shamela.ts",
     "enrich-with-footnotes": "tsx ./src/enrich-with-footnotes.ts",

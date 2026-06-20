@@ -28,7 +28,7 @@ interface Props {
   onClose: () => void;
 }
 
-type QuotePresetKey = "cover" | "manuscript" | "mihrab";
+type QuotePresetKey = "cover" | "manuscript" | "mihrab" | "daylight";
 type ShareFormat = "square" | "story";
 type CopiedKind = "text" | "image" | "link";
 
@@ -80,6 +80,17 @@ const baseQuotePresets: QuotePreset[] = [
     muted: "#d2b079",
     line: "#8b6a3c",
     dark: true,
+  },
+  {
+    key: "daylight",
+    title: "نهار",
+    description: "أبيض نقي لطباعة وضياء يناسب الشاشات الساطعة",
+    accent: "#3a5a3a",
+    background: "#f8f9fa",
+    surface: "#ffffff",
+    ink: "#1a1a1a",
+    muted: "#4a6a4a",
+    line: "#8aab8a",
   },
 ];
 

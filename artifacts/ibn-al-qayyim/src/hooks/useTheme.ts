@@ -1,31 +1,41 @@
 import { useEffect, useState } from "react";
 
-const THEME_COLORS = { dark: "#0a0a0a", light: "#ffffff" };
+export type ThemeMode = "light" | "sepia" | "dark";
 
-function applyThemeColor(dark: boolean) {
+const THEME_BG: Record<ThemeMode, string> = {
+  dark: "#08090f",
+  light: "#ffffff",
+  sepia: "#f0e6d0",
+};
+
+function readStoredMode(): ThemeMode {
+  const stored = localStorage.getItem("theme");
+  if (stored === "dark" || stored === "sepia") return stored;
+  return "light";
+}
+
+function applyMode(mode: ThemeMode) {
+  document.documentElement.classList.toggle("dark", mode === "dark");
+  document.documentElement.classList.toggle("sepia", mode === "sepia");
+  const bg = THEME_BG[mode];
   document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((el) => {
-    const media = el.getAttribute("media") ?? "";
-    if (media.includes("dark")) el.content = dark ? THEME_COLORS.dark : THEME_COLORS.light;
-    else if (media.includes("light")) el.content = dark ? THEME_COLORS.dark : THEME_COLORS.light;
-    else el.content = dark ? THEME_COLORS.dark : THEME_COLORS.light;
+    el.content = bg;
   });
 }
 
 export function useTheme() {
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
+  const [mode, setMode] = useState<ThemeMode>(readStoredMode);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    applyThemeColor(dark);
+    applyMode(mode);
   }, []);
 
   const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-    applyThemeColor(next);
+    const next: ThemeMode = mode === "light" ? "sepia" : mode === "sepia" ? "dark" : "light";
+    setMode(next);
+    applyMode(next);
+    localStorage.setItem("theme", next);
   };
 
-  return { dark, toggle };
+  return { dark: mode === "dark", mode, toggle };
 }

@@ -24,6 +24,7 @@ import ProgressLine from "@/components/editorial/ProgressLine";
 import QuoteShareModal from "@/components/QuoteShareModal";
 import {
   ChapterNav,
+  FocusModeOverlay,
   PageFootnotes,
   ReaderToc,
   ReaderToolbar,
@@ -68,7 +69,7 @@ const QURAN_VERSE_CURLY_NOREF_REGEX = /\{([^}\n]{5,500})\}(?!\s*\[)/gu;
 // [[H:heading text]] — emitted by extract-ibn-qayyim.ts for title spans
 const INLINE_HEADING_REGEX = /\[\[H:([^\]]{1,300})\]\]/gu;
 // ((heading)) — Shamela double-paren section label: ((أقسام النعمة))
-const SHAMELA_DOUBLE_PAREN_REGEX = /\(\(([^)\n]{2,150})\)\)/gu;
+const SHAMELA_DOUBLE_PAREN_REGEX = /\(\(([^)\n]{6,150})\)\)/gu;
 // [heading] — Shamela single-bracket topic marker: [النعمة المطلقة]
 // Excluded: verse refs (\d in content or colon-digit pattern), footnote markers, and
 // brackets immediately following } or ﴾ (verse refs already consumed by verse regex)
@@ -77,6 +78,13 @@ const SHAMELA_BRACKET_REGEX = /\[([^\]\n]{2,80})\]/gu;
 // Works on un-voweled text (most of the corpus). Group 1 = boundary; Group 2 = label.
 const ENUM_LABEL_REGEX =
   /(^|[\n.]\s*)((?:[وف])?(?:أ(?:حده?ا|وله?ا|ولاً?)|[وف]?(?:ال)?(?:ثاني?(?:ة|ه?ا)?|ثالث(?:ة|ه?ا)?|رابع(?:ة|ه?ا)?|خامس(?:ة|ه?ا)?|سادس(?:ة|ه?ا)?|سابع(?:ة|ه?ا)?|ثامن(?:ة|ه?ا)?|تاسع(?:ة|ه?ا)?|عاشر(?:ة|ه?ا)?)|ثانياً?|ثالثاً?|رابعاً?|خامساً?|سادساً?|سابعاً?|ثامناً?|تاسعاً?|عاشراً?|[وف]?منه[ام]|(?:القول|الوجه|الجواب|السؤال|الدليل|الفائدة|النوع|الضرب)\s+(?:الأول[ىة]?|الثاني?ة?|الثالث?ة?|الرابع?ة?|الخامس?ة?))\s*[:：])/gmu;
+// Speaker attribution at sentence/paragraph boundaries: قال ابن القيم: / وذكر الإمام أحمد: / فروى البخاري:
+// Group 1 = boundary char (not part of token); Group 2 = full attribution phrase.
+const SPEAKER_ATTR_REGEX =
+  /(^|[\n.]\s*)((?:[وف])?(?:قال|قالت|ذكر|روى|نقل|حكى|أخرجه|رواه|أورده)\s+[^\n:،.]{4,75}?\s*[:：])/gmu;
+// For blockquote detection: paragraph ends with a speaker attribution colon.
+const BLOCK_ATTR_END_REGEX =
+  /(?:[وف])?(?:قال|قالت|ذكر|روى|نقل|حكى|أخرجه|رواه|أورده)\s+[^\n:،.]{4,75}?\s*[:：]\s*$/mu;
 
 type RichToken =
   | { kind: "verse"; start: number; end: number; verseText: string; ref: string | undefined }
@@ -84,6 +92,7 @@ type RichToken =
   | { kind: "topic-paren"; start: number; end: number; text: string }
   | { kind: "topic-bracket"; start: number; end: number; text: string }
   | { kind: "enum-label"; start: number; end: number; text: string }
+  | { kind: "speaker-attr"; start: number; end: number; text: string }
   | { kind: "footnote"; start: number; end: number; marker: string; targetId: string }
   | { kind: "ref-plain"; start: number; end: number; marker: string }
   | { kind: "suppress"; start: number; end: number };
@@ -91,9 +100,10 @@ type RichToken =
 // Returns a CSS class string reflecting heading hierarchy detected from text keywords
 function headingCssClass(text: string): string {
   const t = text.trimStart();
-  if (/^(?:كتاب|باب)(?:\s|$)/.test(t)) return "reader-inline-heading reader-heading-bab";
-  if (/^(?:فصل|فائدة|خاتمة)(?:\s|$)/.test(t)) return "reader-inline-heading reader-heading-fasl";
-  if (/^(?:تنبيه|مسألة|مسئلة|قاعدة|مطلب|فرع|ملحوظة)(?:\s|$)/.test(t)) return "reader-inline-heading reader-heading-sub";
+  if (/^كتاب(?:\s|$)/.test(t)) return "reader-inline-heading reader-heading-kitab";
+  if (/^باب(?:\s|$)/.test(t)) return "reader-inline-heading reader-heading-bab";
+  if (/^(?:فصل|خاتمة)(?:\s|$)/.test(t)) return "reader-inline-heading reader-heading-fasl";
+  if (/^(?:فائدة|تنبيه|مسألة|مسئلة|قاعدة|مطلب|فرع|ملحوظة)(?:\s|$)/.test(t)) return "reader-inline-heading reader-heading-sub";
   return "reader-inline-heading";
 }
 
@@ -156,6 +166,11 @@ function collectRichTokens(
     const label = m[2]!;
     const start = m.index! + (m[1]?.length ?? 0);
     raw.push({ kind: "enum-label", start, end: start + label.length, text: label });
+  }
+  for (const m of text.matchAll(SPEAKER_ATTR_REGEX)) {
+    const attr = m[2]!;
+    const start = m.index! + (m[1]?.length ?? 0);
+    raw.push({ kind: "speaker-attr", start, end: start + attr.length, text: attr });
   }
 
   // Sort by position, earliest first; on tie prefer the longer match
@@ -240,6 +255,12 @@ function renderReaderText(
           {token.text}
         </span>,
       );
+    } else if (token.kind === "speaker-attr") {
+      nodes.push(
+        <span className="reader-speaker-attr" key={`sp-${token.start}`}>
+          {token.text}
+        </span>,
+      );
     } else if (token.kind === "suppress") {
       // consumed — render nothing; the range is just dropped (duplicate title)
     } else if (token.kind === "ref-plain") {
@@ -289,6 +310,7 @@ function renderParagraphs(
   onHighlightSelect?: (highlight: LocalHighlight) => void,
   highlightActionLabel?: string,
   chapterTitleAr?: string,
+  paragraphOffset = 0,
 ): React.ReactNode[] {
   const parts: Array<{ text: string; offset: number }> = [];
   let lastEnd = 0;
@@ -298,10 +320,17 @@ function renderParagraphs(
   }
   parts.push({ text: fullText.slice(lastEnd), offset: lastEnd });
 
-  return parts
-    .filter(({ text }) => text.trim())
-    .map(({ text, offset }, i) => (
-      <p className="reader-paragraph" key={i}>
+  const filtered = parts.filter(({ text }) => text.trim());
+
+  return filtered.map(({ text, offset }, i) => {
+    const prevText = i > 0 ? filtered[i - 1]!.text.trim() : "";
+    const isBlockquote = BLOCK_ATTR_END_REGEX.test(prevText);
+    return (
+      <p
+        id={`p-${paragraphOffset + i}`}
+        className={`reader-paragraph${isBlockquote ? " reader-blockquote" : ""}`}
+        key={i}
+      >
         {renderReaderText(
           text,
           highlights,
@@ -314,7 +343,8 @@ function renderParagraphs(
           chapterTitleAr,
         )}
       </p>
-    ));
+    );
+  });
 }
 
 export default function ChapterReader() {
@@ -366,7 +396,7 @@ export default function ChapterReader() {
   const [selectionPosition, setSelectionPosition] = useState<SelectionPosition | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [status, setStatus] = useState<ReaderStatus>(null);
-  const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
   const [shareText, setShareText] = useState<string | null>(null);
   const [highlightColor, setHighlightColor] = useState<HighlightColor>(HIGHLIGHT_PALETTE[0].value);
   const highlightColorRef = useRef<HighlightColor>(HIGHLIGHT_PALETTE[0].value);
@@ -518,6 +548,35 @@ export default function ChapterReader() {
     setAppendedSectionIds([]);
   }, [chapterIdNum]);
 
+  // Mark the document while reader is mounted so CSS transitions are active on header/nav
+  useEffect(() => {
+    document.documentElement.classList.add("reader-focus-ready");
+    return () => {
+      document.documentElement.classList.remove("reader-focus-ready");
+      document.documentElement.classList.remove("focus-mode-active");
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
+    if (focusMode) {
+      document.documentElement.classList.add("focus-mode-active");
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.documentElement.classList.remove("focus-mode-active");
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }
+  }, [focusMode]);
+
+  // Sync focus mode state when browser exits fullscreen (Esc / F11 / clicking browser chrome)
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) setFocusMode(false);
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
   useEffect(() => {
     const updateScrollTopVisibility = () => {
       setShowScrollTop(currentScrollY() > scrollTopThreshold());
@@ -527,6 +586,48 @@ export default function ChapterReader() {
     window.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
     return () => window.removeEventListener("scroll", updateScrollTopVisibility);
   }, [bookIdNum, chapterIdNum]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const tag = (event.target as HTMLElement).tagName;
+      const isTyping = tag === "INPUT" || tag === "TEXTAREA" || (event.target as HTMLElement).isContentEditable;
+      if (isTyping) return;
+
+      if (event.key === "Escape") {
+        if (focusMode) { setFocusMode(false); return; }
+        setTocOpen(false);
+        clearSelection();
+        setSelectedHighlight(null);
+        return;
+      }
+
+      if (event.key === "t" || event.key === "T") {
+        setTocOpen((open) => !open);
+        return;
+      }
+
+      if (event.key === "f" || event.key === "F") {
+        setFocusMode((m) => !m);
+        return;
+      }
+
+      const isNextKey = direction === "rtl" ? event.key === "ArrowLeft" : event.key === "ArrowRight";
+      const isPrevKey = direction === "rtl" ? event.key === "ArrowRight" : event.key === "ArrowLeft";
+
+      if (isNextKey && next && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        window.location.href = `/edition/${next.editionId}/section/${next.id}`;
+        return;
+      }
+      if (isPrevKey && prev && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        window.location.href = `/edition/${prev.editionId}/section/${prev.id}`;
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [direction, focusMode, next, prev]);
 
   useEffect(() => {
     if (!activeFootnoteId || !settings.showFootnotes) return;
@@ -705,6 +806,24 @@ export default function ChapterReader() {
                   <p className="truncate text-xs text-muted-foreground">{cleanedChapterTitle}</p>
                 </Link>
                 <div className="flex items-center gap-1 text-muted-foreground">
+                  {prev && (
+                    <Link
+                      href={`/edition/${prev.editionId}/section/${prev.id}`}
+                      className="reader-control hidden sm:inline-flex h-11 w-11 items-center justify-center sm:h-10 sm:w-10"
+                      aria-label={t("الفصل السابق")}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Link>
+                  )}
+                  {next && (
+                    <Link
+                      href={`/edition/${next.editionId}/section/${next.id}`}
+                      className="reader-control hidden sm:inline-flex h-11 w-11 items-center justify-center sm:h-10 sm:w-10"
+                      aria-label={t("الفصل التالي")}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Link>
+                  )}
                   <button
                     onClick={handleSavePosition}
                     className="reader-control inline-flex h-11 w-11 items-center justify-center sm:h-10 sm:w-10"
@@ -732,16 +851,23 @@ export default function ChapterReader() {
               <div className="flex items-center gap-3 px-3 pb-3 text-xs text-muted-foreground sm:px-4">
                 <span className="tabular-nums">{Math.round(bookProgress)}%</span>
                 <ProgressLine className="flex-1" showValue={false} value={bookProgress} />
+                {chapterDisplayPage > 0 && (
+                  <span className="shrink-0 tabular-nums">{pageText(chapterDisplayPage, language)}</span>
+                )}
               </div>
             </div>
 
-            <header className="reader-header mx-auto max-w-4xl border-b border-border px-4 py-7 text-center sm:px-6 sm:py-10 md:px-12 md:py-14">
+            <header className="reader-header mx-auto max-w-4xl border-b border-border px-4 py-5 text-center sm:px-6 sm:py-8 md:px-12 md:py-10">
               {chapter.type !== "heading" && chapter.type !== "topic" && (
-                <div className="reader-section-badge">
-                  {sectionTypeLabel(chapter.type, language)}
+                <div className="flourish-rule mb-4 text-muted-foreground/50" style={{ gap: "0.55rem" }}>
+                  <span className="flourish-rule__ornament flourish-rule__ornament--hollow" />
+                  <span className="shrink-0 text-xs font-semibold tracking-widest">
+                    {sectionTypeLabel(chapter.type, language)}
+                  </span>
+                  <span className="flourish-rule__ornament flourish-rule__ornament--hollow" />
                 </div>
               )}
-              <h1 className="mx-auto max-w-3xl font-display text-2xl font-bold leading-tight sm:text-3xl md:text-5xl">
+              <h1 className="mx-auto max-w-3xl font-display text-2xl font-bold leading-tight sm:text-3xl md:text-4xl">
                 {cleanedChapterTitle}
               </h1>
               <p className="mt-4 text-sm text-muted-foreground tabular-nums">
@@ -774,15 +900,29 @@ export default function ChapterReader() {
               )}
             </header>
 
+            <div className="mx-auto max-w-4xl px-8 pb-1 pt-5 text-muted-foreground/25">
+              <div className="flourish-rule">
+                <span className="flourish-rule__ornament" />
+              </div>
+            </div>
+
             <div
               ref={contentRef}
+              key={chapterIdNum}
               data-tour="reader-selection"
-              className="reader-text mx-auto mt-6 px-4 pb-8 text-start leading-[2.25] text-foreground sm:mt-8 sm:px-8 sm:leading-[2.45] md:px-10 lg:px-12"
+              className="reader-text reader-fade-in mx-auto mt-3 px-4 pb-8 text-start leading-[2.25] text-foreground sm:mt-4 sm:px-8 sm:leading-[2.45] md:px-10 lg:px-12"
               dir={chapter.direction}
               style={{ fontFamily, fontSize: settings.fontSize }}
             >
               {visibleBody ? (
-                pageContent.map((page) => (
+                (() => {
+                  let paragraphCounter = 0;
+                  return pageContent.map((page) => {
+                    const pageText_ = settings.showPageMarkers ? page.mainText : page.mainText.trimEnd();
+                    const paragraphCount = pageText_.split(/\n\n+/).filter((s) => s.trim()).length;
+                    const pageParaOffset = paragraphCounter;
+                    paragraphCounter += paragraphCount;
+                    return (
                   <section
                     className={settings.showPageMarkers ? "mb-8 scroll-mt-32 sm:mb-10" : undefined}
                     id={`page-${page.pageNumber}`}
@@ -801,7 +941,7 @@ export default function ChapterReader() {
                     )}
                     <div data-reader-highlight-surface="main" data-reader-page-id={page.id}>
                       {renderParagraphs(
-                        settings.showPageMarkers ? page.mainText : page.mainText.trimEnd(),
+                        pageText_,
                         positionedChapterHighlights.filter(
                           (highlight) => highlight.pageId === page.id && highlight.surface === "main",
                         ),
@@ -811,6 +951,7 @@ export default function ChapterReader() {
                         handleHighlightSelect,
                         t("حذف التظليل"),
                         chapter.titleAr,
+                        pageParaOffset,
                       )}
                     </div>
                     {settings.showFootnotes && (
@@ -825,7 +966,9 @@ export default function ChapterReader() {
                       />
                     )}
                   </section>
-                ))
+                    );
+                  });
+                })()
               ) : (
                 t("لا يوجد نص متاح لهذا الفصل بعد.")
               )}
@@ -860,27 +1003,27 @@ export default function ChapterReader() {
 
             <footer className="mx-auto mt-4 grid max-w-5xl gap-3 border-t border-border px-4 pb-8 pt-5 sm:mt-8 sm:grid-cols-2 sm:px-6 sm:pt-6">
               {prev ? <ChapterNav chapter={prev} label={t("الفصل السابق")} role="back" /> : <span />}
-              {next ? <ChapterNav chapter={next} label={t("الفصل التالي")} role="forward" /> : <span />}
+              {nextAppendable ? <ChapterNav chapter={nextAppendable} label={t("الفصل التالي")} role="forward" /> : <span />}
             </footer>
           </article>
         </div>
       </main>
 
       <ReaderToolbar
-        isVisible={toolbarVisible}
-        onHide={() => setToolbarVisible(false)}
-        onShow={() => setToolbarVisible(true)}
+        bookProgress={bookProgress}
+        isFocusMode={focusMode}
         onToc={() => setTocOpen(true)}
+        onToggleFocus={() => setFocusMode((m) => !m)}
         settings={settings}
         setSettings={setSettings}
       />
 
+      <FocusModeOverlay isFocusMode={focusMode} />
+
       {showScrollTop && (
         <button
           aria-label={t("الصعود للأعلى")}
-          className={`reader-chrome fixed right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition hover:-translate-y-0.5 hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground ${
-            toolbarVisible ? "bottom-[13.5rem] md:bottom-20" : "bottom-28 md:bottom-6"
-          }`}
+          className="reader-bar-bottom reader-chrome fixed start-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full shadow-md transition hover:-translate-y-0.5 hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground md:start-4"
           onClick={scrollToTop}
           type="button"
         >
@@ -891,7 +1034,9 @@ export default function ChapterReader() {
       {showTourSelectionDemo && <TourSelectionActionsDemo text={tourSelectionText} />}
 
       {status && (
-        <div className="reader-chrome fixed bottom-[11rem] left-1/2 z-[55] -translate-x-1/2 rounded-md px-4 py-2 text-sm font-semibold md:bottom-20">
+        <div
+          className="reader-bar-above reader-chrome fixed left-1/2 z-[55] -translate-x-1/2 rounded-md px-4 py-2 text-sm font-semibold"
+        >
           <span className="inline-flex items-center gap-2">
             <Check className="h-4 w-4 text-emerald-600" />
             {status === "copied" && t("تم النسخ")}
@@ -906,7 +1051,7 @@ export default function ChapterReader() {
       {selection && (
         <div
           ref={selectionToolbarRef}
-          className="reader-chrome fixed bottom-[calc(9.25rem+env(safe-area-inset-bottom))] left-1/2 z-50 max-h-[45vh] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 overflow-y-auto rounded-lg p-3 md:bottom-20 md:max-h-none"
+          className="reader-bar-above reader-chrome fixed left-1/2 z-50 max-h-[50vh] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 overflow-y-auto rounded-lg p-3 md:max-h-none"
         >
           <div className="flex items-start gap-3">
             <p className="line-clamp-2 flex-1 text-sm leading-6 text-muted-foreground">{selection}</p>
@@ -1001,7 +1146,7 @@ export default function ChapterReader() {
       {selectedHighlight && !selection && (
         <div
           ref={highlightActionsRef}
-          className="reader-chrome fixed bottom-[calc(9.25rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-lg p-3 md:bottom-20"
+          className="reader-bar-above reader-chrome fixed left-1/2 z-50 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 rounded-lg p-3"
         >
           <div className="flex items-start gap-3">
             <p

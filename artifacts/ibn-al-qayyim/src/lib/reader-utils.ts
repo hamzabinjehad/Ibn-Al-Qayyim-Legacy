@@ -36,7 +36,7 @@ export const FOOTNOTE_REFERENCE_REGEX = new RegExp(
   `\\(\\^?[${FOOTNOTE_DIGIT_CLASS}]+\\)|([\\p{L}\\]\\)\\u00bb])([${FOOTNOTE_DIGIT_CLASS}]{1,3})(?![${FOOTNOTE_DIGIT_CLASS}])`,
   "gu",
 );
-export const FOOTNOTE_FOCUS_MS = 2200;
+export const FOOTNOTE_FOCUS_MS = 6000;
 export const HIGHLIGHT_SURFACE_SELECTOR = "[data-reader-highlight-surface]";
 export const MIN_READER_FONT_SIZE = 16;
 export const MAX_READER_FONT_SIZE = 34;

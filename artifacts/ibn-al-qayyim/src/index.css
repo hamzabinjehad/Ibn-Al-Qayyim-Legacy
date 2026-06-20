@@ -117,41 +117,95 @@
   --destructive-border: hsl(var(--destructive));
 }
 
+.sepia {
+  --button-outline: rgba(90, 55, 12, 0.12);
+  --badge-outline: rgba(90, 55, 12, 0.06);
+  --opaque-button-border-intensity: -6;
+  --elevate-1: rgba(90, 55, 12, 0.03);
+  --elevate-2: rgba(90, 55, 12, 0.07);
+  /* Warm parchment — more amber, richer saturation */
+  --background: 38 52% 91%;
+  --foreground: 24 60% 8%;
+  --border: 33 28% 61%;
+  --input: 33 28% 61%;
+  --ring: 24 60% 8%;
+  --card: 38 48% 88%;
+  --card-foreground: 24 60% 8%;
+  --card-border: 33 28% 57%;
+  --popover: 38 50% 89%;
+  --popover-foreground: 24 60% 8%;
+  --popover-border: 33 28% 57%;
+  --primary: 24 60% 8%;
+  --primary-foreground: 38 52% 91%;
+  --secondary: 36 34% 80%;
+  --secondary-foreground: 24 60% 7%;
+  --muted: 36 30% 83%;
+  --muted-foreground: 28 34% 36%;
+  --accent: 24 60% 8%;
+  --accent-foreground: 38 52% 91%;
+  --destructive: 0 70% 40%;
+  --destructive-foreground: 0 0% 100%;
+  --sidebar: 38 50% 89%;
+  --sidebar-foreground: 24 60% 8%;
+  --sidebar-border: 33 28% 57%;
+  --sidebar-primary: 24 60% 8%;
+  --sidebar-primary-foreground: 38 52% 91%;
+  --sidebar-accent: 36 34% 80%;
+  --sidebar-accent-foreground: 24 60% 7%;
+  --sidebar-ring: 24 60% 8%;
+  /* Warm amber highlights instead of electric yellow */
+  --reader-highlight-bg: #f5c832;
+  --reader-highlight-border: rgb(160 100 10 / 0.6);
+  --reader-highlight-rail: rgb(148 88 8 / 0.88);
+  --reader-highlight-fg: #1c0d02;
+}
+
 .dark {
-  --button-outline: rgba(255, 255, 255, 0.12);
-  --badge-outline: rgba(255, 255, 255, 0.06);
+  --button-outline: rgba(160, 180, 255, 0.1);
+  --badge-outline: rgba(160, 180, 255, 0.05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255, 255, 255, 0.04);
-  --elevate-2: rgba(255, 255, 255, 0.08);
-  --background: 0 0% 4%;
-  --foreground: 0 0% 98%;
-  --border: 0 0% 36%;
-  --input: 0 0% 36%;
-  --ring: 0 0% 90%;
-  --card: 0 0% 6%;
-  --card-foreground: 0 0% 98%;
-  --card-border: 0 0% 36%;
-  --popover: 0 0% 6%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 0 0% 36%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 0 0% 4%;
-  --secondary: 0 0% 18%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 16%;
-  --muted-foreground: 0 0% 82%;
-  --accent: 0 0% 94%;
-  --accent-foreground: 0 0% 4%;
-  --destructive: 0 60% 50%;
+  --elevate-1: rgba(160, 180, 255, 0.04);
+  --elevate-2: rgba(160, 180, 255, 0.08);
+  /* Midnight blue-black — premium night reading */
+  --background: 222 18% 4%;
+  --foreground: 220 16% 97%;
+  --border: 222 12% 26%;
+  --input: 222 12% 26%;
+  --ring: 220 14% 86%;
+  --card: 222 15% 7%;
+  --card-foreground: 220 16% 97%;
+  --card-border: 222 12% 26%;
+  --popover: 222 15% 7%;
+  --popover-foreground: 220 16% 97%;
+  --popover-border: 222 12% 26%;
+  --primary: 220 16% 97%;
+  --primary-foreground: 222 18% 4%;
+  --secondary: 222 12% 16%;
+  --secondary-foreground: 220 16% 97%;
+  --muted: 222 12% 14%;
+  --muted-foreground: 220 10% 70%;
+  --accent: 220 16% 92%;
+  --accent-foreground: 222 18% 4%;
+  --destructive: 0 62% 52%;
   --destructive-foreground: 0 0% 98%;
-  --sidebar: 0 0% 4%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 0 0% 36%;
-  --sidebar-primary: 0 0% 98%;
-  --sidebar-primary-foreground: 0 0% 4%;
-  --sidebar-accent: 0 0% 18%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-ring: 0 0% 90%;
+  --chart-1: 220 16% 97%;
+  --chart-2: 220 12% 78%;
+  --chart-3: 220 10% 58%;
+  --chart-4: 222 10% 40%;
+  --chart-5: 222 12% 26%;
+  --sidebar: 222 18% 4%;
+  --sidebar-foreground: 220 16% 97%;
+  --sidebar-border: 222 12% 26%;
+  --sidebar-primary: 220 16% 97%;
+  --sidebar-primary-foreground: 222 18% 4%;
+  --sidebar-accent: 222 12% 16%;
+  --sidebar-accent-foreground: 220 16% 97%;
+  --sidebar-ring: 220 14% 86%;
+  /* Warm amber highlights — readable on midnight blue-black */
+  --reader-highlight-dark-bg: #f5c832;
+  --reader-highlight-dark-border: rgb(160 100 10 / 0.55);
+  --reader-highlight-dark-rail: rgb(148 88 8 / 0.9);
+  --reader-highlight-dark-fg: #1c0d02;
 }
 
 @layer base {
@@ -181,6 +235,27 @@
   ::selection {
     background: #fff200;
     color: #050505;
+  }
+
+  .sepia ::selection {
+    background: #d4a012;
+    color: #1c0d02;
+  }
+
+  /* Midnight blue reading surface — amber selection matches highlight palette */
+  .dark ::selection {
+    background: hsl(44 88% 52% / 0.42);
+    color: hsl(220 16% 97%);
+  }
+
+  /* Subtle warm glow at top of light page — like a desk lamp from above */
+  html:not(.dark):not(.sepia) body {
+    background-image: radial-gradient(ellipse at 50% -10%, hsl(40 35% 96% / 0.55), transparent 52%);
+  }
+
+  /* Deep cool gradient behind the midnight reading surface */
+  .dark body {
+    background-image: radial-gradient(ellipse at 50% 0%, hsl(222 24% 9% / 0.65), transparent 50%);
   }
 
   :focus-visible {
@@ -424,9 +499,10 @@
   .reader-text[dir="rtl"] {
     text-align: justify;
     text-align-last: auto;
+    word-spacing: 0.04em;
   }
 
-  /* Clickable footnote reference in text — styled as superscript */
+  /* Clickable footnote reference in text */
   .reader-footnote-ref {
     display: inline;
     vertical-align: super;
@@ -502,19 +578,19 @@
 
   /* Paragraph block — rendered instead of whitespace-pre-wrap */
   .reader-paragraph {
-    margin-block: 0 0.85em;
+    margin-block: 0 1.35em;
     white-space: pre-line;
   }
   .reader-paragraph:last-child {
     margin-bottom: 0;
   }
 
-  /* Inline section headings from [[H:…]] markers */
+  /* Base class for all inline headings from [[H:…]] markers */
   .reader-inline-heading {
     display: block;
-    margin-block: 0.5em 0.25em;
-    padding-block: 0.35em;
-    border-block: 1px solid hsl(var(--border) / 0.5);
+    margin-block: 1.1em 0.45em;
+    padding-block: 0.5em;
+    border-block: 1px solid hsl(var(--foreground) / 0.14);
     text-align: center;
     font-size: 1.05em;
     font-weight: 700;
@@ -522,31 +598,66 @@
     letter-spacing: 0.01em;
   }
 
-  /* Heading hierarchy variants */
-  .reader-heading-bab {
-    font-size: 1.2em;
-    border-block-color: hsl(var(--border));
-    border-block-width: 1.5px;
-    padding-block: 0.45em;
-  }
-
-  .reader-heading-sub {
-    font-size: 0.92em;
-    font-weight: 600;
-    font-style: italic;
+  /* كتاب — top-level volume/book division (largest) */
+  .reader-heading-kitab {
+    font-size: 1.45em;
     border-block: none;
-    padding-block: 0;
-    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 0.55);
+    border-radius: 0.25em;
+    padding-block: 0.7em;
+    padding-inline: 0.75em;
+    margin-block: 1.3em 0.6em;
+    letter-spacing: 0.025em;
   }
 
-  /* ((Topic)) — Shamela double-paren section label, styled like a sub-heading */
-  .reader-topic-paren {
-    display: block;
+  /* باب — chapter heading */
+  .reader-heading-bab {
+    font-size: 1.22em;
+    border-block-color: hsl(var(--foreground) / 0.14);
+    border-block-width: 1px;
+    padding-block: 0.5em;
+    margin-block: 1.1em 0.45em;
+  }
+
+  /* فصل / خاتمة — section level (same as base, no override needed) */
+  .reader-heading-fasl {
+    font-size: 1.05em;
+  }
+
+  /* فائدة / تنبيه / مسألة / قاعدة — inline note-style heading with start rail */
+  .reader-heading-sub {
+    border-block: none;
+    border-inline-start: 3px solid hsl(var(--foreground) / 0.28);
+    padding-block: 0.12em;
+    padding-inline-start: 0.85em;
+    margin-block: 0.7em 0.2em;
+    text-align: start;
+    font-size: 0.95em;
     font-weight: 700;
-    text-align: center;
-    margin-block: 0.6em 0.2em;
+    font-style: normal;
+    color: hsl(var(--foreground) / 0.82);
+  }
+  .dark .reader-heading-sub {
+    border-inline-start-color: hsl(var(--foreground) / 0.35);
+  }
+
+  /* ((Topic)) — Shamela double-paren section label, styled as a ruled section break */
+  .reader-topic-paren {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    font-weight: 700;
+    margin-block: 1.2em 0.55em;
     color: hsl(var(--foreground));
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
+    font-size: 1.04em;
+  }
+  .reader-topic-paren::before,
+  .reader-topic-paren::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: hsl(var(--foreground) / 0.18);
   }
 
   /* [Topic] — Shamela single-bracket inline topic marker */
@@ -564,10 +675,26 @@
     color: #8aad8a;
   }
 
+  /* قال ابن القيم: / وذكر الإمام أحمد: — speaker attribution phrases */
+  .reader-speaker-attr {
+    font-weight: 700;
+    color: #2e6e8a;
+  }
+  .dark .reader-speaker-attr {
+    color: #72c3de;
+  }
+
+  /* Paragraph following a speaker attribution colon — visually quoted block */
+  .reader-blockquote {
+    border-inline-start: 3px solid hsl(var(--border));
+    padding-inline-start: 1.1rem;
+    margin-inline-start: 0.1rem;
+    color: hsl(var(--foreground) / 0.88);
+  }
+
   /* Footnote section — clean scholarly style */
   .reader-footnotes {
-    border-top: 1px solid hsl(var(--border));
-    padding-top: 0.85rem;
+    padding-top: 0.25rem;
     margin-top: 0;
     color: hsl(var(--muted-foreground));
     font-size: 0.78em;
@@ -948,14 +1075,170 @@
       linear-gradient(180deg, hsl(var(--background) / 0.99), hsl(var(--background) / 0.96) 52%, hsl(var(--muted) / 0.18)),
       hsl(var(--background));
     box-shadow:
-      0 24px 80px -58px rgb(0 0 0 / 0.82),
+      0 1px 0 hsl(var(--border) / 0.6),
+      0 28px 80px -52px rgb(0 0 0 / 0.78),
       inset 0 1px 0 rgb(255 255 255 / 0.72);
   }
 
-  .dark .reader-surface {
+  /* ── Sepia reader: genuine parchment paper feel ────────────────────────── */
+  .sepia .reader-surface {
+    background:
+      linear-gradient(180deg,
+        hsl(42 62% 97%) 0%,
+        hsl(39 52% 95%) 38%,
+        hsl(37 44% 92%) 100%
+      );
+    border-color: hsl(30 24% 70%);
     box-shadow:
-      0 24px 80px -58px rgb(0 0 0 / 0.95),
-      inset 0 1px 0 rgb(255 255 255 / 0.08);
+      0 2px 0 hsl(30 22% 78%),
+      0 30px 72px -48px hsl(25 36% 16% / 0.38),
+      inset 0 1px 0 hsl(48 80% 98% / 0.85);
+  }
+
+  /* Subtle warm depth gradient behind the page */
+  .sepia body {
+    background-image:
+      radial-gradient(ellipse at 50% 0%, hsl(36 55% 87% / 0.5), transparent 58%),
+      radial-gradient(ellipse at 50% 105%, hsl(30 28% 80% / 0.28), transparent 50%);
+  }
+
+  /* Toolbar: warm frosted parchment in sepia */
+  .sepia .reader-chrome {
+    background: hsl(36 36% 88% / 0.97);
+    border-color: hsl(30 22% 58%);
+    box-shadow:
+      0 -6px 20px -10px hsl(25 30% 20% / 0.14),
+      0 16px 44px -40px hsl(25 30% 20% / 0.22);
+    backdrop-filter: blur(14px);
+  }
+
+  /* Controls: warm parchment buttons */
+  .sepia .reader-control {
+    background: hsl(36 40% 91%);
+    border-color: hsl(30 22% 63%);
+  }
+  .sepia .reader-control:hover {
+    background: hsl(34 38% 84%);
+    border-color: hsl(28 24% 52%);
+  }
+  .sepia .reader-control[aria-pressed="true"] {
+    background: hsl(30 30% 78%);
+    border-color: hsl(25 28% 46%);
+    box-shadow: inset 0 1px 3px hsl(25 30% 20% / 0.18);
+    color: hsl(var(--foreground));
+  }
+
+  /* Quran verse: deeper warm gold in sepia */
+  .sepia .reader-quran-verse {
+    color: hsl(38 70% 34%);
+  }
+
+  /* Blockquote rail: warm brown in sepia */
+  .sepia .reader-blockquote {
+    border-inline-start-color: hsl(30 26% 52%);
+  }
+
+  /* Active footnote: warm highlight in sepia */
+  .sepia .reader-footnote--active {
+    background: hsl(36 36% 80% / 0.65);
+  }
+
+  /* Sub-heading rail: warm tone in sepia */
+  .sepia .reader-heading-sub {
+    border-inline-start-color: hsl(25 28% 42% / 0.55);
+  }
+
+  /* Interactive cards: warm border in sepia */
+  .sepia .interactive-card {
+    border-color: hsl(30 22% 66%);
+    box-shadow: 0 14px 36px -32px hsl(25 35% 18% / 0.38);
+  }
+  .sepia .interactive-card:hover {
+    border-color: hsl(25 30% 48%);
+    box-shadow: 0 20px 52px -42px hsl(25 35% 18% / 0.48);
+  }
+
+  /* Reader header gradient: warmer in sepia */
+  .sepia .reader-header {
+    background:
+      linear-gradient(180deg, hsl(36 30% 84% / 0.45), transparent 80%),
+      radial-gradient(ellipse at 50% 0%, hsl(25 30% 18% / 0.04), transparent 55%);
+  }
+
+  /* Page divider marker: warmer in sepia */
+  .sepia .reader-page-marker {
+    color: hsl(30 24% 46%);
+  }
+
+  /* Section badge: warm parchment border in sepia */
+  .sepia .reader-section-badge {
+    border-color: hsl(30 24% 60%);
+    color: hsl(30 28% 42%);
+    background: hsl(36 40% 91% / 0.6);
+  }
+
+  /* Enum labels: warm olive green in sepia */
+  .sepia .reader-enum-label {
+    color: hsl(90 24% 36%);
+  }
+
+  /* Speaker attribution: warm teal in sepia */
+  .sepia .reader-speaker-attr {
+    color: hsl(200 36% 36%);
+  }
+
+  /* Footnote section: warm muted color in sepia */
+  .sepia .reader-footnotes {
+    color: hsl(30 20% 42%);
+  }
+  .sepia .reader-footnote-marker {
+    color: hsl(25 36% 24%);
+  }
+
+  /* ── Dark mode reader improvements ─────────────────────────────────────── */
+  .dark .reader-surface {
+    background:
+      linear-gradient(180deg,
+        hsl(222 16% 8%) 0%,
+        hsl(222 15% 6.5%) 55%,
+        hsl(222 14% 6%) 100%
+      );
+    box-shadow:
+      0 1px 0 hsl(222 12% 22% / 0.5),
+      0 32px 80px -52px rgb(2 4 12 / 0.98),
+      inset 0 1px 0 rgb(160 180 255 / 0.06);
+  }
+
+  .dark .reader-chrome {
+    background: hsl(222 18% 5% / 0.96);
+    border-color: hsl(222 12% 22%);
+    box-shadow:
+      0 -4px 16px -6px rgb(2 4 12 / 0.7),
+      0 16px 44px -40px rgb(2 4 12 / 0.9),
+      inset 0 1px 0 rgb(160 180 255 / 0.06);
+  }
+
+  .dark .reader-control {
+    background: hsl(222 16% 9%);
+    border-color: hsl(222 12% 24%);
+  }
+  .dark .reader-control:hover {
+    background: hsl(222 14% 14%);
+    border-color: hsl(222 12% 34%);
+  }
+  .dark .reader-control[aria-pressed="true"] {
+    background: hsl(222 12% 18%);
+    border-color: hsl(222 14% 40%);
+    box-shadow: inset 0 1px 3px rgb(2 4 12 / 0.4);
+  }
+
+  .dark .interactive-card {
+    border-color: hsl(222 12% 24%);
+    background: hsl(222 16% 6%);
+  }
+  .dark .interactive-card:hover {
+    border-color: hsl(222 16% 38%);
+    background: hsl(222 14% 8%);
   }
 
   .reader-header {
@@ -989,10 +1272,14 @@
 
   .reader-chrome {
     border: 1px solid hsl(var(--border));
-    background: hsl(var(--background) / 0.98);
-    box-shadow: 0 16px 44px -40px rgb(0 0 0 / 0.72);
-    backdrop-filter: blur(18px);
+    background: hsl(var(--background) / 0.96);
+    box-shadow:
+      0 16px 44px -40px rgb(0 0 0 / 0.66),
+      inset 0 1px 0 rgb(255 255 255 / 0.6);
+    backdrop-filter: blur(22px) saturate(1.1);
+    -webkit-backdrop-filter: blur(22px) saturate(1.1);
   }
+
 
   .reader-control {
     min-height: 2.5rem;
@@ -1042,6 +1329,55 @@
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
   }
 
+  /* ── Focus / Zen reading mode ──────────────────────────────────────────── */
+  /* reader-focus-ready is added to <html> while ChapterReader is mounted,
+     so transitions apply both ways (enter and exit). */
+  .reader-focus-ready header.sticky,
+  .reader-focus-ready nav[aria-label],
+  .reader-focus-ready .reader-chrome {
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease;
+  }
+
+  .focus-mode-active header.sticky {
+    transform: translateY(-110%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .focus-mode-active nav[aria-label],
+  .focus-mode-active .reader-chrome {
+    transform: translateY(110%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Ensure theme background fills the screen in native fullscreen mode */
+  :fullscreen {
+    background-color: hsl(var(--background));
+  }
+
+  /* Hide cursor after idle in focus mode */
+  .focus-cursor-hidden,
+  .focus-cursor-hidden * {
+    cursor: none !important;
+  }
+
+  /* ── Chapter fade-in animation ─────────────────────────────────────────── */
+  @keyframes readerFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .reader-fade-in {
+    animation: readerFadeIn 280ms ease both;
+  }
+
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
@@ -1050,5 +1386,23 @@
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
     pointer-events: none;
+  }
+
+  /* ── Reader floating element positions ──────────────────────────────────── */
+  /* Mobile: flush to the 4.5rem bottom nav. Desktop: sit near the bottom edge. */
+  .reader-bar-bottom {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+  .reader-bar-above {
+    bottom: calc(8rem + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 768px) {
+    .reader-bar-bottom {
+      bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    }
+    .reader-bar-above {
+      bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    }
   }
 }

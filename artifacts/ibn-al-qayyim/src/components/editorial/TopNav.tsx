@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import {
   Bookmark,
@@ -9,6 +10,7 @@ import {
   Route,
   Search,
   Sun,
+  Sunset,
   type LucideIcon,
 } from "lucide-react";
 import { useOnboardingTour } from "@/components/OnboardingTour";
@@ -57,13 +59,25 @@ function languageSwitchTarget(location: string, currentLanguage: LanguageCode, t
 }
 
 export default function TopNav() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const search = useSearch();
   const { language } = useLanguage();
   const { t } = useUiTranslations();
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "k") {
+        event.preventDefault();
+        navigate("/search");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [navigate]);
   const activeLanguageName = languageName(language, language);
   const { startTour } = useOnboardingTour();
-  const { dark, toggle } = useTheme();
+  const { mode, toggle } = useTheme();
+  const ThemeIcon = mode === "dark" ? Sun : mode === "sepia" ? Moon : Sunset;
   const visibleNavItems = language === "ar" ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== "/reading-plan");
 
   return (
@@ -170,7 +184,7 @@ export default function TopNav() {
               aria-label={t("تبديل المظهر")}
               type="button"
             >
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <ThemeIcon className="h-4 w-4" />
             </button>
           </div>
         </div>

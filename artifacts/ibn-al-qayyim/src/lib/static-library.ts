@@ -195,6 +195,11 @@ function fetchJson<T>(language: LanguageCode, path: string): Promise<T> {
               lastError = new Error(`Unable to load ${languageUrl}`);
               continue;
             }
+            const ct = response.headers.get("content-type") ?? "";
+            if (!ct.includes("application/json") && !ct.includes("text/json")) {
+              lastError = new Error(`Unable to load ${languageUrl}`);
+              continue;
+            }
             return (await response.json()) as T;
           } catch (error) {
             lastError = error;
