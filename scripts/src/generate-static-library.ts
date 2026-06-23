@@ -7,7 +7,13 @@ const SOURCE_DIR = path.resolve(__dirname, "../output/ibn-qayyim");
 const TARGET_DIR = path.resolve(__dirname, "../../artifacts/ibn-al-qayyim/public/library-data");
 const PUBLIC_DIR = path.resolve(__dirname, "../../artifacts/ibn-al-qayyim/public");
 const COVER_METADATA_FILE = path.resolve(__dirname, "../metadata/book-covers.json");
+const WORKS_METADATA_FILE = path.resolve(__dirname, "../data/works-metadata.json");
+const BOOK_INDEXES_FILE = path.resolve(__dirname, "../data/book-indexes.json");
 const MAX_STATIC_FILE_BYTES = 4_000_000;
+
+let worksMetadata: Record<string, { description?: string }> = {};
+let bookIndexesBySourceId = new Map<number, ExtractedBookIndex>();
+let bookIndexesByTitle = new Map<string, ExtractedBookIndex>();
 
 interface ArabicSourceBook {
   "العنوان"?: string;
@@ -176,7 +182,38 @@ interface SourceIndexEntry {
   level?: number | string;
   page?: number | string;
   page_num?: number | string;
+  printPage?: number | string;
+  printVolume?: string;
+  sourcePage?: number | string;
   title?: string;
+  volume?: string;
+}
+
+interface ExtractedBookIndexHeading {
+  level?: number | string;
+  page?: number | string;
+  pageRef?: string;
+  printPage?: number | string;
+  printVolume?: string;
+  title?: string;
+}
+
+interface ExtractedPageRef {
+  logicalPage?: number;
+  printPage?: number;
+  raw?: string;
+  volume?: string;
+}
+
+interface ExtractedBookIndex {
+  headings?: ExtractedBookIndexHeading[];
+  pageRefs?: ExtractedPageRef[];
+  sourceId?: number;
+  title: string;
+}
+
+interface ExtractedBookIndexesFile {
+  books?: ExtractedBookIndex[];
 }
 
 interface PageDetail {
@@ -309,6 +346,46 @@ function normalizeVolumeNumber(value: string): string | undefined {
     .replace(/[\u06F0-\u06F9]/gu, (digit) => String(digit.charCodeAt(0) - 0x06f0));
 }
 
+function normalizeArabicOrdinalVolume(value: string): string | undefined {
+  const comparable = stripArabicMarks(value);
+  if (/الأول|الاول|أول|اول/u.test(comparable)) return "1";
+  if (/الثاني|ثاني/u.test(comparable)) return "2";
+  if (/الثالث|ثالث/u.test(comparable)) return "3";
+  if (/الرابع|رابع/u.test(comparable)) return "4";
+  if (/الخامس|خامس/u.test(comparable)) return "5";
+  if (/السادس|سادس/u.test(comparable)) return "6";
+  if (/السابع|سابع/u.test(comparable)) return "7";
+  if (/الثامن|ثامن/u.test(comparable)) return "8";
+  if (/التاسع|تاسع/u.test(comparable)) return "9";
+  if (/العاشر|عاشر/u.test(comparable)) return "10";
+  return undefined;
+}
+
+function volumeAliases(value: string | undefined): Set<string> {
+  const aliases = new Set<string>();
+  const normalized = titleKey(value ?? "");
+  if (!normalized) return aliases;
+
+  aliases.add(normalized);
+
+  const volumeNumber = normalizeVolumeNumber(value ?? "") ?? normalizeArabicOrdinalVolume(value ?? "");
+  if (volumeNumber) aliases.add(`vol:${volumeNumber}`);
+  if (/مقدمه|تقديم|تمهيد/u.test(normalized)) aliases.add("intro");
+  if (/كتاب|متن|النص/u.test(normalized)) {
+    aliases.add("main");
+    aliases.add("vol:1");
+  }
+
+  return aliases;
+}
+
+function aliasesIntersect(left: Set<string>, right: Set<string>) {
+  for (const item of left) {
+    if (right.has(item)) return true;
+  }
+  return false;
+}
+
 function localizedVolumeLabel(volume: string, languageCode: string): string {
   if (languageCode === "ar" || !containsArabic(volume)) return volume;
 
@@ -387,7 +464,10 @@ function getWorkCategory(baseTitle: string, group: SourceBook[]): string {
   return uniqueMetadata(group.map((source) => cleanMetadataValue(source.category))).find((category) => /[\u0600-\u06FF]/u.test(category)) ?? inferCategory(baseTitle);
 }
 
-function buildWorkDescription(category: string, group: SourceBook[]): string {
+function buildWorkDescription(workId: number, category: string, group: SourceBook[]): string {
+  const curated = (worksMetadata[String(workId)] as { description?: string } | undefined)?.description;
+  if (curated) return curated;
+
   const publishedGroup = group.filter((source) => source.status === "published");
   const publishedArabicGroup = publishedGroup.filter((source) => source.languageCode === "ar");
   const descriptionGroup = publishedArabicGroup.length > 0 ? publishedArabicGroup : publishedGroup.length > 0 ? publishedGroup : group;
@@ -430,6 +510,40 @@ function readOptionalJson<T>(filePath: string, fallback: T): T {
 
 function writeJson(filePath: string, value: unknown): void {
   writeFileSync(filePath, `${JSON.stringify(value)}\n`, "utf8");
+}
+
+function removeDirectoryWithRetries(dir: string): void {
+  rmSync(dir, { force: true, maxRetries: 10, recursive: true, retryDelay: 250 });
+}
+
+function loadBookIndexes(): void {
+  const file = readOptionalJson<ExtractedBookIndexesFile>(BOOK_INDEXES_FILE, { books: [] });
+  const books = file.books ?? [];
+  bookIndexesBySourceId = new Map(
+    books
+      .filter((book) => typeof book.sourceId === "number" && book.sourceId > 0)
+      .map((book) => [book.sourceId!, book] as const),
+  );
+  bookIndexesByTitle = new Map(books.map((book) => [editionTitleKey("ar", book.title), book] as const));
+}
+
+function findBookIndexForSource(source: Pick<SourceBook, "sourceId" | "sourceTitle" | "title">): ExtractedBookIndex | undefined {
+  return (
+    (source.sourceId ? bookIndexesBySourceId.get(source.sourceId) : undefined) ??
+    bookIndexesByTitle.get(editionTitleKey("ar", source.sourceTitle ?? source.title)) ??
+    bookIndexesByTitle.get(editionTitleKey("ar", source.title))
+  );
+}
+
+function extractedHeadingToSourceIndexEntry(heading: ExtractedBookIndexHeading): SourceIndexEntry | null {
+  if (!heading.title || heading.page === undefined) return null;
+  return {
+    level: heading.level,
+    page: heading.page,
+    printPage: heading.printPage,
+    printVolume: heading.printVolume,
+    title: heading.title,
+  };
 }
 
 function collectJsonFiles(dir: string): string[] {
@@ -557,8 +671,10 @@ function normalizeIndexEntries(value: unknown): SourceIndexEntry[] {
       const title = pickString(record, ["title", "العنوان", "name", "label"]);
       const page = pickNumber(record, ["page", "page_num", "صفحة"]);
       const level = pickNumber(record, ["level", "depth", "المستوى"]);
+      const printPage = pickNumber(record, ["printPage", "print_page", "sourcePage"]);
+      const printVolume = pickString(record, ["printVolume", "print_volume", "volume", "vol"]);
       if (!title || page === undefined) return null;
-      return { level, page, title } satisfies SourceIndexEntry;
+      return { level, page, printPage, printVolume, title } satisfies SourceIndexEntry;
     })
     .filter((entry): entry is SourceIndexEntry => entry !== null);
 }
@@ -738,6 +854,73 @@ function normalizeSourceBook(raw: unknown, filePath: string): SourceBook | null 
   };
 }
 
+function buildPageRefLookup(bookIndex: ExtractedBookIndex) {
+  const byVolumeAndPrintPage = new Map<string, number>();
+  const byPrintPage = new Map<number, number[]>();
+
+  (bookIndex.pageRefs ?? []).forEach((ref, index) => {
+    if (typeof ref.printPage !== "number" || !Number.isFinite(ref.printPage)) return;
+    const rank = typeof ref.logicalPage === "number" && Number.isFinite(ref.logicalPage) ? ref.logicalPage : index + 1;
+    const aliases = volumeAliases(ref.volume);
+    aliases.forEach((alias) => byVolumeAndPrintPage.set(`${alias}:${ref.printPage}`, rank));
+    const ranks = byPrintPage.get(ref.printPage) ?? [];
+    ranks.push(rank);
+    byPrintPage.set(ref.printPage, ranks);
+  });
+
+  return { byPrintPage, byVolumeAndPrintPage };
+}
+
+function logicalRankForSourcePage(
+  page: SourcePage,
+  lookup: ReturnType<typeof buildPageRefLookup>,
+): number | undefined {
+  const pageVolumeAliases = volumeAliases(page.volume);
+
+  for (const alias of pageVolumeAliases) {
+    const rank = lookup.byVolumeAndPrintPage.get(`${alias}:${page.sourcePageNumber}`);
+    if (rank !== undefined) return rank;
+  }
+
+  const ranks = lookup.byPrintPage.get(page.sourcePageNumber);
+  if (ranks?.length === 1) return ranks[0];
+  return undefined;
+}
+
+function reorderPagesUsingBookIndex(source: SourceBook, bookIndex: ExtractedBookIndex): SourcePage[] {
+  if (source.sourceFormat !== "organized-arabic" || !bookIndex.pageRefs?.length) return source.pages;
+
+  const lookup = buildPageRefLookup(bookIndex);
+  let matched = 0;
+  const sortable = source.pages.map((page, index) => {
+    const rank = logicalRankForSourcePage(page, lookup);
+    if (rank !== undefined) matched += 1;
+    return { index, page, rank };
+  });
+
+  const minimumMatches = Math.min(source.pages.length, Math.max(2, Math.floor(source.pages.length * 0.6)));
+  if (matched < minimumMatches) return source.pages;
+
+  return sortable
+    .sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER) || a.index - b.index)
+    .map(({ page }, pageNumber) => ({ ...page, pageNumber }));
+}
+
+function hydrateSourceBookWithExtractedIndex(source: SourceBook): SourceBook {
+  const bookIndex = findBookIndexForSource(source);
+  if (!bookIndex) return source;
+
+  const indexEntries = (bookIndex.headings ?? [])
+    .map(extractedHeadingToSourceIndexEntry)
+    .filter((entry): entry is SourceIndexEntry => entry !== null);
+
+  return {
+    ...source,
+    indexEntries: indexEntries.length > 0 ? indexEntries : source.indexEntries,
+    pages: reorderPagesUsingBookIndex(source, bookIndex),
+  };
+}
+
 function readSourceBook(filePath: string): SourceBook | null {
   if (!existsSync(filePath)) return null;
   try {
@@ -765,11 +948,12 @@ function loadSourceIndex(): SourceIndex {
         const source = readSourceBook(filePath);
         if (!source) return null;
         const indexedMetadata = indexedMetadataByTitle.get(editionTitleKey("ar", source.sourceTitle ?? source.title));
+        const externalIndex = findBookIndexForSource(source);
         return {
           file: source.file,
           id: source.id,
           pages: source.pages.length,
-          source_id: source.sourceId || indexedMetadata?.source_id,
+          source_id: source.sourceId || indexedMetadata?.source_id || externalIndex?.sourceId,
           title: source.title,
           volumes: source.volumes || indexedMetadata?.volumes,
         };
@@ -867,11 +1051,14 @@ function cleanSectionTitle(title: string) {
     .replace(/\s+/g, " ")
     .replace(/^((?:ف[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*ص[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*ل[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]*)\s*)\)\s*[:：]?\s*/u, "$1 ")
     .replace(/^[\s()[\]{}«»"'“”]+|[\s()[\]{}«»"'“”،،.؛:]+$/g, "")
+    .replace(/\s*\[\s*\d+\s*[أب]\s*\]\s*/gu, " ") // Remove embedded folio markers like [21 &#1571;]
+    .replace(/\s*\(\d{1,3}\)\s*/gu, " ") // Remove inline footnote markers like (1)
+    .replace(/^\s*[\s()\[\]{}]+/, "") // Re-strip leading junk after footnote removal
+    .replace(/\s+/g, " ")
     .trim();
 }
-
 function stripArabicMarks(value: string) {
-  return value.replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g, "");
+  return value.replace(/[ؐ-ًؚ-ٟۖ-ۭ]/g, "");
 }
 
 function sectionTitleKey(title: string) {
@@ -891,8 +1078,15 @@ function isReferenceLikeTitle(title: string) {
     /^[\u0600-\u06FF\s]{2,30}\s+[\d٠-٩۰-۹]+$/u.test(comparableTitle) ||
     /^\d+\s*[-–]\s*/u.test(comparableTitle) ||
     /^\[?\d+\/[أبجدهوزحطيكلمنسعفصقرشتثخذضظغ]\]?$/u.test(comparableTitle) ||
-    /^(?:ص|ج|رقم|حاشية|هامش)\s*[\d٠-٩۰-۹]/u.test(comparableTitle) ||
-    /[{}]/u.test(comparableTitle)
+    /^\d+\s+[أب]$/u.test(comparableTitle) ||
+    /^[؀-ۿ\s]{1,20}\/\s*[\d٠-٩۰-۹]/u.test(comparableTitle) ||
+    /^[؀-ۿ]{0,2}\/\s*ق[\s\d]/u.test(comparableTitle) ||
+    /^(?:ص|ج|ق|رقم|حاشية|هامش)\s*[\d٠-٩۰-۹]/u.test(comparableTitle) ||
+    /[{}]/u.test(comparableTitle) ||
+    // Parenthetical blessing/prayer phrases surrounded by dashes: -رحمه الله- / -قدس الله روحه-
+    /^-[^-].*-$/.test(comparableTitle) ||
+    // Multi-entry table of contents line: contains two chapter-type keywords separated by a sentence break
+    /(?:الباب|باب|فصل|مسألة|فائدة|قاعدة|كتاب)\s+[^.]{5,}\.\s+(?:الباب|باب|فصل|مسألة|فائدة|قاعدة|كتاب)\s/u.test(comparableTitle)
   );
 }
 
@@ -903,10 +1097,12 @@ function isGenericTopicTitle(title: string) {
     containsArabic(title) &&
     title.length >= 3 &&
     title.length <= 120 &&
+    words.length >= 3 &&
     words.length <= 14 &&
     !isReferenceLikeTitle(title) &&
-    !/^(?:قال|وقال|فقال|قلت|وقلت|قالوا|فإن|ومن|وعن|عن)(?:\s|$)/u.test(comparableTitle) &&
-    !/[.؟!]$/u.test(comparableTitle)
+    !/^(?:قال|وقال|فقال|قلت|وقلت|قالوا|فإن|ومن|وعن|عن|ليس|وليس|لم|ولم|سمعت|أخبرنا|حدثنا|ثنا|أنا|أخبرني|أنبأنا|وكان|وكانت|وكذلك|وكذا|وكل|وبه|ولما|وأما|وهو|وهي|وهذا|وهذه|وقد|وإذا|فإذا|وكيف|وكم|ولما|وبهذا|وبذلك|وهذان|وكلام|فقد|ومنها|ومنه|ومنهم|والتي|والذي|والذين|وكثير|فاعلم|فتأمل|فانظر|واعلم|والمراد|والمقصود|والحاصل|والمعنى|ومعنى|فالجواب|والجواب|والحكمة|وحكمة)(?:\s|$)/u.test(comparableTitle) &&
+    !/[.؟!]$/u.test(comparableTitle) &&
+    !/[a-zA-Z]/.test(title)
   );
 }
 
@@ -932,6 +1128,9 @@ function stripTypeKeywordFromTitle(title: string, type: SectionSummary["type"]):
   return title.slice(m[0].length).trim();
 }
 
+// Verb/pronoun/continuation words that start body-text sentences, never standalone section titles
+const BODY_CONTINUATION = /^(?:وكل|وكان|وكانت|وكانوا|وكذلك|وكذا|وهكذا|وبه|وبها|وبهذا|وبذلك|وعليه|وله|ولها|ولما|ولهذا|ولذلك|فلهذا|فلذلك|وهو|وهي|وهذا|وهذه|وهذان|وهاتان|وكلام|وأيضا|وأيضاً|ومما|وأما|فأما|فإن|إذا|فإذا|وإذا|وقد|وكم|وكيف|وكلما|وإن|فقد|وفقد|ومنها|ومنه|ومنهما|ومنهم|ومنهن|ومن عقوباتها|والتي|والذي|والذين|واللاتي|وكثير|وكثيرا|فاعلم|فتأمل|فاعلمي|فتأملي|فاستحضر|فانظر|واعلم|فليعلم|فاعتبر|وخاصية|وخاصة|وطبيعة|وصفة|والمراد|والمقصود|والحاصل|والمعنى|ومعنى|ومعناه|ومعناها|ومحصوله|ومحصلة|وسبب|وسببه|وسببها|وعلة|وعلته|والسبب|والعلة|فالجواب|والجواب|والحكمة|وحكمة|والعشاق|والعشق|والمحبة|والمحبون)(?:[\s:،؛]|$)/u;
+
 function classifySectionTitle(
   rawTitle: string,
   options: { allowGenericTopic?: boolean } = {},
@@ -940,32 +1139,42 @@ function classifySectionTitle(
   const comparableTitle = stripArabicMarks(title);
   if (/^ف[ؐ-ًؚ-ِْ-ٟۖ-ۭ]*صّ/u.test(title)) return null;
   if (!title || title.length > 140) return null;
+  // Reject standard Islamic invocation phrases — they open books, not chapter headings
+  if (/^(?:بسم\s+الله|الحمد\s+لله\s+رب)/u.test(comparableTitle)) return null;
+  // Reject "كتابَ" in accusative form (with fatHa َ) — it is a Hadith quote, not a chapter heading
+  if (title.startsWith('كتابَ')) return null;
   if (isReferenceLikeTitle(title)) return null;
 
   if (/^(?:كتاب|الباب|باب)(?:\b|\s)/u.test(comparableTitle)) return { title, type: "bab" };
   if (/^فصل(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
     const stripped = stripTypeKeywordFromTitle(title, "fasl");
-    return { title: stripped.length >= 3 ? stripped : title, type: "fasl" };
+    if (stripped !== title && stripped.length >= 3 && !BODY_CONTINUATION.test(stripArabicMarks(stripped))) return { title: stripped, type: "fasl" };
+    return { title: stripped !== title ? "فصل" : stripped, type: "fasl" };
   }
   if (/^(?:مسألة|مسئلة)(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
     const stripped = stripTypeKeywordFromTitle(title, "masala");
-    return { title: stripped.length >= 3 ? stripped : title, type: "masala" };
+    if (stripped !== title && stripped.length >= 3 && !BODY_CONTINUATION.test(stripArabicMarks(stripped))) return { title: stripped, type: "masala" };
+    return { title: stripped !== title ? "مسألة" : stripped, type: "masala" };
   }
   if (/^(?:فائدة|فوائد)(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
     const stripped = stripTypeKeywordFromTitle(title, "faida");
-    return { title: stripped.length >= 3 ? stripped : title, type: "faida" };
+    if (stripped !== title && stripped.length >= 3 && !BODY_CONTINUATION.test(stripArabicMarks(stripped))) return { title: stripped, type: "faida" };
+    return { title: stripped !== title ? "فائدة" : stripped, type: "faida" };
   }
   if (/^قاعدة(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
     const stripped = stripTypeKeywordFromTitle(title, "qaida");
-    return { title: stripped.length >= 3 ? stripped : title, type: "qaida" };
+    if (stripped !== title && stripped.length >= 3 && !BODY_CONTINUATION.test(stripArabicMarks(stripped))) return { title: stripped, type: "qaida" };
+    return { title: stripped !== title ? "قاعدة" : stripped, type: "qaida" };
   }
   if (/^تنبيه(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
     const stripped = stripTypeKeywordFromTitle(title, "tanbih");
-    return { title: stripped.length >= 3 ? stripped : title, type: "tanbih" };
+    if (stripped !== title && stripped.length >= 3 && !BODY_CONTINUATION.test(stripArabicMarks(stripped))) return { title: stripped, type: "tanbih" };
+    return { title: stripped !== title ? "تنبيه" : stripped, type: "tanbih" };
   }
   if (/^مطلب(?:\b|\s|[:：]|$)/u.test(comparableTitle)) {
     const stripped = stripTypeKeywordFromTitle(title, "matlub");
-    return { title: stripped.length >= 3 ? stripped : title, type: "matlub" };
+    if (stripped !== title && stripped.length >= 3 && !BODY_CONTINUATION.test(stripArabicMarks(stripped))) return { title: stripped, type: "matlub" };
+    return { title: stripped !== title ? "مطلب" : stripped, type: "matlub" };
   }
   if (/^(?:خاتمة|الخاتمة)(?:\b|\s|$)/u.test(comparableTitle)) return { title, type: "khatima" };
   if (/^(?:مقدمة|المقدمة|تمهيد|تقديم|خطبة)(?:\b|\s|$)/u.test(comparableTitle)) return { title, type: "heading" };
@@ -984,7 +1193,11 @@ function detectSectionTitles(
   if (prefix) candidates.push({ allowGenericTopic: isLeadTopicCandidate(prefix, normalized), title: prefix });
 
   for (const match of normalized.matchAll(/\[([^\[\]]{2,140})\]/gu)) {
-    candidates.push({ allowGenericTopic: true, title: match[1] ?? "" });
+    const bracketPos = match.index ?? 0;
+    const startsWithChapterKeyword = /^(?:كتاب|باب|الباب|فصل|مسالة|مسئلة|فائدة|قاعدة|تنبيه|مطلب|مقدمة|خاتمة)/u.test(stripArabicMarks(match[1] ?? ""));
+    if (bracketPos <= 200 || startsWithChapterKeyword) {
+      candidates.push({ allowGenericTopic: bracketPos <= 200, title: match[1] ?? "" });
+    }
   }
 
   const direct = normalized.match(/^(?:(كتاب\s+[؀-ۿ].{0,110})|(الباب\s+[؀-ۿ\d].{0,110})|(باب\s+[؀-ۿ\d].{0,110})|(فصل(?:\s|:).{0,110})|(مسألة(?:\s|:).{0,110})|(مسئلة(?:\s|:).{0,110})|(فائدة(?:\s|:).{0,110})|(قاعدة(?:\s|:).{0,110})|(تنبيه(?:\s|:).{0,110})|(مطلب(?:\s|:).{0,110})|(مقدمة(?:\s+[؀-ۿ].{0,80})?))/u);
@@ -1020,10 +1233,38 @@ function indexEntryNumber(entry: SourceIndexEntry, keys: Array<"level" | "page" 
   return undefined;
 }
 
-function pageNumberForSourcePage(source: SourceBook, sourcePageNumber: number | undefined) {
+function extendedIndexEntryNumber(entry: SourceIndexEntry, keys: Array<keyof SourceIndexEntry>) {
+  for (const key of keys) {
+    const value = entry[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function indexEntryString(entry: SourceIndexEntry, keys: Array<keyof SourceIndexEntry>) {
+  for (const key of keys) {
+    const value = entry[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return undefined;
+}
+
+function sourcePageVolumeMatches(pageVolume: string, indexVolume: string | undefined) {
+  if (!indexVolume) return true;
+  return aliasesIntersect(volumeAliases(pageVolume), volumeAliases(indexVolume));
+}
+
+function pageNumberForSourcePage(source: SourceBook, sourcePageNumber: number | undefined, sourceVolume?: string) {
   if (sourcePageNumber === undefined) return undefined;
 
-  const exact = source.pages.find((page) => page.sourcePageNumber === sourcePageNumber);
+  const exact = source.pages.find(
+    (page) => page.sourcePageNumber === sourcePageNumber && sourcePageVolumeMatches(page.volume, sourceVolume),
+  );
   if (exact) return exact.pageNumber;
 
   const next = source.pages.find((page) => page.sourcePageNumber > sourcePageNumber);
@@ -1086,14 +1327,29 @@ function buildSectionsFromSourceIndex(
 
   const sections: SectionSummary[] = [];
   const stack: Array<{ id: number; level: number }> = [];
+  const preparedEntries = indexEntries
+    .map((entry, originalIndex) => {
+      const classified = classifySectionTitle(entry.title ?? "", { allowGenericTopic: true });
+      const sourcePageNumber =
+        source.sourceFormat === "organized-arabic"
+          ? extendedIndexEntryNumber(entry, ["printPage", "sourcePage", "page", "page_num"])
+          : extendedIndexEntryNumber(entry, ["page", "page_num", "printPage", "sourcePage"]);
+      const sourceVolume =
+        source.sourceFormat === "organized-arabic" ? indexEntryString(entry, ["printVolume", "volume"]) : undefined;
+      const startPage = pageNumberForSourcePage(source, sourcePageNumber, sourceVolume);
+      if (!classified || startPage === undefined) return null;
 
-  indexEntries.forEach((entry) => {
-    const classified = classifySectionTitle(entry.title ?? "", { allowGenericTopic: true });
-    const sourcePageNumber = indexEntryNumber(entry, ["page", "page_num"]);
-    const startPage = pageNumberForSourcePage(source, sourcePageNumber);
-    if (!classified || startPage === undefined) return;
+      return {
+        classified,
+        level: Math.max(1, extendedIndexEntryNumber(entry, ["level"]) ?? (classified.type === "fasl" ? 2 : 1)),
+        originalIndex,
+        startPage,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .sort((a, b) => a.startPage - b.startPage || a.originalIndex - b.originalIndex);
 
-    const level = Math.max(1, indexEntryNumber(entry, ["level"]) ?? (classified.type === "fasl" ? 2 : 1));
+  preparedEntries.forEach(({ classified, level, startPage }) => {
     while (stack.length > 0 && stack[stack.length - 1]!.level >= level) stack.pop();
 
     const id = nextSectionId();
@@ -1125,6 +1381,9 @@ function buildSectionsFromPageText(source: SourceBook, editionId: number, workId
   const scanInlineFasl = titleKey(source.title).includes("هداية الحيارى");
 
   source.pages.forEach((page) => {
+    // Skip table-of-contents pages: pages with 3+ independent chapter-level keywords are index/TOC pages
+    const chapKeywords = (page.text.match(/(?:^|[\s\n(])(?:الباب|باب\s|فصل[\s:]|مقدمة[\s:]|خاتمة[\s:])/gu) ?? []).length;
+    if (chapKeywords >= 3) return;
     detectSectionTitles(page.text, { pageHeadings: page.headings, scanInlineFasl }).forEach((detected) => {
       if (detected.title === previousTitle) return;
       const detectedKey = sectionTitleKey(detected.title);
@@ -1467,19 +1726,25 @@ function writeLanguageBundle(params: {
 }
 
 function main() {
+  loadBookIndexes();
   const index = loadSourceIndex();
   const coverMetadata = readOptionalJson<BookCoverMetadata[]>(COVER_METADATA_FILE, []);
   const coversBySourceId = new Map(coverMetadata.filter((item) => typeof item.sourceId === "number").map((item) => [item.sourceId!, item]));
   const coversBySlug = new Map(coverMetadata.filter((item) => item.slug).map((item) => [item.slug!, item]));
+  worksMetadata = readOptionalJson<Record<string, { description?: string }>>(WORKS_METADATA_FILE, {});
 
-  rmSync(TARGET_DIR, { force: true, recursive: true });
+  removeDirectoryWithRetries(TARGET_DIR);
   mkdirSync(TARGET_DIR, { recursive: true });
 
   const sourceBooks = selectPreferredEditions(index.books
     .map((entry) => {
       const source = readSourceBook(path.join(SOURCE_DIR, entry.file));
       if (!source) return null;
-      return { ...source, sourceId: entry.source_id ?? source.sourceId, volumes: entry.volumes ?? source.volumes };
+      return hydrateSourceBookWithExtractedIndex({
+        ...source,
+        sourceId: entry.source_id ?? source.sourceId,
+        volumes: entry.volumes ?? source.volumes,
+      });
     })
     .filter((source): source is SourceBook => source !== null));
 
@@ -1615,7 +1880,7 @@ function main() {
         coverImageAlt: cover?.coverImageAlt,
         coverImageUrl: cover?.coverImageUrl,
         defaultEditionId: defaultEdition.id,
-        description: buildWorkDescription(category, sortedEditions),
+        description: buildWorkDescription(workId, category, sortedEditions),
         editionCount: workEditionIds.length,
         id: workId,
         languageCode: defaultEdition.languageCode,

@@ -63,7 +63,7 @@ const KEYS = {
 
 const DEFAULT_SETTINGS: ReaderSettings = {
   fontFamily: "amiri",
-  fontSize: 22,
+  fontSize: 26,
   showFootnotes: true,
   showHarakat: true,
   showPageMarkers: true,
@@ -88,7 +88,7 @@ function normalizeReaderSettings(settings: Partial<ReaderSettings>): ReaderSetti
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
-    fontSize: Math.min(34, Math.max(16, settings.fontSize ?? DEFAULT_SETTINGS.fontSize)),
+    fontSize: Math.min(40, Math.max(18, settings.fontSize ?? DEFAULT_SETTINGS.fontSize)),
     fontFamily: settings.fontFamily === "naskh" ? "naskh" : "amiri",
     showFootnotes: settings.showFootnotes ?? DEFAULT_SETTINGS.showFootnotes,
     showHarakat: settings.showHarakat ?? DEFAULT_SETTINGS.showHarakat,

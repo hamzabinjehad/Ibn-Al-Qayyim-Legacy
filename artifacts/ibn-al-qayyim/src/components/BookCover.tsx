@@ -72,16 +72,9 @@ function isWarmRedColor(value: string) {
   return red > green + 35 && red > blue + 35;
 }
 
-function splitCoverTitle(value: string) {
-  const [mainTitle, ...details] = value.split(/\s[-\u2013\u2014]\s/);
-  return {
-    mainTitle: (mainTitle || value).trim(),
-    titleDetail: details.join(" - ").trim(),
-  };
-}
-
 function getTitleDensity(value: string) {
   const length = value.replace(/\s+/g, "").length;
+  if (length > 48) return "very-long";
   if (length > 34) return "long";
   if (length > 20) return "medium";
   return "short";
@@ -104,13 +97,12 @@ export default function BookCover({
     coverColor && !isNeutralColor(coverColor) && !isWarmRedColor(coverColor)
       ? coverColor
       : palette.mid;
-  const { mainTitle, titleDetail } = splitCoverTitle(title);
-  const coverMeta = editionLabel ?? titleDetail ?? publisher;
+  const coverMeta = editionLabel ?? publisher;
   const coverTextStyle = { color: "var(--cover-ink)", WebkitTextFillColor: "var(--cover-ink)" } as CSSProperties;
   const [imageFailed, setImageFailed] = useState(false);
   const canShowImage = !!coverImageUrl && !imageFailed;
   const coverVariant = titleHash % COVER_VARIANT_COUNT;
-  const titleDensity = getTitleDensity(mainTitle);
+  const titleDensity = getTitleDensity(title);
 
   useEffect(() => {
     setImageFailed(false);
@@ -165,7 +157,7 @@ export default function BookCover({
               className={`book-cover-title ${TITLE_CLASS[size]}`}
               style={coverTextStyle}
             >
-              {mainTitle}
+              {title}
             </h3>
             {coverMeta && (
               <p className="book-cover-meta mt-2 line-clamp-1" style={coverTextStyle}>

@@ -38,8 +38,8 @@ export const FOOTNOTE_REFERENCE_REGEX = new RegExp(
 );
 export const FOOTNOTE_FOCUS_MS = 6000;
 export const HIGHLIGHT_SURFACE_SELECTOR = "[data-reader-highlight-surface]";
-export const MIN_READER_FONT_SIZE = 16;
-export const MAX_READER_FONT_SIZE = 34;
+export const MIN_READER_FONT_SIZE = 18;
+export const MAX_READER_FONT_SIZE = 40;
 
 export function clampReaderFontSize(value: number) {
   return Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, value));

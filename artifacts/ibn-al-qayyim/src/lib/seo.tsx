@@ -9,9 +9,9 @@ const SITE_NAME: Record<LanguageCode, string> = {
 };
 
 const SITE_DESCRIPTION: Record<LanguageCode, string> = {
-  ar: "منصة ثابتة لتصفح وقراءة كتب الإمام ابن قيم الجوزية مع البحث، الفهارس، وحفظ موضع القراءة محلياً.",
-  de: "Eine statische Bibliothek zum Lesen und Durchsuchen ausgewählter Werke von Ibn al-Qayyim.",
-  en: "A static library for reading and searching selected works by Ibn al-Qayyim.",
+  ar: "مكتبة رقمية لقراءة كتب الإمام ابن قيم الجوزية، مع الطبعات والفهارس والبحث والحفظ المحلي ومشاركة الاقتباسات.",
+  de: "Eine digitale Bibliothek zum Lesen der Werke von Ibn Qayyim al-Dschauziyya, mit Ausgaben, Inhaltsverzeichnissen, Suche, lokaler Speicherung und Zitaten.",
+  en: "A digital library for reading works by Ibn Qayyim al-Jawziyyah, with editions, indexes, search, local saving, and quote sharing.",
 };
 
 const ROUTE_TITLES: Record<LanguageCode, Record<string, string>> = {

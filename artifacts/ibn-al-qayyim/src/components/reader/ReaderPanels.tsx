@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   Copy,
@@ -21,6 +21,7 @@ import {
   clampReaderFontSize,
   displayFootnoteMarker,
   isPositionedHighlight,
+  MIN_READER_FONT_SIZE,
   type PageFootnote,
 } from "@/lib/reader-utils";
 import { cleanBabTitle, stripSectionTypePrefix } from "@/lib/section-title";
@@ -203,8 +204,9 @@ export function ReaderToolbar({
     };
   }, []);
 
-  const stepFontSize = (delta: number) => {
-    setSettings((c) => ({ ...c, fontSize: clampReaderFontSize(c.fontSize + delta) }));
+  const stepFontSize = (delta: number, event?: MouseEvent<HTMLButtonElement>) => {
+    const multiplier = event?.shiftKey ? 2 : 1;
+    setSettings((c) => ({ ...c, fontSize: clampReaderFontSize(c.fontSize + delta * multiplier) }));
   };
 
   return (
@@ -237,16 +239,20 @@ export function ReaderToolbar({
 
         {/* Font size: small أ baseline-aligned with large أ */}
         <button
-          onClick={() => stepFontSize(-2)}
+          disabled={settings.fontSize <= MIN_READER_FONT_SIZE}
+          onClick={(event) => stepFontSize(-2, event)}
           title={t("تصغير الخط")}
-          className="inline-flex h-10 w-8 items-end justify-center pb-[0.45rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90"
+          className="inline-flex h-10 w-8 items-end justify-center pb-[0.45rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-35"
           aria-label={t("تصغير الخط")}
           type="button"
         >
           <span className="select-none font-bold leading-none" style={{ fontSize: "0.65rem" }} aria-hidden="true">أ</span>
         </button>
+        <span className="w-6 select-none text-center text-[0.65rem] font-semibold tabular-nums text-foreground/45">
+          {settings.fontSize}
+        </span>
         <button
-          onClick={() => stepFontSize(2)}
+          onClick={(event) => stepFontSize(2, event)}
           title={t("تكبير الخط")}
           className="inline-flex h-10 w-8 items-end justify-center pb-[0.15rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90"
           aria-label={t("تكبير الخط")}
@@ -465,7 +471,7 @@ export function ReaderToc({
   chapters: ChapterSummary[];
   className?: string;
   onSelect?: () => void;
-  pages: Pick<PageDetail, "pageNumber" | "sourcePageNumber">[];
+  pages: Pick<PageDetail, "pageNumber" | "sourcePageNumber" | "volume">[];
 }) {
   const { t } = useUiTranslations();
 

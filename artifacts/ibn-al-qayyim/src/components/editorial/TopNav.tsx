@@ -33,10 +33,31 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/library", label: "المكتبة", icon: Library, match: (p: string) => p.startsWith("/library") || p.startsWith("/book") || p.startsWith("/editions") || p.startsWith("/work") || p.startsWith("/edition") },
-  { href: "/reading-plan", label: "ترتيب القراءة", mobileLabel: "الخطة", icon: Route, match: (p: string) => p.startsWith("/reading-plan") },
+  {
+    href: "/library",
+    label: "المكتبة",
+    icon: Library,
+    match: (p: string) =>
+      p.startsWith("/library") ||
+      p.startsWith("/book") ||
+      p.startsWith("/editions") ||
+      p.startsWith("/work") ||
+      p.startsWith("/edition"),
+  },
+  {
+    href: "/reading-plan",
+    label: "ترتيب القراءة",
+    mobileLabel: "الخطة",
+    icon: Route,
+    match: (p: string) => p.startsWith("/reading-plan"),
+  },
   { href: "/search", label: "البحث", icon: Search, match: (p: string) => p.startsWith("/search") },
-  { href: "/saved", label: "المحفوظات", icon: Bookmark, match: (p: string) => p.startsWith("/saved") || p.startsWith("/notes") || p.startsWith("/profile") },
+  {
+    href: "/saved",
+    label: "المحفوظات",
+    icon: Bookmark,
+    match: (p: string) => p.startsWith("/saved") || p.startsWith("/notes") || p.startsWith("/profile"),
+  },
 ];
 
 const SITE_LOGO_SRC = `${import.meta.env.BASE_URL}site-logo.png`;
@@ -74,6 +95,7 @@ export default function TopNav() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [navigate]);
+
   const activeLanguageName = languageName(language, language);
   const { startTour } = useOnboardingTour();
   const { mode, toggle } = useTheme();
@@ -82,8 +104,8 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-border bg-background/96 shadow-[0_14px_38px_-36px_rgba(0,0,0,0.75)] backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-[90rem] items-center justify-between gap-2 px-3.5 sm:gap-3 sm:px-6">
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-12 max-w-[90rem] items-center justify-between gap-2 px-3.5 sm:gap-3 sm:px-6">
           <Link
             href="/"
             aria-label={t("موروث ابن القيم")}
@@ -93,27 +115,44 @@ export default function TopNav() {
             <img
               src={SITE_LOGO_SRC}
               alt=""
-              className="h-8 w-8 shrink-0 rounded-full bg-black object-cover shadow-[0_10px_24px_-18px_rgba(0,0,0,0.9)] ring-1 ring-border sm:h-9 sm:w-9"
+              className="h-8 w-8 shrink-0 rounded-full bg-black object-cover ring-1 ring-border/70 sm:h-8 sm:w-8"
             />
-            <span className="hidden font-display text-lg font-bold leading-none sm:inline">
+            <span className="hidden font-display text-base font-bold leading-none sm:inline">
               {t("موروث ابن القيم")}
             </span>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-6 text-sm text-muted-foreground md:flex">
+          <div aria-hidden="true" className="hidden" inert>
+            <Link
+              href="/search"
+              className="flex h-10 w-full max-w-md items-center gap-3 rounded-full border border-border/70 bg-muted/35 px-4 text-sm text-muted-foreground transition-colors hover:border-foreground/25 hover:bg-muted/55 hover:text-foreground"
+              data-tour="nav-search"
+            >
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 truncate">{t("Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„ÙƒØªØ¨ ÙˆØ§Ù„ÙØµÙˆÙ„")}</span>
+              <kbd className="ms-auto hidden rounded border border-border/70 px-1.5 py-0.5 text-[0.65rem] font-semibold text-muted-foreground lg:inline">
+                Ctrl K
+              </kbd>
+            </Link>
+          </div>
+
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1.5 text-muted-foreground md:flex">
             {visibleNavItems.map((item) => {
               const active = item.match(location);
+              const Icon = item.icon;
               return (
                 <Link
                   aria-current={active ? "page" : undefined}
+                  aria-label={t(item.mobileLabel ?? item.label)}
                   href={item.href}
                   key={item.href}
-                  className={`relative inline-flex h-14 items-center transition-colors hover:text-foreground ${
-                    active ? "text-foreground" : ""
+                  title={t(item.mobileLabel ?? item.label)}
+                  className={`relative inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors hover:bg-muted hover:text-foreground ${
+                    active ? "bg-muted text-foreground" : ""
                   }`}
                 >
-                  {t(item.label)}
-                  {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-foreground" />}
+                  <Icon className="h-4 w-4" />
+                  <span>{t(item.mobileLabel ?? item.label)}</span>
                 </Link>
               );
             })}
@@ -169,6 +208,7 @@ export default function TopNav() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+
             <button
               aria-label={t("طريقة استخدام الموقع")}
               className="inline-flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground sm:h-9 sm:w-9"

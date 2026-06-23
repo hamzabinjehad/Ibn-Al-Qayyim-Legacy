@@ -23,7 +23,7 @@ export function WorkCard({ work, progress }: { work: WorkSummary; progress?: num
         className="mx-auto !h-36 !w-24 sm:!h-52 sm:!w-36"
       />
       <div className="mt-4 flex flex-1 flex-col text-center">
-        <h3 className="line-clamp-2 text-base font-semibold leading-7">
+        <h3 className="text-base font-semibold leading-7">
           {work.titleAr}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -66,7 +66,7 @@ export function WorkRow({ work }: { work: WorkSummary }) {
             <span className="ms-2 opacity-70">· {formatNumber(work.pageCount, language)} {t("صفحة")}</span>
           )}
         </p>
-        <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-7 sm:mt-2 sm:text-lg sm:leading-8">{work.titleAr}</h3>
+        <h3 className="mt-1 text-base font-semibold leading-7 sm:mt-2 sm:text-lg sm:leading-8">{work.titleAr}</h3>
         <p className="mt-1 line-clamp-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-2 sm:leading-7">{work.description}</p>
       </div>
       <div className="col-span-2 self-end text-xs text-muted-foreground sm:col-auto sm:text-end">
@@ -98,7 +98,7 @@ export function BookCard({ book, progress }: { book: BookSummary; progress?: num
         className="mx-auto !h-36 !w-24 sm:!h-52 sm:!w-36"
       />
       <div className="mt-4 flex flex-1 flex-col text-center">
-        <h3 className="line-clamp-2 text-base font-semibold leading-7">
+        <h3 className="text-base font-semibold leading-7">
           {book.titleAr}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -135,7 +135,7 @@ export function BookRow({ book }: { book: BookSummary | EditionSummary }) {
           <Bookmark className="h-3.5 w-3.5" />
           {book.editionLabel ?? book.publisher ?? t("طبعة متاحة")}
         </p>
-        <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-7 sm:mt-2 sm:text-lg sm:leading-8">{book.titleAr}</h3>
+        <h3 className="mt-1 text-base font-semibold leading-7 sm:mt-2 sm:text-lg sm:leading-8">{book.titleAr}</h3>
         <p className="mt-1 line-clamp-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-2 sm:leading-7">
           {book.workTitleAr}
         </p>

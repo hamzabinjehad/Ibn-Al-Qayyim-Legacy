@@ -112,7 +112,7 @@ export default function Library() {
                           size="sm"
                           className="mx-auto !h-28 !w-20"
                         />
-                        <p className="mt-2 line-clamp-2 text-center text-xs font-medium leading-5">
+                        <p className="mt-2 text-center text-xs font-medium leading-5">
                           {work.titleAr}
                         </p>
                         {roundedProgress !== null && (

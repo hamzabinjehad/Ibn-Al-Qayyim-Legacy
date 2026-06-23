@@ -502,6 +502,10 @@
     word-spacing: 0.04em;
   }
 
+  .reader-text[dir="rtl"] .reader-paragraph {
+    text-indent: 1.4em;
+  }
+
   /* Clickable footnote reference in text */
   .reader-footnote-ref {
     display: inline;
@@ -510,7 +514,7 @@
     line-height: 1;
     font-family: var(--app-font-sans);
     font-weight: 700;
-    color: hsl(var(--muted-foreground));
+    color: #7a5c0a;
     background: none;
     border: none;
     padding: 0 0.05em;
@@ -519,6 +523,10 @@
     text-decoration: underline dotted;
     text-underline-offset: 2px;
     transition: color 120ms ease;
+  }
+
+  .dark .reader-footnote-ref {
+    color: #c49a2e;
   }
 
   .reader-footnote-ref:hover {
@@ -544,14 +552,20 @@
     margin-inline: 0.05em;
   }
 
-  /* Quranic verse — amber/warm-gold, inherits book font */
+  /* Quranic verse — amber/warm-gold with soft cream background */
   .reader-quran-verse {
-    color: #8b6914;
+    color: #7a5208;
     font-weight: 600;
+    background: hsl(44 80% 94%);
+    border-radius: 0.22em;
+    padding: 0.04em 0.3em 0.1em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
 
   .dark .reader-quran-verse {
     color: #d4a843;
+    background: hsl(44 40% 10%);
   }
 
   /* Surah:Ayah reference shown after the verse */
@@ -596,6 +610,7 @@
     font-weight: 700;
     color: hsl(var(--foreground));
     letter-spacing: 0.01em;
+    text-indent: 0;
   }
 
   /* كتاب — top-level volume/book division (largest) */
@@ -689,7 +704,11 @@
     border-inline-start: 3px solid hsl(var(--border));
     padding-inline-start: 1.1rem;
     margin-inline-start: 0.1rem;
-    color: hsl(var(--foreground) / 0.88);
+    color: #6b3a20;
+    text-indent: 0;
+  }
+  .dark .reader-blockquote {
+    color: #c9956a;
   }
 
   /* Footnote section — clean scholarly style */
@@ -939,25 +958,48 @@
   }
 
   .book-cover[data-title-density="long"] .book-cover-title {
-    -webkit-line-clamp: 5;
+    -webkit-line-clamp: 6;
     line-height: 1.23;
+  }
+
+  .book-cover[data-title-density="very-long"] .book-cover-title {
+    -webkit-line-clamp: 6;
+    line-height: 1.18;
   }
 
   .book-cover[data-cover-size="sm"][data-title-density="long"] .book-cover-title {
     font-size: 0.62rem;
   }
 
+  .book-cover[data-cover-size="sm"][data-title-density="very-long"] .book-cover-title {
+    font-size: 0.6rem;
+  }
+
   .book-cover[data-cover-size="md"][data-title-density="long"] .book-cover-title {
     font-size: 0.88rem;
+  }
+
+  .book-cover[data-cover-size="md"][data-title-density="very-long"] .book-cover-title {
+    font-size: 0.82rem;
   }
 
   .book-cover[data-cover-size="lg"][data-title-density="long"] .book-cover-title {
     font-size: 1.08rem;
   }
 
-  .book-cover[data-title-density="long"] .book-cover-title-panel {
+  .book-cover[data-cover-size="lg"][data-title-density="very-long"] .book-cover-title {
+    font-size: 1rem;
+  }
+
+  .book-cover[data-title-density="long"] .book-cover-title-panel,
+  .book-cover[data-title-density="very-long"] .book-cover-title-panel {
     top: 27%;
     bottom: 16%;
+  }
+
+  .book-cover[data-title-density="very-long"] .book-cover-meta {
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
   }
 
   .book-cover-frame::before,
@@ -1055,18 +1097,17 @@
 
   .scholarly-bg {
     background:
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted) / 0.46) 100%),
-      radial-gradient(circle at 82% 8%, hsl(146 36% 30% / 0.08), transparent 30rem),
-      radial-gradient(circle at 14% 20%, hsl(42 58% 44% / 0.08), transparent 26rem);
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted) / 0.22) 100%),
+      radial-gradient(circle at 82% 8%, hsl(var(--foreground) / 0.025), transparent 30rem);
   }
 
   .surface-card {
-    border: 1px solid hsl(var(--border));
+    border: 1px solid hsl(var(--border) / 0.72);
     border-radius: 0.5rem;
     background:
-      linear-gradient(180deg, hsl(var(--background) / 0.98), hsl(var(--background) / 0.94)),
+      linear-gradient(180deg, hsl(var(--background) / 0.98), hsl(var(--background) / 0.96)),
       hsl(var(--background));
-    box-shadow: 0 18px 46px -42px rgb(0 0 0 / 0.72);
+    box-shadow: 0 10px 32px -30px rgb(0 0 0 / 0.48);
   }
 
   .reader-surface {
@@ -1130,12 +1171,14 @@
 
   /* Quran verse: deeper warm gold in sepia */
   .sepia .reader-quran-verse {
-    color: hsl(38 70% 34%);
+    color: hsl(34 72% 26%);
+    background: hsl(40 52% 82%);
   }
 
-  /* Blockquote rail: warm brown in sepia */
+  /* Blockquote rail and text: warm brown in sepia */
   .sepia .reader-blockquote {
     border-inline-start-color: hsl(30 26% 52%);
+    color: hsl(20 58% 28%);
   }
 
   /* Active footnote: warm highlight in sepia */
@@ -1252,10 +1295,10 @@
   }
 
   .interactive-card {
-    border: 1px solid hsl(var(--border));
+    border: 1px solid hsl(var(--border) / 0.72);
     border-radius: 0.5rem;
-    background: hsl(var(--background));
-    box-shadow: 0 14px 36px -34px rgb(0 0 0 / 0.72);
+    background: hsl(var(--background) / 0.96);
+    box-shadow: 0 10px 30px -30px rgb(0 0 0 / 0.5);
     transition:
       border-color 160ms ease,
       background-color 160ms ease,
@@ -1264,9 +1307,9 @@
   }
 
   .interactive-card:hover {
-    border-color: hsl(var(--foreground) / 0.45);
-    background: hsl(var(--background) / 0.96);
-    box-shadow: 0 20px 52px -44px rgb(0 0 0 / 0.82);
+    border-color: hsl(var(--foreground) / 0.28);
+    background: hsl(var(--background));
+    box-shadow: 0 14px 38px -34px rgb(0 0 0 / 0.58);
     transform: translateY(-1px);
   }
 
@@ -1282,7 +1325,7 @@
 
 
   .reader-control {
-    min-height: 2.5rem;
+    min-height: 2.25rem;
     border: 1px solid hsl(var(--border));
     border-radius: 0.5rem;
     background: hsl(var(--background));
