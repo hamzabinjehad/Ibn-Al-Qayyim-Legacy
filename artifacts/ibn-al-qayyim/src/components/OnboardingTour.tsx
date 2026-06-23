@@ -325,7 +325,7 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (language === "ar" && !readTourSeen()) {
-      setIsTourOpen(true);
+      markTourSeen();
     }
   }, [language]);
 
