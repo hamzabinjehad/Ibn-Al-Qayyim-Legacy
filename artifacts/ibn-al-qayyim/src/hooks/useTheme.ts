@@ -10,8 +10,8 @@ const THEME_BG: Record<ThemeMode, string> = {
 
 function readStoredMode(): ThemeMode {
   const stored = localStorage.getItem("theme");
-  if (stored === "dark" || stored === "sepia") return stored;
-  return "light";
+  if (stored === "dark" || stored === "sepia" || stored === "light") return stored;
+  return "dark";
 }
 
 function applyMode(mode: ThemeMode) {

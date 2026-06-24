@@ -20,7 +20,7 @@ import { useLanguage } from "@/lib/i18n";
 import { useStaticBooks } from "@/lib/static-library";
 import { useUiTranslations } from "@/lib/ui-translations";
 
-const TOUR_STORAGE_KEY = "ibn-al-qayyim:onboarding-tour:v1";
+const TOUR_STORAGE_KEY = "ibn-al-qayyim:onboarding-tour:v2";
 const SPOTLIGHT_PADDING = 8;
 
 interface OnboardingTourContextValue {
@@ -153,6 +153,16 @@ function getSpotlightStyle(rect: TargetRect): CSSProperties {
   };
 }
 
+function scrollToPageTop() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      document.documentElement.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+      document.body.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  });
+}
+
 export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
   const { direction, language } = useLanguage();
@@ -176,7 +186,13 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
       {
         id: "welcome",
         title: "أهلا بك في موروث ابن القيم",
-        body: "هذه جولة سريعة توضح كيف تبحث، تفتح كتابا، تنسخ النصوص، وتشارك اقتباسا منسقا كصورة قابلة للتعديل.",
+        body: "هذا الموقع ليس قسما واحدا للقراءة فقط؛ هو مكتبة رقمية تجمع كتب الإمام ابن قيم الجوزية وطبعاتها، وتساعدك على البحث والقراءة والحفظ والمشاركة من مكان واحد.",
+        points: [
+          "تصفح الأعمال والطبعات بحسب اللغة، وافتح الفهارس قبل القراءة.",
+          "ابحث في المكتبة كلها أو داخل كتاب وقسم محددين.",
+          "احفظ موضع القراءة والتظليلات والملاحظات محليا في هذا المتصفح.",
+          "انسخ النصوص وشارك الاقتباسات كبطاقات قابلة للتخصيص.",
+        ],
       },
       {
         id: "search",
@@ -280,7 +296,10 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
       setCurrentStep(0);
       setTargetRect(null);
       setTargetMissing(false);
-      if (options?.returnHome && location !== "/") navigate("/");
+      if (options?.returnHome) {
+        if (location !== "/") navigate("/");
+        scrollToPageTop();
+      }
     },
     [location, navigate],
   );
@@ -306,7 +325,7 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (language === "ar" && !readTourSeen()) {
-      setIsTourOpen(true);
+      markTourSeen();
     }
   }, [language]);
 

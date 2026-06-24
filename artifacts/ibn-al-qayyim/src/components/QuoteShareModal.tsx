@@ -24,11 +24,10 @@ interface Props {
   bookTitle: string;
   chapterTitle: string;
   pageNumber?: number;
-  coverColor?: string;
   onClose: () => void;
 }
 
-type QuotePresetKey = "cover" | "manuscript" | "mihrab" | "daylight";
+type QuotePresetKey = "parchment" | "sage";
 type ShareFormat = "square" | "story";
 type CopiedKind = "text" | "image" | "link";
 
@@ -55,47 +54,38 @@ type QuotePreset = {
   muted: string;
   line: string;
   dark?: boolean;
+  templateImageUrl?: string;
 };
 
 const baseQuotePresets: QuotePreset[] = [
   {
-    key: "manuscript",
-    title: "مخطوط",
-    description: "ورق هادئ وحدود هندسية للنصوص الطويلة",
-    accent: "#b99152",
-    background: "#efe2c7",
-    surface: "#fff7e8",
-    ink: "#2f261f",
-    muted: "#7b6042",
-    line: "#c9a66c",
+    key: "parchment",
+    title: "\u0648\u0631\u0642 \u0623\u062b\u0631\u064a",
+    description: "\u0628\u0637\u0627\u0642\u0629 \u0647\u0627\u062f\u0626\u0629 \u0628\u062e\u0644\u0641\u064a\u0629 \u0648\u0631\u0642\u064a\u0629 \u0648\u0632\u062e\u0631\u0641\u0629 \u062c\u0627\u0646\u0628\u064a\u0629 \u0644\u0644\u0646\u0635\u0648\u0635 \u0627\u0644\u0639\u0631\u0628\u064a\u0629",
+    accent: "#4a3515",
+    background: "#efe8d8",
+    surface: "#f7f0df",
+    ink: "#3b2a10",
+    muted: "#5f513c",
+    line: "#4a3515",
   },
   {
-    key: "mihrab",
-    title: "محراب",
-    description: "خلفية داكنة وعمق بصري مناسب للمشاركة",
-    accent: "#c99a55",
-    background: "#1e1915",
-    surface: "#332920",
-    ink: "#fff4df",
-    muted: "#d2b079",
-    line: "#8b6a3c",
+    key: "sage",
+    title: "\u0633\u0643\u064a\u0646\u0629",
+    description: "\u064a\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0635\u0648\u0631\u0629 \u0643\u062e\u0644\u0641\u064a\u0629 \u0648\u064a\u0633\u062a\u0628\u062f\u0644 \u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0646\u0635 \u0628\u0627\u0644\u0627\u0642\u062a\u0628\u0627\u0633",
+    accent: "#26342d",
+    background: "#5b675e",
+    surface: "#5b675e",
+    ink: "#f2f4ee",
+    muted: "#d5dbd2",
+    line: "#26342d",
     dark: true,
-  },
-  {
-    key: "daylight",
-    title: "نهار",
-    description: "أبيض نقي لطباعة وضياء يناسب الشاشات الساطعة",
-    accent: "#3a5a3a",
-    background: "#f8f9fa",
-    surface: "#ffffff",
-    ink: "#1a1a1a",
-    muted: "#4a6a4a",
-    line: "#8aab8a",
+    templateImageUrl: `${import.meta.env.BASE_URL}quote-templates/sage-template.png`,
   },
 ];
 
-const accentPalettes = ["#b99152", "#8f5d2f", "#556b46", "#4f6f9a", "#7d4e57", "#2f7a67", "#1f1f1f"];
-const backgroundPalettes = ["#efe2c7", "#1e1915", "#f3f5f7", "#dcc08b", "#332419", "#f2dcc2", "#24362f"];
+const accentPalettes = ["#4a3515", "#26342d", "#5f513c", "#6a5f48", "#435047", "#2f332d", "#8f6a34"];
+const backgroundPalettes = ["#efe8d8", "#5b675e", "#667266", "#f4eddc", "#e8dfcc", "#c0c4b2", "#ded1b7"];
 
 const formatDimensions: Record<ShareFormat, { width: number; height: number; label: string }> = {
   square: { width: 1080, height: 1080, label: "مربع" },
@@ -257,6 +247,14 @@ function drawTextLines(
   });
 }
 
+function textLengthBand(text: string) {
+  const length = normalizeQuote(text).length;
+  if (length > 760) return "very-long";
+  if (length > 420) return "long";
+  if (length > 190) return "medium";
+  return "short";
+}
+
 function drawDiamond(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) {
   ctx.save();
   ctx.translate(x, y);
@@ -264,6 +262,27 @@ function drawDiamond(ctx: CanvasRenderingContext2D, x: number, y: number, size: 
   ctx.fillStyle = color;
   ctx.fillRect(-size / 2, -size / 2, size, size);
   ctx.restore();
+}
+
+function drawPetal(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string, rotation = 0) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, -size * 0.34, size * 0.21, size * 0.5, 0.72, 0, Math.PI * 2);
+  ctx.ellipse(0, size * 0.34, size * 0.21, size * 0.5, -0.72, 0, Math.PI * 2);
+  ctx.ellipse(-size * 0.34, 0, size * 0.21, size * 0.5, -0.72, 0, Math.PI * 2);
+  ctx.ellipse(size * 0.34, 0, size * 0.21, size * 0.5, 0.72, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPetalCluster(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) {
+  const gap = size * 1.18;
+  drawPetal(ctx, x - gap, y, size, color, 0.12);
+  drawPetal(ctx, x, y, size, color, 0);
+  drawPetal(ctx, x + gap, y, size, color, -0.12);
 }
 
 function drawFineTexture(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
@@ -434,31 +453,313 @@ function resolvePreset(preset: QuotePreset, colors: ShareColors) {
     background,
     surface: preset.dark ? mixColors(background, "#ffffff", 0.08) : mixColors(background, "#ffffff", 0.62),
     line: mixColors(accent, preset.dark ? "#ffffff" : "#2c2118", preset.dark ? 0.08 : 0.2),
-    muted: preset.dark ? mixColors(accent, "#ffffff", 0.35) : mixColors(accent, "#2c2118", 0.42),
+    muted: preset.dark ? mixColors(accent, "#ffffff", 0.64) : mixColors(accent, "#2c2118", 0.42),
   };
 }
 
 function drawCardBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
   const bg = ctx.createLinearGradient(0, 0, width, height);
-  bg.addColorStop(0, preset.dark ? mixColors(preset.background, "#ffffff", 0.06) : mixColors(preset.background, "#ffffff", 0.28));
-  bg.addColorStop(0.52, preset.background);
-  bg.addColorStop(1, preset.dark ? mixColors(preset.background, "#000000", 0.55) : mixColors(preset.background, preset.accent, 0.18));
+  bg.addColorStop(0, mixColors(preset.background, "#ffffff", 0.34));
+  bg.addColorStop(0.56, preset.background);
+  bg.addColorStop(1, mixColors(preset.background, preset.accent, 0.08));
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  const glow = ctx.createRadialGradient(width * 0.28, height * 0.18, 80, width * 0.28, height * 0.18, height * 0.68);
-  glow.addColorStop(0, preset.dark ? withAlpha(preset.accent, 0.28) : "rgba(255,255,255,0.68)");
+  const glow = ctx.createRadialGradient(width * 0.38, height * 0.2, 80, width * 0.38, height * 0.2, height * 0.78);
+  glow.addColorStop(0, "rgba(255,255,255,0.46)");
   glow.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, width, height);
 
   const vignette = ctx.createRadialGradient(width / 2, height / 2, width * 0.25, width / 2, height / 2, height * 0.78);
   vignette.addColorStop(0, "rgba(255,255,255,0)");
-  vignette.addColorStop(1, preset.dark ? "rgba(0,0,0,0.48)" : "rgba(92,55,18,0.14)");
+  vignette.addColorStop(1, "rgba(92,55,18,0.12)");
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, width, height);
 
   drawFineTexture(ctx, preset, width, height);
+}
+
+function drawPaperBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
+  ctx.fillStyle = preset.background;
+  ctx.fillRect(0, 0, width, height);
+
+  const glow = ctx.createRadialGradient(width * 0.42, height * 0.3, 80, width * 0.42, height * 0.3, height * 0.72);
+  glow.addColorStop(0, "rgba(255,255,255,0.5)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, width, height);
+
+  const edge = ctx.createLinearGradient(0, 0, width, 0);
+  edge.addColorStop(0, "rgba(80, 55, 20, 0.08)");
+  edge.addColorStop(0.18, "rgba(80, 55, 20, 0)");
+  edge.addColorStop(0.82, "rgba(80, 55, 20, 0)");
+  edge.addColorStop(1, "rgba(80, 55, 20, 0.09)");
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.save();
+  ctx.globalAlpha = 0.055;
+  ctx.strokeStyle = preset.accent;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 340; i += 1) {
+    const x = (i * 83) % width;
+    const y = (i * 149) % height;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + ((i % 7) - 3) * 9, y + 18 + (i % 5) * 4);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSageBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
+  ctx.fillStyle = preset.background;
+  ctx.fillRect(0, 0, width, height);
+
+  const centerGlow = ctx.createRadialGradient(width * 0.48, height * 0.42, 120, width * 0.48, height * 0.42, height * 0.74);
+  centerGlow.addColorStop(0, "rgba(255,255,255,0.035)");
+  centerGlow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = centerGlow;
+  ctx.fillRect(0, 0, width, height);
+
+  const topShade = ctx.createLinearGradient(0, 0, 0, height);
+  topShade.addColorStop(0, "rgba(0,0,0,0.08)");
+  topShade.addColorStop(0.5, "rgba(0,0,0,0)");
+  topShade.addColorStop(1, "rgba(0,0,0,0.07)");
+  ctx.fillStyle = topShade;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = "#ffffff";
+  for (let i = 0; i < 190; i += 1) {
+    const x = (i * 181) % width;
+    const y = (i * 97) % height;
+    ctx.fillRect(x, y, 1, 1);
+  }
+  ctx.restore();
+}
+
+function drawMarginalWordmark(
+  ctx: CanvasRenderingContext2D,
+  preset: QuotePreset,
+  width: number,
+  height: number,
+  direction: TextDirection,
+  fontFamily: string,
+  format: ShareFormat,
+) {
+  const isRtl = direction === "rtl";
+  const sideX = isRtl ? width - width * 0.055 : width * 0.055;
+  const sign = isRtl ? -1 : 1;
+  const fontSize = format === "story" ? 178 : 132;
+
+  ctx.save();
+  ctx.translate(sideX, height * 0.66);
+  ctx.rotate(sign * Math.PI / 2);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = withAlpha(preset.accent, 0.88);
+  ctx.font = `700 ${fontSize}px ${fontFamily}`;
+  ctx.fillText("ابن القيم", 0, 0);
+
+  ctx.globalAlpha = 0.28;
+  ctx.font = `700 ${fontSize * 0.72}px ${fontFamily}`;
+  ctx.fillText("رحمه الله", format === "story" ? -210 : -160, fontSize * 0.62);
+  ctx.restore();
+}
+
+const templateImageCache = new Map<string, Promise<HTMLImageElement>>();
+
+function loadTemplateImage(src: string) {
+  const cached = templateImageCache.get(src);
+  if (cached) return cached;
+
+  const promise = new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Unable to load quote template: ${src}`));
+    image.src = src;
+  });
+  templateImageCache.set(src, promise);
+  return promise;
+}
+
+function drawImagePatch(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  source: { x: number; y: number; width: number; height: number },
+  target: { x: number; y: number; width: number; height: number },
+) {
+  ctx.drawImage(image, source.x, source.y, source.width, source.height, target.x, target.y, target.width, target.height);
+}
+
+function drawSageTemplateBackground(
+  ctx: CanvasRenderingContext2D,
+  preset: QuotePreset,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+  format: ShareFormat,
+) {
+  ctx.fillStyle = preset.background;
+  ctx.fillRect(0, 0, width, height);
+
+  const templateSize = format === "story" ? width : Math.min(width, height);
+  const templateX = (width - templateSize) / 2;
+  const templateY = format === "story" ? (height - templateSize) / 2 : (height - templateSize) / 2;
+  ctx.drawImage(image, templateX, templateY, templateSize, templateSize);
+
+  const sx = image.naturalWidth / 1600;
+  const sy = image.naturalHeight / 1600;
+  const tx = (value: number) => templateX + (value / 1600) * templateSize;
+  const ty = (value: number) => templateY + (value / 1600) * templateSize;
+  const tw = (value: number) => (value / 1600) * templateSize;
+  const th = (value: number) => (value / 1600) * templateSize;
+  const sourcePatch = { x: 120 * sx, y: 110 * sy, width: 1360 * sx, height: 420 * sy };
+
+  drawImagePatch(ctx, image, sourcePatch, { x: tx(140), y: ty(470), width: tw(1320), height: th(660) });
+  drawImagePatch(ctx, image, sourcePatch, { x: tx(120), y: ty(1300), width: tw(1360), height: th(220) });
+
+  ctx.fillStyle = withAlpha(preset.background, 0.22);
+  ctx.fillRect(tx(140), ty(470), tw(1320), th(660));
+  ctx.fillRect(tx(120), ty(1300), tw(1360), th(220));
+
+  return { x: templateX, y: templateY, size: templateSize };
+}
+
+function drawSideOrnament(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number, direction: TextDirection) {
+  ctx.save();
+  const side = direction === "rtl" ? width + 12 : -12;
+  const sign = direction === "rtl" ? -1 : 1;
+  ctx.translate(side, height * 0.55);
+  ctx.scale(sign, 1);
+  ctx.strokeStyle = withAlpha(preset.accent, 0.92);
+  ctx.lineWidth = Math.max(18, width * 0.022);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(0, i * height * 0.16);
+    ctx.bezierCurveTo(-width * 0.1, i * height * 0.1, -width * 0.04, i * height * 0.02, -width * 0.12, i * height * -0.06);
+    ctx.bezierCurveTo(-width * 0.18, i * height * -0.12, -width * 0.04, i * height * -0.16, -width * 0.09, i * height * -0.24);
+    ctx.stroke();
+  }
+
+  ctx.lineWidth = Math.max(9, width * 0.011);
+  for (let i = -3; i <= 3; i += 1) {
+    ctx.beginPath();
+    ctx.arc(-width * 0.045, i * height * 0.14, width * 0.028, 0.2 * Math.PI, 1.62 * Math.PI);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPaperSideOrnament(
+  ctx: CanvasRenderingContext2D,
+  preset: QuotePreset,
+  width: number,
+  height: number,
+  direction: TextDirection,
+) {
+  ctx.save();
+  const isRtl = direction === "rtl";
+  const x = isRtl ? width + width * 0.02 : -width * 0.02;
+  const sign = isRtl ? -1 : 1;
+  ctx.translate(x, height * 0.54);
+  ctx.scale(sign, 1);
+  ctx.strokeStyle = withAlpha(preset.accent, 0.98);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = Math.max(15, width * 0.018);
+
+  for (let i = -3; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(0, i * height * 0.14);
+    ctx.bezierCurveTo(
+      -width * 0.1,
+      i * height * 0.12 - height * 0.02,
+      -width * 0.03,
+      i * height * 0.02 + height * 0.04,
+      -width * 0.12,
+      i * height * -0.08,
+    );
+    ctx.bezierCurveTo(
+      -width * 0.2,
+      i * height * -0.16,
+      -width * 0.05,
+      i * height * -0.18,
+      -width * 0.1,
+      i * height * -0.26,
+    );
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawBottomSignature(
+  ctx: CanvasRenderingContext2D,
+  preset: QuotePreset,
+  width: number,
+  height: number,
+  direction: TextDirection,
+  fontFamily: string,
+  brandTitle: string,
+  format: ShareFormat,
+) {
+  const isRtl = direction === "rtl";
+  const y = height - (format === "story" ? 180 : 96);
+  const lineStart = isRtl ? width * 0.13 : width * 0.47;
+  const lineEnd = isRtl ? width * 0.55 : width * 0.87;
+  const textX = isRtl ? width * 0.84 : width * 0.16;
+  const isSage = preset.key === "sage";
+
+  ctx.save();
+  ctx.strokeStyle = withAlpha(isSage ? preset.ink : preset.accent, isSage ? 0.34 : 0.58);
+  ctx.lineWidth = isSage ? 3 : 4;
+  ctx.beginPath();
+  ctx.moveTo(lineStart, y);
+  ctx.lineTo(lineEnd, y);
+  ctx.stroke();
+  drawDiamond(ctx, lineStart, y, 13, withAlpha(isSage ? preset.ink : preset.accent, isSage ? 0.42 : 0.72));
+
+  ctx.textAlign = isRtl ? "right" : "left";
+  ctx.fillStyle = withAlpha(isSage ? preset.ink : preset.accent, isSage ? 0.42 : 0.62);
+  ctx.font = `700 ${format === "story" ? 42 : 34}px ${fontFamily}`;
+  ctx.fillText(brandTitle, textX, y + (format === "story" ? 14 : 10));
+  ctx.restore();
+}
+
+function getShareCardTextMetrics(input: {
+  format: ShareFormat;
+  height: number;
+  width: number;
+  isTemplatePreset: boolean;
+  showSource: boolean;
+  shouldShowSite: boolean;
+  text: string;
+}) {
+  const band = textLengthBand(input.text);
+  const isStory = input.format === "story";
+
+  if (input.isTemplatePreset) {
+    const quoteWidth = input.width * (isStory ? 0.74 : 0.7);
+    const quoteMaxH = input.height * (isStory ? (input.showSource ? 0.52 : 0.6) : input.showSource ? 0.46 : 0.56);
+    const quoteStart = input.height * (isStory ? (band === "short" ? 0.3 : 0.22) : band === "short" ? 0.36 : 0.27);
+    const startFontSize = isStory ? (band === "short" ? 72 : band === "medium" ? 63 : 54) : band === "short" ? 60 : 52;
+    const minFontSize = isStory ? 36 : 32;
+    return { quoteMaxH, quoteStart, quoteWidth, startFontSize, minFontSize };
+  }
+
+  const quoteWidth = input.width * (isStory ? 0.62 : 0.54);
+  const quoteMaxH = input.height * (isStory ? (input.showSource ? 0.5 : 0.6) : input.showSource ? 0.4 : 0.5);
+  const quoteStart = input.height * (isStory ? (band === "short" ? 0.35 : 0.25) : band === "short" ? 0.39 : 0.29);
+  const startFontSize = isStory ? (band === "short" ? 66 : band === "medium" ? 58 : 49) : band === "short" ? 47 : 41;
+  const minFontSize = isStory ? 34 : 31;
+  return { quoteMaxH, quoteStart, quoteWidth, startFontSize, minFontSize };
 }
 
 function createCoverPreset(coverColor: string | undefined): QuotePreset {
@@ -468,7 +769,7 @@ function createCoverPreset(coverColor: string | undefined): QuotePreset {
   const accent = isLight ? "#d0aa65" : mixColors(cover, "#f1d28a", 0.45);
 
   return {
-    key: "cover",
+    key: "parchment",
     title: "غلاف الكتاب",
     description: "يربط البطاقة بلون الكتاب ومصدر الاقتباس",
     accent,
@@ -497,7 +798,7 @@ type GenerateImageInput = {
   showSite: boolean;
 };
 
-function generateImageForPreset({
+async function generateImageForPreset({
   brandSubtitle,
   brandTitle,
   text,
@@ -522,64 +823,107 @@ function generateImageForPreset({
   const isRtl = direction === "rtl";
   const fontFamily = isRtl ? "'Amiri', 'Noto Naskh Arabic', serif" : "Georgia, 'Times New Roman', serif";
   const resolvedPreset = resolvePreset(preset, colors);
-  const padding = format === "story" ? 86 : 74;
-  const cardX = padding;
-  const cardY = format === "story" ? 150 : 86;
-  const cardW = width - padding * 2;
-  const cardH = height - cardY * 2;
   const siteTitle = normalizeQuote(brandTitle);
   const shouldShowSite = showSite && siteTitle.length > 0;
-  const quoteMaxH = showSource
-    ? cardH * (shouldShowSite ? 0.47 : 0.54)
-    : cardH * (shouldShowSite ? 0.58 : 0.65);
-  const quoteStart =
-    format === "story"
-      ? cardY + cardH * (shouldShowSite ? 0.31 : 0.23)
-      : cardY + cardH * (shouldShowSite ? 0.32 : 0.24);
+
+  if (resolvedPreset.key === "sage") {
+    const { quoteMaxH, quoteStart, quoteWidth, startFontSize, minFontSize } = getShareCardTextMetrics({
+      format,
+      height,
+      width,
+      isTemplatePreset: true,
+      showSource,
+      shouldShowSite,
+      text,
+    });
+    const textX = width / 2;
+    const quoteWeight = 700;
+    const band = textLengthBand(text);
+
+    drawSageBackground(ctx, resolvedPreset, width, height);
+    ctx.save();
+    ctx.globalAlpha = 0.48;
+    drawPetalCluster(
+      ctx,
+      direction === "rtl" ? width * 0.8 : width * 0.2,
+      height * (format === "story" ? (band === "short" ? 0.18 : 0.14) : band === "short" ? 0.23 : 0.18),
+      format === "story" ? 42 : 34,
+      withAlpha(resolvedPreset.accent, 0.72),
+    );
+    ctx.restore();
+
+    const { lines, fontSize, lineHeight } = fitTextToArea(
+      ctx,
+      text,
+      quoteWidth,
+      quoteMaxH,
+      startFontSize,
+      minFontSize,
+      fontFamily,
+      quoteWeight,
+    );
+    const usedHeight = lines.length * lineHeight;
+    const quoteY = quoteStart + Math.max(0, (quoteMaxH - usedHeight) / 2);
+
+    ctx.direction = direction;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = resolvedPreset.ink;
+    ctx.font = `${quoteWeight} ${fontSize}px ${fontFamily}`;
+    ctx.shadowColor = "rgba(0,0,0,0.08)";
+    ctx.shadowBlur = 1;
+    drawTextLines(ctx, lines, textX, quoteY, lineHeight, "center");
+    ctx.shadowBlur = 0;
+
+    if (showSource) {
+      drawSource(
+        ctx,
+        resolvedPreset,
+        bookTitle,
+        chapterTitle,
+        pageNumber,
+        fontFamily,
+        textX,
+        height - (format === "story" ? 285 : 178),
+        width * 0.64,
+        direction,
+        language,
+      );
+    }
+
+    drawBottomSignature(ctx, resolvedPreset, width, height, direction, fontFamily, siteTitle || defaultBrandTitle(language), format);
+    return canvas.toDataURL("image/png");
+  }
+
+  const { quoteMaxH, quoteStart, quoteWidth, startFontSize, minFontSize } = getShareCardTextMetrics({
+    format,
+    height,
+    width,
+    isTemplatePreset: false,
+    showSource,
+    shouldShowSite,
+    text,
+  });
 
   ctx.direction = direction;
   ctx.textBaseline = "alphabetic";
-  drawCardBackground(ctx, resolvedPreset, width, height);
+  drawPaperBackground(ctx, resolvedPreset, width, height);
+  drawPaperSideOrnament(ctx, resolvedPreset, width, height, direction);
+  drawMarginalWordmark(ctx, resolvedPreset, width, height, direction, fontFamily, format);
 
-  if (resolvedPreset.key === "cover") {
-    drawCoverMotif(ctx, resolvedPreset, width, height, direction);
-  }
-
-  if (resolvedPreset.key === "mihrab") {
-    drawMihrab(ctx, resolvedPreset, width, height);
-  }
-
-  ctx.save();
-  ctx.shadowColor = resolvedPreset.dark ? "rgba(0,0,0,0.45)" : "rgba(69,43,20,0.18)";
-  ctx.shadowBlur = resolvedPreset.dark ? 34 : 26;
-  ctx.shadowOffsetY = resolvedPreset.dark ? 18 : 16;
-  ctx.fillStyle = resolvedPreset.dark ? withAlpha(resolvedPreset.surface, 0.72) : withAlpha(resolvedPreset.surface, 0.88);
-  roundRect(ctx, cardX, cardY, cardW, cardH, 28);
-  ctx.fill();
-  ctx.restore();
-
-  drawGeometricBorder(ctx, resolvedPreset, cardX + 22, cardY + 22, cardW - 44, cardH - 44, 34);
-
-  const textX = isRtl ? cardX + cardW - 84 : cardX + 84;
-  const brandX = isRtl ? cardX + cardW - 64 : cardX + 64;
   if (shouldShowSite) {
-    drawBrand(ctx, resolvedPreset, brandX, cardY + 98, fontFamily, direction, siteTitle, brandSubtitle);
+    const brandX = isRtl ? width - 92 : 92;
+    drawBrand(ctx, resolvedPreset, brandX, format === "story" ? 130 : 92, fontFamily, direction, siteTitle, brandSubtitle);
   }
 
-  ctx.fillStyle = resolvedPreset.accent;
-  ctx.font = `700 ${format === "story" ? 112 : 88}px ${fontFamily}`;
-  ctx.textAlign = isRtl ? "right" : "left";
-  ctx.fillText("”", isRtl ? cardX + cardW - 70 : cardX + 70, quoteStart - 70);
-
-  const quoteWidth = cardW - 170;
-  const quoteWeight = resolvedPreset.key === "mihrab" ? 600 : 700;
+  const textX = isRtl ? width * 0.57 : width * 0.43;
+  const quoteWeight = 700;
   const { lines, fontSize, lineHeight } = fitTextToArea(
     ctx,
     text,
     quoteWidth,
     quoteMaxH,
-    format === "story" ? 62 : 54,
-    format === "story" ? 34 : 30,
+    startFontSize,
+    minFontSize,
     fontFamily,
     quoteWeight,
   );
@@ -588,17 +932,17 @@ function generateImageForPreset({
 
   ctx.fillStyle = resolvedPreset.ink;
   ctx.font = `${quoteWeight} ${fontSize}px ${fontFamily}`;
-  drawTextLines(ctx, lines, textX, quoteY, lineHeight, isRtl ? "right" : "left");
+  drawTextLines(ctx, lines, textX, quoteY, lineHeight, "center");
 
   ctx.strokeStyle = withAlpha(resolvedPreset.accent, 0.62);
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(textX, quoteY + usedHeight + 44);
-  ctx.lineTo(textX + (isRtl ? -214 : 214), quoteY + usedHeight + 44);
+  ctx.moveTo(textX - 86, quoteY + usedHeight + 46);
+  ctx.lineTo(textX + 86, quoteY + usedHeight + 46);
   ctx.stroke();
-  drawDiamond(ctx, textX + (isRtl ? -240 : 240), quoteY + usedHeight + 44, 15, resolvedPreset.accent);
 
   if (showSource) {
+    const sourceX = isRtl ? width * 0.16 : width * 0.84;
     drawSource(
       ctx,
       resolvedPreset,
@@ -606,18 +950,18 @@ function generateImageForPreset({
       chapterTitle,
       pageNumber,
       fontFamily,
-      textX,
-      cardY + cardH - (format === "story" ? 178 : 126),
-      cardW - 170,
-      direction,
+      sourceX,
+      height - (format === "story" ? 220 : 138),
+      width * 0.55,
+      isRtl ? "ltr" : direction,
       language,
     );
   }
 
+  drawBottomSignature(ctx, resolvedPreset, width, height, direction, fontFamily, siteTitle || defaultBrandTitle(language), format);
   return canvas.toDataURL("image/png");
 }
-
-function generateImagesForPreset(input: GenerateImageInput) {
+async function generateImagesForPreset(input: GenerateImageInput) {
   const { width, height } = formatDimensions[input.format];
   const measurementCanvas = document.createElement("canvas");
   measurementCanvas.width = width;
@@ -627,18 +971,18 @@ function generateImagesForPreset(input: GenerateImageInput) {
 
   const isRtl = input.direction === "rtl";
   const fontFamily = isRtl ? "'Amiri', 'Noto Naskh Arabic', serif" : "Georgia, 'Times New Roman', serif";
-  const padding = input.format === "story" ? 86 : 74;
-  const cardY = input.format === "story" ? 150 : 86;
-  const cardW = width - padding * 2;
-  const cardH = height - cardY * 2;
   const shouldShowSite = input.showSite && normalizeQuote(input.brandTitle).length > 0;
-  const quoteMaxH = input.showSource
-    ? cardH * (shouldShowSite ? 0.47 : 0.54)
-    : cardH * (shouldShowSite ? 0.58 : 0.65);
-  const quoteWidth = cardW - 170;
-  const quoteWeight = input.preset.key === "mihrab" ? 600 : 700;
-  const startFontSize = input.format === "story" ? 62 : 54;
-  const minFontSize = input.format === "story" ? 34 : 30;
+  const isTemplatePreset = input.preset.key === "sage";
+  const { quoteMaxH, quoteWidth, startFontSize, minFontSize } = getShareCardTextMetrics({
+    format: input.format,
+    height,
+    width,
+    isTemplatePreset,
+    showSource: input.showSource,
+    shouldShowSite,
+    text: input.text,
+  });
+  const quoteWeight = 700;
   const chunks = splitTextToImageChunks(
     ctx,
     input.text,
@@ -650,7 +994,8 @@ function generateImagesForPreset(input: GenerateImageInput) {
     quoteWeight,
   );
 
-  return chunks.map((chunk) => generateImageForPreset({ ...input, text: chunk })).filter(Boolean);
+  const images = await Promise.all(chunks.map((chunk) => generateImageForPreset({ ...input, text: chunk })));
+  return images.filter(Boolean);
 }
 
 async function dataUrlToBlob(dataUrl: string) {
@@ -705,15 +1050,21 @@ function translateAttribution(language: LanguageCode) {
   return "ابن القيم الجوزية رحمه الله";
 }
 
-export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNumber, coverColor, onClose }: Props) {
+function defaultBrandTitle(language: LanguageCode) {
+  if (language === "de") return "Ibn al-Qayyim";
+  if (language === "en") return "Ibn al-Qayyim";
+  return "الكلام على مسألة السماع";
+}
+
+export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNumber, onClose }: Props) {
   const { direction, language, t } = useUiTranslations();
   const defaultSiteLabel = t("موروث ابن القيم");
   const siteSubtitleLabel = t("موقع الاقتباس");
-  const coverPreset = useMemo(() => createCoverPreset(coverColor), [coverColor]);
-  const quotePresets = useMemo(() => [coverPreset, ...baseQuotePresets], [coverPreset]);
-  const initialAccent = coverPreset.accent;
+  const quotePresets = baseQuotePresets;
+  const initialPreset = quotePresets[0];
+  const initialAccent = initialPreset.accent;
   const [imageDataUrls, setImageDataUrls] = useState<string[]>([]);
-  const [activePreset, setActivePreset] = useState<QuotePresetKey>("cover");
+  const [activePreset, setActivePreset] = useState<QuotePresetKey>("parchment");
   const [format, setFormat] = useState<ShareFormat>("square");
   const [showSource, setShowSource] = useState(true);
   const [showSite, setShowSite] = useState(false);
@@ -723,7 +1074,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
   const [editableText, setEditableText] = useState(text);
   const [colors, setColors] = useState<ShareColors>({
     accent: initialAccent,
-    background: coverPreset.background,
+    background: initialPreset.background,
   });
   const [copied, setCopied] = useState<CopiedKind | null>(null);
   const [canNativeShare, setCanNativeShare] = useState(false);
@@ -779,8 +1130,10 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
   }, []);
 
   useEffect(() => {
-    setImageDataUrls(
-      generateImagesForPreset({
+    let cancelled = false;
+    setImageDataUrls([]);
+
+    generateImagesForPreset({
         brandSubtitle: siteSubtitleLabel,
         brandTitle: siteLabel,
         text: editableText,
@@ -794,8 +1147,17 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
         language,
         showSource,
         showSite,
-      }),
-    );
+      })
+      .then((images) => {
+        if (!cancelled) setImageDataUrls(images);
+      })
+      .catch(() => {
+        if (!cancelled) setImageDataUrls([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     activePresetConfig,
     bookTitle,
@@ -948,9 +1310,12 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                 data-tour="quote-card-preview"
               >
                 {imageDataUrls.length > 0 ? (
-                  <div className="grid gap-3">
+                  <div className="grid justify-items-center gap-4">
                     {imageDataUrls.map((imageDataUrl, index) => (
-                      <figure key={`${imageDataUrl.slice(0, 48)}-${index}`} className="space-y-2">
+                      <figure
+                        key={`${imageDataUrl.slice(0, 48)}-${index}`}
+                        className={`space-y-2 ${format === "story" ? "w-full max-w-[23.5rem] sm:max-w-[28rem]" : "w-full max-w-[34rem]"}`}
+                      >
                         {imageCount > 1 ? (
                           <figcaption className="text-center text-xs font-semibold text-muted-foreground">
                             {formatNumber(index + 1, language)} / {formatNumber(imageCount, language)}
@@ -959,7 +1324,7 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                         <img
                           src={imageDataUrl}
                           alt={t("بطاقة الاقتباس")}
-                          className={`w-full rounded-md object-cover ${format === "story" ? "aspect-[9/16]" : "aspect-square"}`}
+                          className={`w-full rounded-[3px] bg-background object-cover shadow-xl ring-1 ring-black/10 ${format === "story" ? "aspect-[9/16]" : "aspect-square"}`}
                         />
                       </figure>
                     ))}

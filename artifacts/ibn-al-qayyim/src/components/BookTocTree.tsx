@@ -20,7 +20,7 @@ interface BookTocTreeProps {
   editionId?: number;
   editionTitle?: string;
   onSelect?: () => void;
-  pages?: Pick<PageDetail, "pageNumber" | "sourcePageNumber">[];
+  pages?: Pick<PageDetail, "pageNumber" | "sourcePageNumber" | "volume">[];
   sections?: SectionSummary[];
   // Compatibility with the old props.
   bookId?: number;
@@ -156,10 +156,26 @@ export default function BookTocTree({
     return () => cancelAnimationFrame(frame);
   }, [resolvedCurrentId]);
 
-  const displayPageByPageNumber = useMemo(() => {
-    const pageMap = new Map<number, number>();
-    pages?.forEach((page) => pageMap.set(page.pageNumber, page.sourcePageNumber ?? page.pageNumber));
-    return pageMap;
+  const { displayPageByPageNumber, volumeByPageNumber, isMultiVolume } = useMemo(() => {
+    const displayMap = new Map<number, number>();
+    const volumeMap = new Map<number, number>();
+    let hasReset = false;
+    const volumeOrdinal = new Map<string, number>();
+    let prevSrcPage = -1;
+    let prevVol = "";
+    pages?.forEach((page) => {
+      const vol = page.volume ?? "";
+      displayMap.set(page.pageNumber, page.sourcePageNumber ?? page.pageNumber);
+      // Track unique volumes in order and detect page-number resets
+      if (!volumeOrdinal.has(vol)) volumeOrdinal.set(vol, volumeOrdinal.size + 1);
+      if (vol !== prevVol && prevVol !== "" && (page.sourcePageNumber ?? page.pageNumber) < prevSrcPage) {
+        hasReset = true;
+      }
+      volumeMap.set(page.pageNumber, volumeOrdinal.get(vol)!);
+      prevSrcPage = page.sourcePageNumber ?? page.pageNumber;
+      prevVol = vol;
+    });
+    return { displayPageByPageNumber: displayMap, volumeByPageNumber: volumeMap, isMultiVolume: hasReset && volumeOrdinal.size > 1 };
   }, [pages]);
 
   const defaultOpenIds = useMemo(
@@ -245,12 +261,14 @@ export default function BookTocTree({
           displayPageByPageNumber={displayPageByPageNumber}
           editionId={resolvedEditionId!}
           filterQuery={filterQuery}
+          isMultiVolume={isMultiVolume}
           key={node.id}
           language={language}
           node={node}
           onSelect={onSelect}
           openIds={openIds}
           toggleNode={toggleNode}
+          volumeByPageNumber={volumeByPageNumber}
         />
       ))}
       {filterQuery && filteredRoots.length === 0 && (
@@ -289,19 +307,23 @@ function BookTocNode({
   displayPageByPageNumber,
   editionId,
   filterQuery,
+  isMultiVolume,
   language,
   node,
   onSelect,
   openIds,
   toggleNode,
+  volumeByPageNumber,
 }: {
   compact: boolean;
   currentSectionId?: number;
   displayPageByPageNumber: Map<number, number>;
   editionId: number;
   filterQuery: string;
+  isMultiVolume: boolean;
   language: LanguageCode;
   node: SectionNode;
+  volumeByPageNumber: Map<number, number>;
   onSelect?: () => void;
   openIds: Set<number>;
   toggleNode: (nodeId: number) => void;
@@ -326,6 +348,8 @@ function BookTocNode({
   const typeLabel = sectionTypeLabel(node.type, language);
   const startPage = displayPageByPageNumber.get(node.startPage) ?? node.startPage;
   const endPage = displayPageByPageNumber.get(node.endPage) ?? node.endPage;
+  const startVolume = isMultiVolume ? (volumeByPageNumber.get(node.startPage) ?? 1) : undefined;
+  const endVolume = isMultiVolume ? (volumeByPageNumber.get(node.endPage) ?? 1) : undefined;
 
   // Shared row content: [type badge] [title] [page]
   const rowContent = (
@@ -357,7 +381,7 @@ function BookTocNode({
       >
         {highlightMatch(displayTitle, filterQuery)}
       </span>
-      <PageRangeLabel endPage={endPage} language={language} startPage={startPage} />
+      <PageRangeLabel endPage={endPage} endVolume={endVolume} language={language} startPage={startPage} startVolume={startVolume} />
     </>
   );
 
@@ -429,12 +453,14 @@ function BookTocNode({
               displayPageByPageNumber={displayPageByPageNumber}
               editionId={editionId}
               filterQuery={filterQuery}
+              isMultiVolume={isMultiVolume}
               key={child.id}
               language={language}
               node={child}
               onSelect={onSelect}
               openIds={openIds}
               toggleNode={toggleNode}
+              volumeByPageNumber={volumeByPageNumber}
             />
           ))}
         </div>
@@ -445,18 +471,32 @@ function BookTocNode({
 
 function PageRangeLabel({
   endPage,
+  endVolume,
   language,
   startPage,
+  startVolume,
 }: {
   endPage: number;
+  endVolume?: number;
   language: LanguageCode;
   startPage: number;
+  startVolume?: number;
 }) {
   const pageLabel = pageText(startPage, language).replace(formatNumber(startPage, language), "").trim();
-  const pageRange =
-    startPage === endPage
-      ? `${pageLabel} ${formatNumber(startPage, language)}`
-      : `${pageLabel} ${formatNumber(startPage, language)} – ${formatNumber(endPage, language)}`;
+  const volPrefix = (vol: number) =>
+    language === "de" ? `Bd.${formatNumber(vol, language)} ` :
+    language !== "ar" ? `Vol.${formatNumber(vol, language)} ` :
+    `ج${formatNumber(vol, language)} `;
+  const sameVolume = startVolume === endVolume;
+  const pageRange = startVolume
+    ? (startPage === endPage
+        ? `${volPrefix(startVolume)}${pageLabel} ${formatNumber(startPage, language)}`
+        : sameVolume
+          ? `${volPrefix(startVolume)}${pageLabel} ${formatNumber(startPage, language)} – ${formatNumber(endPage, language)}`
+          : `${volPrefix(startVolume)}${pageLabel} ${formatNumber(startPage, language)} – ${volPrefix(endVolume!)}${pageLabel} ${formatNumber(endPage, language)}`)
+    : (startPage === endPage
+        ? `${pageLabel} ${formatNumber(startPage, language)}`
+        : `${pageLabel} ${formatNumber(startPage, language)} – ${formatNumber(endPage, language)}`);
 
   return (
     <span

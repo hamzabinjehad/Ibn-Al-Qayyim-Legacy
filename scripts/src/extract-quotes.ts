@@ -319,6 +319,14 @@ function main() {
 export interface DailyQuote {
   text: string;
   source: string;
+  href?: string;
+  workId?: number;
+  editionId?: number;
+  editionTitle?: string;
+  pageId?: number;
+  pageNumber?: number;
+  sourcePageNumber?: number;
+  sectionId?: number | null;
 }
 
 const QUOTES: DailyQuote[] = ${JSON.stringify(unique, null, 2)};

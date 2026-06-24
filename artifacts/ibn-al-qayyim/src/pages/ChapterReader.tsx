@@ -53,6 +53,8 @@ import {
   type HighlightColor,
   isPositionedHighlight,
   normalizeFootnoteMarker,
+  type PageFootnote,
+  type ParsedFootnote,
   scrollTopThreshold,
   type ReaderStatus,
   type SelectionPosition,
@@ -85,6 +87,26 @@ const SPEAKER_ATTR_REGEX =
 // For blockquote detection: paragraph ends with a speaker attribution colon.
 const BLOCK_ATTR_END_REGEX =
   /(?:[وف])?(?:قال|قالت|ذكر|روى|نقل|حكى|أخرجه|رواه|أورده)\s+[^\n:،.]{4,75}?\s*[:：]\s*$/mu;
+
+// Strips Arabic diacritics and returns a position map: map[strippedIdx] = originalIdx.
+// Used so attribution/enumeration regexes match regardless of harakat display setting.
+// Ranges: U+0610-061A (extended signs), U+064B-065F (common harakat), U+06D6-06ED (Quranic).
+function buildHarakatMap(text: string): { stripped: string; map: number[] } {
+  const map: number[] = [];
+  let stripped = "";
+  for (let i = 0; i < text.length; i++) {
+    const cp = text.charCodeAt(i);
+    const isHarakat =
+      (cp >= 0x0610 && cp <= 0x061a) ||
+      (cp >= 0x064b && cp <= 0x065f) ||
+      (cp >= 0x06d6 && cp <= 0x06ed);
+    if (!isHarakat) {
+      stripped += text[i];
+      map.push(i);
+    }
+  }
+  return { stripped, map };
+}
 
 type RichToken =
   | { kind: "verse"; start: number; end: number; verseText: string; ref: string | undefined }
@@ -161,16 +183,24 @@ function collectRichTokens(
     if (baseChars.length < 5) continue;
     raw.push({ kind: "topic-bracket", start: m.index!, end: m.index! + m[0].length, text: inner.trim() });
   }
-  for (const m of text.matchAll(ENUM_LABEL_REGEX)) {
-    // m[1] is the optional preceding boundary char; m[2] is the label
+  // Run attribution/enumeration regexes on harakat-stripped text so they match
+  // regardless of whether the user has harakat display enabled.
+  const { stripped: strippedText, map: harakatMap } = buildHarakatMap(text);
+  for (const m of strippedText.matchAll(ENUM_LABEL_REGEX)) {
     const label = m[2]!;
-    const start = m.index! + (m[1]?.length ?? 0);
-    raw.push({ kind: "enum-label", start, end: start + label.length, text: label });
+    const sStart = m.index! + (m[1]?.length ?? 0);
+    const sEnd = sStart + label.length;
+    const start = harakatMap[sStart]!;
+    const end = harakatMap[sEnd - 1]! + 1;
+    raw.push({ kind: "enum-label", start, end, text: text.slice(start, end) });
   }
-  for (const m of text.matchAll(SPEAKER_ATTR_REGEX)) {
+  for (const m of strippedText.matchAll(SPEAKER_ATTR_REGEX)) {
     const attr = m[2]!;
-    const start = m.index! + (m[1]?.length ?? 0);
-    raw.push({ kind: "speaker-attr", start, end: start + attr.length, text: attr });
+    const sStart = m.index! + (m[1]?.length ?? 0);
+    const sEnd = sStart + attr.length;
+    const start = harakatMap[sStart]!;
+    const end = harakatMap[sEnd - 1]! + 1;
+    raw.push({ kind: "speaker-attr", start, end, text: text.slice(start, end) });
   }
 
   // Sort by position, earliest first; on tie prefer the longer match
@@ -324,7 +354,7 @@ function renderParagraphs(
 
   return filtered.map(({ text, offset }, i) => {
     const prevText = i > 0 ? filtered[i - 1]!.text.trim() : "";
-    const isBlockquote = BLOCK_ATTR_END_REGEX.test(prevText);
+    const isBlockquote = BLOCK_ATTR_END_REGEX.test(stripHarakat(prevText));
     return (
       <p
         id={`p-${paragraphOffset + i}`}
@@ -345,6 +375,39 @@ function renderParagraphs(
       </p>
     );
   });
+}
+
+function buildPageFootnotes(
+  pageId: number,
+  parsedFootnotes: ParsedFootnote[],
+): PageFootnote[] {
+  const markerCounts = new Map<string, number>();
+
+  return parsedFootnotes.map((footnote, index) => {
+    const markerKey = normalizeFootnoteMarker(footnote.marker);
+    const markerIndex = markerKey ? (markerCounts.get(markerKey) ?? 0) : 0;
+    if (markerKey) markerCounts.set(markerKey, markerIndex + 1);
+
+    const baseId = markerKey
+      ? footnoteId(pageId, markerKey)
+      : `reader-footnote-${pageId}-unmarked-${index}`;
+
+    return {
+      ...footnote,
+      id: markerKey && markerIndex > 0 ? `${baseId}-${markerIndex + 1}` : baseId,
+      markerKey,
+    };
+  });
+}
+
+function buildFootnoteTargets(footnotes: PageFootnote[]) {
+  const targets = new Map<string, string>();
+  for (const footnote of footnotes) {
+    if (footnote.markerKey && !targets.has(footnote.markerKey)) {
+      targets.set(footnote.markerKey, footnote.id);
+    }
+  }
+  return targets;
 }
 
 export default function ChapterReader() {
@@ -455,17 +518,8 @@ export default function ChapterReader() {
     () =>
       renderedPages.map((page) => {
         const parsed = splitPageFootnotes(page.text);
-        const footnotes = parsed.footnotes.map((footnote, index) => {
-          const markerKey = normalizeFootnoteMarker(footnote.marker);
-          return {
-            ...footnote,
-            id: markerKey ? footnoteId(page.id, markerKey) : `reader-footnote-${page.id}-unmarked-${index}`,
-            markerKey,
-          };
-        });
-        const footnoteTargets = new Map(
-          footnotes.filter((footnote) => footnote.markerKey).map((footnote) => [footnote.markerKey, footnote.id]),
-        );
+        const footnotes = buildPageFootnotes(page.id, parsed.footnotes);
+        const footnoteTargets = buildFootnoteTargets(footnotes);
         const visibleText = settings.showFootnotes
           ? [parsed.mainText, parsed.rawFootnotes].filter(Boolean).join("\n\n")
           : parsed.mainText;
@@ -809,7 +863,7 @@ export default function ChapterReader() {
                   {prev && (
                     <Link
                       href={`/edition/${prev.editionId}/section/${prev.id}`}
-                      className="reader-control hidden sm:inline-flex h-11 w-11 items-center justify-center sm:h-10 sm:w-10"
+                      className="reader-control hidden h-11 w-11 items-center justify-center sm:inline-flex sm:h-10 sm:w-10"
                       aria-label={t("الفصل السابق")}
                     >
                       <ChevronUp className="h-4 w-4" />
@@ -818,7 +872,7 @@ export default function ChapterReader() {
                   {next && (
                     <Link
                       href={`/edition/${next.editionId}/section/${next.id}`}
-                      className="reader-control hidden sm:inline-flex h-11 w-11 items-center justify-center sm:h-10 sm:w-10"
+                      className="reader-control hidden h-11 w-11 items-center justify-center sm:inline-flex sm:h-10 sm:w-10"
                       aria-label={t("الفصل التالي")}
                     >
                       <ChevronDown className="h-4 w-4" />
@@ -930,13 +984,13 @@ export default function ChapterReader() {
                     style={settings.showPageMarkers ? undefined : { display: "contents" }}
                   >
                     {settings.showPageMarkers && (
-                      <div className="reader-page-marker mb-5 flex items-center gap-2 text-xs text-muted-foreground sm:mb-6 sm:gap-3">
-                        <span className="h-px flex-1 bg-border" />
-                        <span className="rounded-full border border-border bg-background px-3 py-1 tabular-nums shadow-sm">
+                      <div className="reader-page-marker my-6 flex items-center gap-3 text-muted-foreground/40 sm:my-8">
+                        <span className="h-px flex-1 bg-border/50" />
+                        <span className="text-[0.65rem] tabular-nums tracking-wide">
                           {pageText(displayPageNumber(page), language)}
-                          {page.volume ? ` / ${page.volume}` : ""}
+                          {page.volume ? ` · ${page.volume}` : ""}
                         </span>
-                        <span className="h-px flex-1 bg-border" />
+                        <span className="h-px flex-1 bg-border/50" />
                       </div>
                     )}
                     <div data-reader-highlight-surface="main" data-reader-page-id={page.id}>
@@ -1184,7 +1238,6 @@ export default function ChapterReader() {
           bookTitle={book.titleAr}
           chapterTitle={cleanedChapterTitle}
           pageNumber={chapter.page > 0 ? chapter.page : undefined}
-          coverColor={book.coverColor}
           onClose={() => setShareText(null)}
           text={shareText ?? tourSelectionText}
         />
@@ -1248,17 +1301,8 @@ function AppendedSection({
     () =>
       renderedPages.map((page) => {
         const parsed = splitPageFootnotes(page.text);
-        const footnotes = parsed.footnotes.map((footnote, index) => {
-          const markerKey = normalizeFootnoteMarker(footnote.marker);
-          return {
-            ...footnote,
-            id: markerKey ? footnoteId(page.id, markerKey) : `reader-footnote-${page.id}-unmarked-${index}`,
-            markerKey,
-          };
-        });
-        const footnoteTargets = new Map(
-          footnotes.filter((f) => f.markerKey).map((f) => [f.markerKey, f.id]),
-        );
+        const footnotes = buildPageFootnotes(page.id, parsed.footnotes);
+        const footnoteTargets = buildFootnoteTargets(footnotes);
         const visibleText = settings.showFootnotes
           ? [parsed.mainText, parsed.rawFootnotes].filter(Boolean).join("\n\n")
           : parsed.mainText;
@@ -1304,13 +1348,13 @@ function AppendedSection({
             style={settings.showPageMarkers ? undefined : { display: "contents" }}
           >
             {settings.showPageMarkers && (
-              <div className="reader-page-marker mb-5 flex items-center gap-2 text-xs text-muted-foreground sm:mb-6 sm:gap-3">
-                <span className="h-px flex-1 bg-border" />
-                <span className="rounded-full border border-border bg-background px-3 py-1 tabular-nums shadow-sm">
+              <div className="reader-page-marker my-6 flex items-center gap-3 text-muted-foreground/40 sm:my-8">
+                <span className="h-px flex-1 bg-border/50" />
+                <span className="text-[0.65rem] tabular-nums tracking-wide">
                   {pageText(displayPageNumber(page), language)}
-                  {page.volume ? ` / ${page.volume}` : ""}
+                  {page.volume ? ` · ${page.volume}` : ""}
                 </span>
-                <span className="h-px flex-1 bg-border" />
+                <span className="h-px flex-1 bg-border/50" />
               </div>
             )}
             <div data-reader-highlight-surface="main" data-reader-page-id={page.id}>

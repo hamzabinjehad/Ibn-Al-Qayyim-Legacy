@@ -40,8 +40,12 @@ const EN_TRANSLATIONS: Record<string, string> = {
   "ابدأ من المكتبة": "Start from the library",
   "اختر كتابا وابدأ القراءة، وسنحفظ موضعك محليا في هذا المتصفح.":
     "Choose a book and start reading. Your place will be saved locally in this browser.",
+  "مكتبة رقمية لكتب الإمام ابن قيم الجوزية تجمع الأعمال والطبعات والفهارس والبحث والحفظ المحلي والاقتباسات في تجربة قراءة واحدة.":
+    "A digital library for Imam Ibn Qayyim al-Jawziyyah's books, bringing works, editions, indexes, search, local saving, and quotes into one reading experience.",
   "كتب ابن القيم المتاحة للقراءة من البيانات المحلية.":
     "Ibn al-Qayyim's books available to read from local data.",
+  "تصفح الأعمال والطبعات المتاحة للقراءة في هذه اللغة.":
+    "Browse the works and editions available to read in this language.",
   "عرض جميع الكتب": "View all books",
   "تعذر تحميل المكتبة": "Could not load the library",
   "الإمام ابن قيم الجوزية": "Imam Ibn Qayyim al-Jawziyyah",
@@ -272,8 +276,16 @@ const EN_TRANSLATIONS: Record<string, string> = {
   أزرق: "Blue",
   وردي: "Pink",
   "أهلا بك في موروث ابن القيم": "Welcome to Ibn al-Qayyim Legacy",
-  "هذه جولة سريعة توضح كيف تبحث، تفتح كتابا، تنسخ النصوص، وتشارك اقتباسا منسقا كصورة قابلة للتعديل.":
-    "This quick tour shows how to search, open a book, copy text, and share a formatted quote as an editable image.",
+  "هذا الموقع ليس قسما واحدا للقراءة فقط؛ هو مكتبة رقمية تجمع كتب الإمام ابن قيم الجوزية وطبعاتها، وتساعدك على البحث والقراءة والحفظ والمشاركة من مكان واحد.":
+    "This site is not just one reading section; it is a digital library that brings together Imam Ibn Qayyim al-Jawziyyah's books and editions, and helps you search, read, save, and share from one place.",
+  "تصفح الأعمال والطبعات بحسب اللغة، وافتح الفهارس قبل القراءة.":
+    "Browse works and editions by language, and open indexes before reading.",
+  "ابحث في المكتبة كلها أو داخل كتاب وقسم محددين.":
+    "Search the whole library or within a specific book and section.",
+  "احفظ موضع القراءة والتظليلات والملاحظات محليا في هذا المتصفح.":
+    "Save your reading place, highlights, and notes locally in this browser.",
+  "انسخ النصوص وشارك الاقتباسات كبطاقات قابلة للتخصيص.":
+    "Copy text and share quotes as customizable cards.",
   "ابدأ بالبحث": "Start with search",
   "اكتب كلمة أو عبارة هنا للبحث في الكتب والفصول، ثم اضغط زر البحث للانتقال إلى النتائج.":
     "Type a word or phrase here to search books and sections, then press Search to open the results.",
@@ -368,8 +380,12 @@ const DE_TRANSLATIONS: Record<string, string> = {
   "ابدأ من المكتبة": "In der Bibliothek beginnen",
   "اختر كتابا وابدأ القراءة، وسنحفظ موضعك محليا في هذا المتصفح.":
     "Wähle ein Buch und beginne zu lesen. Deine Position wird lokal in diesem Browser gespeichert.",
+  "مكتبة رقمية لكتب الإمام ابن قيم الجوزية تجمع الأعمال والطبعات والفهارس والبحث والحفظ المحلي والاقتباسات في تجربة قراءة واحدة.":
+    "Eine digitale Bibliothek für die Werke von Imam Ibn Qayyim al-Dschauziyya: Werke, Ausgaben, Inhaltsverzeichnisse, Suche, lokale Speicherung und Zitate in einem Leseerlebnis.",
   "كتب ابن القيم المتاحة للقراءة من البيانات المحلية.":
     "Die aus den lokalen Daten verfügbaren Werke Ibn al-Qayyims.",
+  "تصفح الأعمال والطبعات المتاحة للقراءة في هذه اللغة.":
+    "Durchsuche die Werke und Ausgaben, die in dieser Sprache zum Lesen verfügbar sind.",
   "عرض جميع الكتب": "Alle Bücher anzeigen",
   "تعذر تحميل المكتبة": "Bibliothek konnte nicht geladen werden",
   "الإمام ابن قيم الجوزية": "Imam Ibn Qayyim al-Dschauziyya",
@@ -602,8 +618,16 @@ const DE_TRANSLATIONS: Record<string, string> = {
   أزرق: "Blau",
   وردي: "Rosa",
   "أهلا بك في موروث ابن القيم": "Willkommen bei Ibn al-Qayyim Vermächtnis",
-  "هذه جولة سريعة توضح كيف تبحث، تفتح كتابا، تنسخ النصوص، وتشارك اقتباسا منسقا كصورة قابلة للتعديل.":
-    "Diese kurze Tour zeigt, wie du suchst, Bücher öffnest, Texte kopierst und ein formatiertes Zitat als bearbeitbares Bild teilst.",
+  "هذا الموقع ليس قسما واحدا للقراءة فقط؛ هو مكتبة رقمية تجمع كتب الإمام ابن قيم الجوزية وطبعاتها، وتساعدك على البحث والقراءة والحفظ والمشاركة من مكان واحد.":
+    "Diese Website ist nicht nur ein einzelner Lesebereich; sie ist eine digitale Bibliothek für die Werke und Ausgaben von Imam Ibn Qayyim al-Dschauziyya und hilft dir beim Suchen, Lesen, Speichern und Teilen an einem Ort.",
+  "تصفح الأعمال والطبعات بحسب اللغة، وافتح الفهارس قبل القراءة.":
+    "Durchsuche Werke und Ausgaben nach Sprache und öffne die Inhaltsverzeichnisse vor dem Lesen.",
+  "ابحث في المكتبة كلها أو داخل كتاب وقسم محددين.":
+    "Suche in der gesamten Bibliothek oder gezielt in einem Buch und Abschnitt.",
+  "احفظ موضع القراءة والتظليلات والملاحظات محليا في هذا المتصفح.":
+    "Speichere Leseposition, Markierungen und Notizen lokal in diesem Browser.",
+  "انسخ النصوص وشارك الاقتباسات كبطاقات قابلة للتخصيص.":
+    "Kopiere Texte und teile Zitate als anpassbare Karten.",
   "ابدأ بالبحث": "Mit der Suche beginnen",
   "اكتب كلمة أو عبارة هنا للبحث في الكتب والفصول، ثم اضغط زر البحث للانتقال إلى النتائج.":
     "Gib hier ein Wort oder eine Phrase ein und drücke Suchen, um die Ergebnisse zu öffnen.",
@@ -662,6 +686,35 @@ const NUMBER = "([\\d٠-٩۰-۹.,٬]+)";
 const TRANSLATIONS: Partial<Record<LanguageCode, Record<string, string>>> = {
   de: DE_TRANSLATIONS,
   en: EN_TRANSLATIONS,
+};
+
+const UI_TRANSLATION_OVERRIDES: Partial<Record<LanguageCode, Record<string, string>>> = {
+  de: {
+    "موروث ابن القيم": "Ibn al-Qayyim Vermächtnis",
+    "المكتبة": "Bibliothek",
+    "ترتيب القراءة": "Leseplan",
+    "الخطة": "Plan",
+    "البحث": "Suche",
+    "المحفوظات": "Gespeichert",
+    "تغيير اللغة، اللغة الحالية: {language}": "Sprache ändern, aktuell: {language}",
+    "اللغة": "Sprache",
+    "طريقة استخدام الموقع": "So verwendest du die Website",
+    "تبديل المظهر": "Design wechseln",
+    "التنقل السفلي": "Untere Navigation",
+  },
+  en: {
+    "موروث ابن القيم": "Ibn al-Qayyim Legacy",
+    "المكتبة": "Library",
+    "ترتيب القراءة": "Reading Plan",
+    "الخطة": "Plan",
+    "البحث": "Search",
+    "المحفوظات": "Saved",
+    "تغيير اللغة، اللغة الحالية: {language}": "Change language, current: {language}",
+    "اللغة": "Language",
+    "طريقة استخدام الموقع": "How to use the site",
+    "تبديل المظهر": "Toggle theme",
+    "التنقل السفلي": "Bottom navigation",
+  },
 };
 
 const LOCALES: Record<LanguageCode, string> = {
@@ -762,6 +815,7 @@ export function translateText(value: string, language: LanguageCode) {
   if (!normalized) return value;
 
   const translated =
+    UI_TRANSLATION_OVERRIDES[language]?.[normalized] ??
     TRANSLATIONS[language]?.[normalized] ??
     translatePattern(normalized, language);
   if (translated === normalized) return value;
