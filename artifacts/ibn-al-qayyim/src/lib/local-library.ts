@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { clampReaderFontSize } from "@/lib/reader-utils";
 
 const PREFIX = "ibn-al-qayyim";
 
@@ -63,7 +64,7 @@ const KEYS = {
 
 const DEFAULT_SETTINGS: ReaderSettings = {
   fontFamily: "amiri",
-  fontSize: 26,
+  fontSize: 18,
   showFootnotes: true,
   showHarakat: true,
   showPageMarkers: true,
@@ -88,7 +89,7 @@ function normalizeReaderSettings(settings: Partial<ReaderSettings>): ReaderSetti
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
-    fontSize: Math.min(40, Math.max(18, settings.fontSize ?? DEFAULT_SETTINGS.fontSize)),
+    fontSize: clampReaderFontSize(settings.fontSize ?? DEFAULT_SETTINGS.fontSize),
     fontFamily: settings.fontFamily === "naskh" ? "naskh" : "amiri",
     showFootnotes: settings.showFootnotes ?? DEFAULT_SETTINGS.showFootnotes,
     showHarakat: settings.showHarakat ?? DEFAULT_SETTINGS.showHarakat,

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "pnpm --filter @workspace/scripts run generate-static-library && pnpm --filter @workspace/scripts run generate-seo-files && vite build --config vite.config.ts",
-    "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
+    "dev": "vite --config vite.config.ts --host 0.0.0.0 --configLoader native",
+    "build": "pnpm --filter @workspace/scripts run generate-static-library && pnpm --filter @workspace/scripts run generate-seo-files && vite build --config vite.config.ts --configLoader native",
+    "serve": "vite preview --config vite.config.ts --host 0.0.0.0 --configLoader native",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

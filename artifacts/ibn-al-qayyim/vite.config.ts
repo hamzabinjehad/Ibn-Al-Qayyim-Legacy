@@ -3,6 +3,12 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import fs from "fs";
+import os from "os";
+
+/** Writable cache outside the repo (needed when OneDrive blocks node_modules writes). */
+const viteCacheDir =
+  process.env.VITE_CACHE_DIR ??
+  path.join(os.tmpdir(), "ibn-al-qayyim-vite");
 
 const rawPort = process.env.PORT ?? "5173";
 const port = Number(rawPort);
@@ -44,6 +50,7 @@ function libraryDataPlugin() {
 
 export default defineConfig({
   base: basePath,
+  cacheDir: viteCacheDir,
   plugins: [react(), tailwindcss(), libraryDataPlugin()],
   resolve: {
     alias: {

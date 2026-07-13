@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v6";
 const SHELL_CACHE = `shell-${CACHE_VERSION}`;
 const DATA_CACHE = `data-${CACHE_VERSION}`;
 const FONT_CACHE = `fonts-${CACHE_VERSION}`;
@@ -78,15 +78,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App shell (JS/CSS/images) — cache-first, network fallback
+  // App shell (HTML/JS/CSS/images) — network-first so production aliases do not
+  // keep serving an older deploy after Vercel moves the alias.
   if (isShellRequest(url)) {
     event.respondWith(
       caches.open(SHELL_CACHE).then(async (cache) => {
-        const cached = await cache.match(event.request);
-        if (cached) return cached;
         const r = await fetch(event.request).catch(() => null);
         if (r?.ok) cache.put(event.request, r.clone());
-        return r ?? new Response("Offline", { status: 503 });
+        return r ?? (await cache.match(event.request)) ?? new Response("Offline", { status: 503 });
       })
     );
     return;

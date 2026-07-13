@@ -1,5 +1,5 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "wouter";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Link, useLocation, useParams } from "wouter";
 import {
   Bookmark,
   ChevronDown,
@@ -46,6 +46,7 @@ import {
   currentScrollY,
   displayFootnoteMarker,
   displayPageNumber,
+  FOOTNOTE_DIGIT_CLASS,
   FOOTNOTE_FOCUS_MS,
   FOOTNOTE_REFERENCE_REGEX,
   footnoteId,
@@ -76,6 +77,37 @@ const SHAMELA_DOUBLE_PAREN_REGEX = /\(\(([^)\n]{6,150})\)\)/gu;
 // Excluded: verse refs (\d in content or colon-digit pattern), footnote markers, and
 // brackets immediately following } or ﴾ (verse refs already consumed by verse regex)
 const SHAMELA_BRACKET_REGEX = /\[([^\]\n]{2,80})\]/gu;
+// Muhaqqiq apparatus vocabulary — bracketed notes like [سقط من الأصل] are editorial,
+// not section topics, and must not be styled as headings.
+const EDITORIAL_BRACKET_REGEX =
+  /سقط|ساقط|كذا|الأصل|هامش|نسخ|بياض|مكرر|زياد|تحرف|تصحف|مثبت|طمس|مطموس|غير واضح|ليست في|ليس في/u;
+// Leading section-type words to ignore when comparing an inline [[H:]] heading with
+// the chapter title (the <h1> shows the title with this prefix stripped).
+const TITLE_TYPE_PREFIX_REGEX =
+  /^(?:كتاب|الكتاب|باب|الباب|فصل|الفصل|مسألة|مسالة|مسئلة|فائدة|قاعدة|تنبيه|مطلب|خاتمة)\s*[:،.]?\s*/u;
+
+function buildTitleComparisonKeys(value: string): string[] {
+  const full = stripHarakat(value).replace(/\s+/g, " ").trim();
+  const stripped = full.replace(TITLE_TYPE_PREFIX_REGEX, "").trim();
+  return stripped && stripped !== full ? [full, stripped] : [full];
+}
+
+// ── Find-in-section ────────────────────────────────────────────────────────
+// Matches render as ephemeral LocalHighlight entries flowing through the same
+// highlight pipeline as saved highlights (id prefix marks them as transient).
+const FIND_MATCH_ID_PREFIX = "find-match:";
+const FIND_MATCH_COLOR = "#fff200";
+const FIND_ACTIVE_MATCH_COLOR = "#00e5ff";
+const MAX_FIND_MATCHES = 300;
+
+// 1:1 character folding (never changes string length, so harakat index maps stay valid)
+function unifyArabicChars(value: string) {
+  return value.replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه");
+}
+
+function normalizeFindQuery(value: string) {
+  return unifyArabicChars(stripHarakat(value)).replace(/\s+/g, " ").trim().toLowerCase();
+}
 // Enumeration labels at sentence boundaries: أحدها: والثاني: الثالث: ومنها: القول الأول: etc.
 // Works on un-voweled text (most of the corpus). Group 1 = boundary; Group 2 = label.
 const ENUM_LABEL_REGEX =
@@ -87,6 +119,154 @@ const SPEAKER_ATTR_REGEX =
 // For blockquote detection: paragraph ends with a speaker attribution colon.
 const BLOCK_ATTR_END_REGEX =
   /(?:[وف])?(?:قال|قالت|ذكر|روى|نقل|حكى|أخرجه|رواه|أورده)\s+[^\n:،.]{4,75}?\s*[:：]\s*$/mu;
+
+// ── Poetry (شعر) detection ─────────────────────────────────────────────────
+// Numbered dīwān verse: "312 - صدر البيت … عجز البيت" (e.g. النونية). Verses chain
+// inline within one paragraph, and "* * *" separates poem sections.
+const NUMBERED_BAYT_REGEX =
+  /(^|\s)([0-9٠-٩۰-۹]{1,4}\s*[-–—]\s*)([^…\n]{5,130}?)(\s*…\s*)([^\n]{5,170}?)(?=\s*[0-9٠-٩۰-۹]{1,4}\s*[-–—]|\s*\*\s?\*\s?\*|\s*$|\n)/gmu;
+const VERSE_DIVIDER_REGEX = /(^|\s)\*\s?\*\s?\*(?=\s|$)/gmu;
+// Attribution that introduces quoted poetry inside prose: قال الشاعر: / كما قيل (3):
+// The "…" hemistich separator + hemistich validation do the real filtering — the same
+// ellipsis is also used as a truncation mark in titles ("الجواب الكافي … "), so every
+// candidate must pass the checks below or it stays prose.
+const POETRY_ATTR_REGEX = /(?:[وف])?(?:قال|قالت|أنشد|أنشدت|قيل|يقول)[^:：\n.؟!]{0,60}?[:：]\s*/gu;
+const HEMISTICH_FORBIDDEN_REGEX = /["«»“”\[\]{}﴿﴾.؟!]/u;
+const ARABIC_TWO_WORDS_REGEX = /[ء-يٱ-ۓ]{2,}[^\S\n]+[ء-يٱ-ۓ]{2,}/u;
+const VERSE_HARD_STOP_REGEX = new RegExp(`\\(\\^?[${FOOTNOTE_DIGIT_CLASS}]{1,3}\\)|[{﴿«"\\n]`, "u");
+
+function isValidHemistich(candidate: string, opts: { allowColon: boolean }): boolean {
+  const trimmed = stripHarakat(candidate).trim();
+  if (trimmed.length < 8 || trimmed.length > 130) return false;
+  if (HEMISTICH_FORBIDDEN_REGEX.test(trimmed)) return false;
+  if (!opts.allowColon && /[:：]/u.test(trimmed)) return false;
+  // Must start with an Arabic letter (or tatweel — hemistichs can split a word: "الْـ … ـعَدَمِ")
+  if (!/^[ء-يٱ-ۓـ]/u.test(trimmed)) return false;
+  return ARABIC_TWO_WORDS_REGEX.test(trimmed);
+}
+
+// Chained verses have no delimiter between one bayt's second hemistich and the next
+// bayt's first ("… ajz1 sadr2 …"): hemistichs of a poem are metrically near-equal, so
+// cut the zone at the word boundary whose length best matches the previous hemistich.
+// When the poem's rhyme letter is known, only rhyme-ending words qualify as the cut.
+function splitHemistichZone(
+  zone: string,
+  targetLen: number,
+  opts: { rhyme?: string; allowFullZone?: boolean } = {},
+): number | null {
+  let best: { cut: number; diff: number } | null = null;
+  for (const m of zone.matchAll(/\S+/gu)) {
+    const end = m.index! + m[0].length;
+    const len = stripHarakat(zone.slice(0, end)).trim().length;
+    if (len < targetLen * 0.45) continue;
+    if (len > targetLen * 1.9) break;
+    if (opts.rhyme) {
+      const word = stripHarakat(m[0]).replace(/[^ء-يٱ-ۓ]/gu, "");
+      if (!word.endsWith(opts.rhyme)) continue;
+    }
+    const diff = Math.abs(len - targetLen);
+    if (!best || diff < best.diff) best = { cut: end, diff };
+  }
+  if (!best) return null;
+  return opts.allowFullZone || best.cut < zone.length ? best.cut : null;
+}
+
+function rhymeLetter(hemistich: string): string | undefined {
+  const letters = stripHarakat(hemistich).replace(/[^ء-يٱ-ۓ]/gu, "");
+  return letters.length > 0 ? letters[letters.length - 1] : undefined;
+}
+
+function collectPoetryTokens(text: string): RichToken[] {
+  const tokens: RichToken[] = [];
+
+  for (const m of text.matchAll(NUMBERED_BAYT_REGEX)) {
+    const start = m.index! + m[1]!.length;
+    const sadrStart = start + m[2]!.length;
+    const sadrEnd = sadrStart + m[3]!.length;
+    const ajzStart = sadrEnd + m[4]!.length;
+    const end = ajzStart + m[5]!.length;
+    if (!isValidHemistich(m[3]!, { allowColon: true }) || !isValidHemistich(m[5]!, { allowColon: true })) continue;
+    tokens.push({ kind: "bayt", start, end, sadrStart, sadrEnd, ajzStart });
+  }
+
+  for (const m of text.matchAll(VERSE_DIVIDER_REGEX)) {
+    const start = m.index! + (m[1]?.length ?? 0);
+    tokens.push({ kind: "verse-divider", start, end: m.index! + m[0].length });
+  }
+
+  for (const attr of text.matchAll(POETRY_ATTR_REGEX)) {
+    const verseStart = attr.index! + attr[0].length;
+    const firstEll = text.indexOf("…", verseStart);
+    if (firstEll === -1 || firstEll - verseStart > 140) continue;
+    if (!isValidHemistich(text.slice(verseStart, firstEll), { allowColon: false })) continue;
+
+    const verses: Array<{ sadrStart: number; sadrEnd: number; ajzStart: number; end: number }> = [];
+    let sadrStart = verseStart;
+    let sadrEnd = firstEll;
+    let cursor = firstEll + 1;
+    let prevSadrLen = stripHarakat(text.slice(verseStart, firstEll)).trim().length;
+    let rhyme: string | undefined;
+    let aborted = false;
+
+    while (!aborted) {
+      const rest = text.slice(cursor);
+      const hardStopMatch = VERSE_HARD_STOP_REGEX.exec(rest);
+      const hardStop = cursor + (hardStopMatch ? hardStopMatch.index : rest.length);
+      const nextEll = text.indexOf("…", cursor);
+
+      if (nextEll !== -1 && nextEll < hardStop) {
+        // Middle zone: this bayt's ajz + the next bayt's sadr, split by balance
+        // (preferring a rhyme-ending word once the poem's rhyme is known).
+        const zone = text.slice(cursor, nextEll);
+        const cut = splitHemistichZone(zone, prevSadrLen, { rhyme }) ?? splitHemistichZone(zone, prevSadrLen);
+        if (
+          cut === null ||
+          !isValidHemistich(zone.slice(0, cut), { allowColon: true }) ||
+          !isValidHemistich(zone.slice(cut), { allowColon: false })
+        ) {
+          aborted = true;
+          break;
+        }
+        verses.push({ sadrStart, sadrEnd, ajzStart: cursor, end: cursor + cut });
+        rhyme = rhyme ?? rhymeLetter(zone.slice(0, cut));
+        sadrStart = cursor + cut;
+        sadrEnd = nextEll;
+        prevSadrLen = stripHarakat(zone.slice(cut)).trim().length;
+        cursor = nextEll + 1;
+        continue;
+      }
+
+      // Final ajz: close at a hard stop (footnote ref, quote, newline, paragraph end)
+      // when it lands within the balanced window; when prose keeps running, cut at the
+      // rhyme-matching word instead. Without either signal, treat the whole candidate
+      // as a truncation ellipsis and abort — a long prose run is not a hemistich.
+      const zone = text.slice(cursor, hardStop);
+      const zoneLen = stripHarakat(zone).trim().length;
+      if (zoneLen <= prevSadrLen * 1.9 + 12) {
+        if (!isValidHemistich(zone, { allowColon: true })) {
+          aborted = true;
+          break;
+        }
+        verses.push({ sadrStart, sadrEnd, ajzStart: cursor, end: hardStop });
+        break;
+      }
+      const rhymeCut = rhyme ? splitHemistichZone(zone, prevSadrLen, { rhyme, allowFullZone: true }) : null;
+      if (rhymeCut === null || !isValidHemistich(zone.slice(0, rhymeCut), { allowColon: true })) {
+        aborted = true;
+        break;
+      }
+      verses.push({ sadrStart, sadrEnd, ajzStart: cursor, end: cursor + rhymeCut });
+      break;
+    }
+
+    if (aborted) continue;
+    for (const verse of verses) {
+      tokens.push({ kind: "bayt", ...verse, start: verse.sadrStart });
+    }
+  }
+
+  return tokens;
+}
 
 // Strips Arabic diacritics and returns a position map: map[strippedIdx] = originalIdx.
 // Used so attribution/enumeration regexes match regardless of harakat display setting.
@@ -116,8 +296,13 @@ type RichToken =
   | { kind: "enum-label"; start: number; end: number; text: string }
   | { kind: "speaker-attr"; start: number; end: number; text: string }
   | { kind: "footnote"; start: number; end: number; marker: string; targetId: string }
-  | { kind: "ref-plain"; start: number; end: number; marker: string }
-  | { kind: "suppress"; start: number; end: number };
+  | { kind: "suppress"; start: number; end: number }
+  // Poetry couplet: [start..sadrStart) = verse number prefix (numbered poems only),
+  // [sadrStart..sadrEnd) = first hemistich, [sadrEnd..ajzStart) = "…" separator,
+  // [ajzStart..end) = second hemistich. Raw slices are kept so DOM text matches the
+  // source text exactly and highlight offsets stay accurate.
+  | { kind: "bayt"; start: number; end: number; sadrStart: number; sadrEnd: number; ajzStart: number }
+  | { kind: "verse-divider"; start: number; end: number };
 
 // Returns a CSS class string reflecting heading hierarchy detected from text keywords
 function headingCssClass(text: string): string {
@@ -135,9 +320,7 @@ function collectRichTokens(
   chapterTitleAr?: string,
 ): RichToken[] {
   const raw: RichToken[] = [];
-  const normChapterTitle = chapterTitleAr
-    ? stripHarakat(chapterTitleAr).replace(/\s+/g, " ").trim()
-    : null;
+  const titleKeys = chapterTitleAr ? buildTitleComparisonKeys(chapterTitleAr) : null;
 
   for (const m of text.matchAll(QURAN_VERSE_ORNATE_REGEX)) {
     raw.push({ kind: "verse", start: m.index!, end: m.index! + m[0].length, verseText: `﴿${m[1]}﴾`, ref: m[2] });
@@ -149,9 +332,11 @@ function collectRichTokens(
     raw.push({ kind: "verse", start: m.index!, end: m.index! + m[0].length, verseText: `{${m[1]}}`, ref: undefined });
   }
   for (const m of text.matchAll(INLINE_HEADING_REGEX)) {
-    if (normChapterTitle) {
-      const normHeading = stripHarakat(m[1]!).replace(/\s+/g, " ").trim();
-      if (normHeading === normChapterTitle) {
+    if (titleKeys) {
+      // The <h1> may show a cleaned title (type prefix stripped), so compare the
+      // normalized forms both with and without the type-word prefix.
+      const headingKeys = buildTitleComparisonKeys(m[1]!);
+      if (headingKeys.some((key) => titleKeys.includes(key))) {
         // Consume the raw [[H:...]] marker without rendering it — the <h1> already shows the title
         raw.push({ kind: "suppress", start: m.index!, end: m.index! + m[0].length });
         continue;
@@ -165,10 +350,10 @@ function collectRichTokens(
     const markerKey = normalizeFootnoteMarker(marker);
     const targetId = footnoteTargets.get(markerKey);
     const start = m.index! + prefix.length;
+    // Digits with no matching footnote on the page stay plain text — superscripting
+    // them turns ordinary inline numbers (years, counts) into fake footnote marks.
     if (targetId) {
       raw.push({ kind: "footnote", start, end: start + marker.length, marker, targetId });
-    } else {
-      raw.push({ kind: "ref-plain", start, end: start + marker.length, marker });
     }
   }
   for (const m of text.matchAll(SHAMELA_DOUBLE_PAREN_REGEX)) {
@@ -176,12 +361,15 @@ function collectRichTokens(
   }
   for (const m of text.matchAll(SHAMELA_BRACKET_REGEX)) {
     const inner = m[1]!;
-    // Skip verse refs like [البقرة: 3] (colon-digit), purely numeric, or too short
-    if (/:\s*[\d٠-٩]/.test(inner) || /^[\d٠-٩]+$/.test(inner)) continue;
+    // Skip anything with digits (verse refs [البقرة: 3], page refs, manuscript folios)
+    if (/[\d٠-٩۰-۹]/.test(inner)) continue;
     // Require at least 5 base Arabic characters (strip diacritics for check)
     const baseChars = inner.replace(/[ً-ٟؐ-ؚۖ-ۭ\s]/g, "");
     if (baseChars.length < 5) continue;
-    raw.push({ kind: "topic-bracket", start: m.index!, end: m.index! + m[0].length, text: inner.trim() });
+    // Editor's apparatus notes ([سقط من الأصل], [كذا], [زيادة من خ]) are not topics
+    if (EDITORIAL_BRACKET_REGEX.test(stripHarakat(inner))) continue;
+    // Untrimmed so the rendered text aligns with source offsets for highlights
+    raw.push({ kind: "topic-bracket", start: m.index!, end: m.index! + m[0].length, text: inner });
   }
   // Run attribution/enumeration regexes on harakat-stripped text so they match
   // regardless of whether the user has harakat display enabled.
@@ -202,6 +390,7 @@ function collectRichTokens(
     const end = harakatMap[sEnd - 1]! + 1;
     raw.push({ kind: "speaker-attr", start, end, text: text.slice(start, end) });
   }
+  raw.push(...collectPoetryTokens(text));
 
   // Sort by position, earliest first; on tie prefer the longer match
   raw.sort((a, b) => a.start - b.start || b.end - a.end);
@@ -248,10 +437,15 @@ function renderReaderText(
       );
     }
 
+    // Saved highlights must render inside rich tokens too, so token contents pass
+    // through renderHighlightedText with the offset of the content's first character.
+    const highlightedTokenText = (content: string, contentStart: number) =>
+      renderHighlightedText(content, highlights, offsetBase + contentStart, onHighlightSelect, highlightActionLabel);
+
     if (token.kind === "verse") {
       nodes.push(
         <span className="reader-quran-verse" key={`verse-${token.start}`}>
-          {token.verseText}
+          {highlightedTokenText(token.verseText, token.start)}
         </span>,
       );
       if (token.ref) {
@@ -270,35 +464,63 @@ function renderReaderText(
     } else if (token.kind === "topic-paren") {
       nodes.push(
         <span className="reader-topic-paren" key={`tp-${token.start}`}>
-          {token.text}
+          {highlightedTokenText(token.text, token.start + 2)}
         </span>,
       );
     } else if (token.kind === "topic-bracket") {
       nodes.push(
         <span className="reader-topic-bracket" key={`tb-${token.start}`}>
-          {token.text}
+          {highlightedTokenText(token.text, token.start + 1)}
         </span>,
       );
     } else if (token.kind === "enum-label") {
       nodes.push(
         <span className="reader-enum-label" key={`el-${token.start}`}>
-          {token.text}
+          {highlightedTokenText(token.text, token.start)}
         </span>,
       );
     } else if (token.kind === "speaker-attr") {
       nodes.push(
         <span className="reader-speaker-attr" key={`sp-${token.start}`}>
-          {token.text}
+          {highlightedTokenText(token.text, token.start)}
+        </span>,
+      );
+    } else if (token.kind === "bayt") {
+      const numText = text.slice(token.start, token.sadrStart);
+      nodes.push(
+        <span className="reader-bayt" key={`bayt-${token.start}`}>
+          {numText.trim() ? <span className="reader-bayt-num">{numText}</span> : null}
+          <span className="reader-bayt-sadr">
+            {renderHighlightedText(
+              text.slice(token.sadrStart, token.sadrEnd),
+              highlights,
+              offsetBase + token.sadrStart,
+              onHighlightSelect,
+              highlightActionLabel,
+            )}
+          </span>
+          <span aria-hidden="true" className="reader-bayt-sep">
+            {text.slice(token.sadrEnd, token.ajzStart)}
+          </span>
+          <span className="reader-bayt-ajz">
+            {renderHighlightedText(
+              text.slice(token.ajzStart, token.end),
+              highlights,
+              offsetBase + token.ajzStart,
+              onHighlightSelect,
+              highlightActionLabel,
+            )}
+          </span>
+        </span>,
+      );
+    } else if (token.kind === "verse-divider") {
+      nodes.push(
+        <span aria-hidden="true" className="reader-verse-divider" key={`vd-${token.start}`}>
+          {text.slice(token.start, token.end)}
         </span>,
       );
     } else if (token.kind === "suppress") {
       // consumed — render nothing; the range is just dropped (duplicate title)
-    } else if (token.kind === "ref-plain") {
-      nodes.push(
-        <sup className="reader-fn-plain" key={`fnp-${token.start}`}>
-          {displayFootnoteMarker(token.marker)}
-        </sup>,
-      );
     } else {
       nodes.push(
         <button
@@ -412,6 +634,7 @@ function buildFootnoteTargets(footnotes: PageFootnote[]) {
 
 export default function ChapterReader() {
   const { direction, language, t } = useUiTranslations();
+  const [, navigate] = useLocation();
   const { bookId, chapterId, editionId, sectionId } = useParams<{
     bookId?: string;
     chapterId?: string;
@@ -422,10 +645,11 @@ export default function ChapterReader() {
   const chapterIdNum = Number(sectionId ?? chapterId);
   const { data: book } = useStaticBook(bookIdNum);
   const { data: chapter, isLoading, isError, refetch } = useStaticBookChapter(bookIdNum, chapterIdNum);
-  const cleanedChapterTitle =
-    chapter?.type === "bab"
+  const cleanedChapterTitle = chapter
+    ? chapter.type === "bab"
       ? cleanBabTitle(stripSectionTypePrefix(chapter.titleAr, chapter.type))
-      : (chapter?.titleAr ?? "");
+      : stripSectionTypePrefix(chapter.titleAr, chapter.type) || chapter.titleAr
+    : "";
   useSeo(language, {
     canonicalPath: `/edition/${bookIdNum}/section/${chapterIdNum}`,
     description: chapter
@@ -453,7 +677,7 @@ export default function ChapterReader() {
     title: chapter ? `${chapter.titleAr} - ${chapter.workTitle}` : undefined,
     type: "article",
   });
-  const { addHighlight, addNote, deleteHighlight, highlights, savePosition, settings, setSettings } = useLocalLibrary();
+  const { addHighlight, addNote, deleteHighlight, deletePosition, highlights, savePosition, settings, setSettings } = useLocalLibrary();
   const [tocOpen, setTocOpen] = useState(false);
   const [selection, setSelection] = useState("");
   const [selectionPosition, setSelectionPosition] = useState<SelectionPosition | null>(null);
@@ -467,6 +691,9 @@ export default function ChapterReader() {
   const [activeFootnoteId, setActiveFootnoteId] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [appendedSectionIds, setAppendedSectionIds] = useState<number[]>([]);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [findIndex, setFindIndex] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
   const selectionToolbarRef = useRef<HTMLDivElement>(null);
   const highlightActionsRef = useRef<HTMLDivElement>(null);
@@ -543,6 +770,71 @@ export default function ChapterReader() {
   }, [visibleBody]);
   const chapterDisplayPage = displayPageNumber(renderedPages[0]);
 
+  const findMatches = useMemo<LocalHighlight[]>(() => {
+    const query = normalizeFindQuery(findQuery);
+    if (!findOpen || query.length < 2) return [];
+    const matches: LocalHighlight[] = [];
+    for (const page of pageContent) {
+      const { stripped, map } = buildHarakatMap(page.mainText);
+      const haystack = unifyArabicChars(stripped).toLowerCase();
+      let searchFrom = 0;
+      while (matches.length < MAX_FIND_MATCHES) {
+        const found = haystack.indexOf(query, searchFrom);
+        if (found === -1) break;
+        const endStripped = found + query.length;
+        matches.push({
+          bookId: bookIdNum,
+          bookTitle: "",
+          chapterId: chapterIdNum,
+          chapterTitle: "",
+          color: FIND_MATCH_COLOR,
+          createdAt: 0,
+          endOffset: endStripped < map.length ? map[endStripped]! : page.mainText.length,
+          id: `${FIND_MATCH_ID_PREFIX}${page.id}:${found}`,
+          pageId: page.id,
+          startOffset: map[found]!,
+          surface: "main",
+          text: "",
+        });
+        searchFrom = found + 1;
+      }
+      if (matches.length >= MAX_FIND_MATCHES) break;
+    }
+    return matches;
+  }, [bookIdNum, chapterIdNum, findOpen, findQuery, pageContent]);
+
+  const activeFindIndex = findMatches.length > 0 ? Math.min(findIndex, findMatches.length - 1) : 0;
+  const styledFindMatches = useMemo(
+    () =>
+      findMatches.map((match, index) =>
+        index === activeFindIndex ? { ...match, color: FIND_ACTIVE_MATCH_COLOR } : match,
+      ),
+    [activeFindIndex, findMatches],
+  );
+
+  const stepFindMatch = useCallback(
+    (delta: number) => {
+      setFindIndex((current) => {
+        if (findMatches.length === 0) return 0;
+        const base = Math.min(current, findMatches.length - 1);
+        return (base + delta + findMatches.length) % findMatches.length;
+      });
+    },
+    [findMatches.length],
+  );
+
+  useEffect(() => {
+    if (!findOpen || findMatches.length === 0) return;
+    const active = findMatches[Math.min(findIndex, findMatches.length - 1)];
+    if (!active) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-reader-highlight-id="${CSS.escape(active.id)}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [findIndex, findMatches, findOpen]);
+
   const scrollToFootnote = useCallback((id: string) => {
     window.requestAnimationFrame(() => {
       const target = document.getElementById(id);
@@ -596,10 +888,23 @@ export default function ChapterReader() {
   }, [saveCurrentPosition]);
 
   useEffect(() => {
+    if (!isError || !book || !Number.isFinite(chapterIdNum)) return;
+    if (book.firstChapterId === chapterIdNum) return;
+
+    deletePosition(chapterIdNum);
+    navigate(`/edition/${book.id}/section/${book.firstChapterId}`, {
+      replace: true,
+    });
+  }, [book, chapterIdNum, deletePosition, isError, navigate]);
+
+  useEffect(() => {
     clearSelection();
     setSelectedHighlight(null);
     setActiveFootnoteId(null);
     setAppendedSectionIds([]);
+    setFindOpen(false);
+    setFindQuery("");
+    setFindIndex(0);
   }, [chapterIdNum]);
 
   // Mark the document while reader is mounted so CSS transitions are active on header/nav
@@ -649,6 +954,7 @@ export default function ChapterReader() {
 
       if (event.key === "Escape") {
         if (focusMode) { setFocusMode(false); return; }
+        if (findOpen) { setFindOpen(false); return; }
         setTocOpen(false);
         clearSelection();
         setSelectedHighlight(null);
@@ -670,18 +976,20 @@ export default function ChapterReader() {
 
       if (isNextKey && next && !event.altKey && !event.ctrlKey && !event.metaKey) {
         event.preventDefault();
-        window.location.href = `/edition/${next.editionId}/section/${next.id}`;
+        navigate(`/edition/${next.editionId}/section/${next.id}`);
+        window.scrollTo({ top: 0 });
         return;
       }
       if (isPrevKey && prev && !event.altKey && !event.ctrlKey && !event.metaKey) {
         event.preventDefault();
-        window.location.href = `/edition/${prev.editionId}/section/${prev.id}`;
+        navigate(`/edition/${prev.editionId}/section/${prev.id}`);
+        window.scrollTo({ top: 0 });
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [direction, focusMode, next, prev]);
+  }, [direction, findOpen, focusMode, navigate, next, prev]);
 
   useEffect(() => {
     if (!activeFootnoteId || !settings.showFootnotes) return;
@@ -773,6 +1081,7 @@ export default function ChapterReader() {
   };
 
   const handleHighlightSelect = useCallback((highlight: LocalHighlight) => {
+    if (highlight.id.startsWith(FIND_MATCH_ID_PREFIX)) return;
     clearSelection();
     setSelectedHighlight(highlight);
   }, []);
@@ -812,6 +1121,10 @@ export default function ChapterReader() {
   }
 
   const isTranslation = book.kind === "translation";
+  const readerTextStyle: CSSProperties = {
+    fontFamily,
+    fontSize: settings.fontSize,
+  };
   const sourceEditUrl = isTranslation && book.sourceFile ? buildSourceEditUrl(book.sourceFile) : null;
   const buildCorrectionUrl = (selectedText?: string) => {
     const relatedPage =
@@ -893,13 +1206,16 @@ export default function ChapterReader() {
                   >
                     <Copy className="h-4 w-4" />
                   </button>
-                  <Link
-                    href={`/search?target=section&editionId=${book.id}&sectionId=${chapter.id}`}
-                    className="reader-control inline-flex h-11 w-11 items-center justify-center sm:h-10 sm:w-10"
+                  <button
+                    onClick={() => setFindOpen((open) => !open)}
+                    className="reader-control inline-flex h-11 w-11 items-center justify-center data-[active=true]:bg-muted sm:h-10 sm:w-10"
+                    data-active={findOpen}
+                    aria-expanded={findOpen}
                     aria-label={t("البحث داخل هذا القسم")}
+                    type="button"
                   >
                     <Search className="h-4 w-4" />
-                  </Link>
+                  </button>
                 </div>
               </div>
               <div className="flex items-center gap-3 px-3 pb-3 text-xs text-muted-foreground sm:px-4">
@@ -909,6 +1225,73 @@ export default function ChapterReader() {
                   <span className="shrink-0 tabular-nums">{pageText(chapterDisplayPage, language)}</span>
                 )}
               </div>
+              {findOpen && (
+                <div className="flex items-center gap-2 border-t border-border px-3 py-2 sm:px-4">
+                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <input
+                    autoFocus
+                    aria-label={t("البحث داخل هذا القسم")}
+                    className="h-9 w-full min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:border-foreground focus:outline-none"
+                    dir={direction}
+                    onChange={(event) => {
+                      setFindQuery(event.target.value);
+                      setFindIndex(0);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        setFindOpen(false);
+                        return;
+                      }
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        stepFindMatch(event.shiftKey ? -1 : 1);
+                      }
+                    }}
+                    placeholder={t("البحث داخل هذا القسم")}
+                    value={findQuery}
+                  />
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {normalizeFindQuery(findQuery).length >= 2
+                      ? findMatches.length > 0
+                        ? `${activeFindIndex + 1} / ${findMatches.length}`
+                        : t("لا نتائج")
+                      : ""}
+                  </span>
+                  <button
+                    onClick={() => stepFindMatch(-1)}
+                    disabled={findMatches.length === 0}
+                    className="reader-control inline-flex h-9 w-9 items-center justify-center disabled:opacity-35"
+                    aria-label={t("النتيجة السابقة")}
+                    type="button"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => stepFindMatch(1)}
+                    disabled={findMatches.length === 0}
+                    className="reader-control inline-flex h-9 w-9 items-center justify-center disabled:opacity-35"
+                    aria-label={t("النتيجة التالية")}
+                    type="button"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  <Link
+                    href={`/search?target=section&editionId=${book.id}&sectionId=${chapter.id}`}
+                    className="hidden shrink-0 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground sm:inline"
+                  >
+                    {t("البحث في كل الكتاب")}
+                  </Link>
+                  <button
+                    onClick={() => setFindOpen(false)}
+                    className="reader-control inline-flex h-9 w-9 items-center justify-center"
+                    aria-label={t("إغلاق البحث")}
+                    type="button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <header className="reader-header mx-auto max-w-4xl border-b border-border px-4 py-5 text-center sm:px-6 sm:py-8 md:px-12 md:py-10">
@@ -966,7 +1349,7 @@ export default function ChapterReader() {
               data-tour="reader-selection"
               className="reader-text reader-fade-in mx-auto mt-3 px-4 pb-8 text-start leading-[2.25] text-foreground sm:mt-4 sm:px-8 sm:leading-[2.45] md:px-10 lg:px-12"
               dir={chapter.direction}
-              style={{ fontFamily, fontSize: settings.fontSize }}
+              style={readerTextStyle}
             >
               {visibleBody ? (
                 (() => {
@@ -978,10 +1361,9 @@ export default function ChapterReader() {
                     paragraphCounter += paragraphCount;
                     return (
                   <section
-                    className={settings.showPageMarkers ? "mb-8 scroll-mt-32 sm:mb-10" : undefined}
+                    className={settings.showPageMarkers ? "mb-8 scroll-mt-32 sm:mb-10" : "scroll-mt-32"}
                     id={`page-${page.pageNumber}`}
                     key={page.id}
-                    style={settings.showPageMarkers ? undefined : { display: "contents" }}
                   >
                     {settings.showPageMarkers && (
                       <div className="reader-page-marker my-6 flex items-center gap-3 text-muted-foreground/40 sm:my-8">
@@ -996,9 +1378,12 @@ export default function ChapterReader() {
                     <div data-reader-highlight-surface="main" data-reader-page-id={page.id}>
                       {renderParagraphs(
                         pageText_,
-                        positionedChapterHighlights.filter(
-                          (highlight) => highlight.pageId === page.id && highlight.surface === "main",
-                        ),
+                        [
+                          ...positionedChapterHighlights.filter(
+                            (highlight) => highlight.pageId === page.id && highlight.surface === "main",
+                          ),
+                          ...styledFindMatches.filter((match) => match.pageId === page.id),
+                        ],
                         page.footnoteTargets,
                         language,
                         handleFootnoteReference,
@@ -1317,6 +1702,10 @@ function AppendedSection({
   );
 
   const fontFamily = settings.fontFamily === "amiri" ? "var(--app-font-serif)" : "var(--app-font-sans)";
+  const readerTextStyle: CSSProperties = {
+    fontFamily,
+    fontSize: settings.fontSize,
+  };
 
   if (isLoading) {
     return (
@@ -1338,14 +1727,13 @@ function AppendedSection({
       <div
         className="reader-text mx-auto mt-6 px-4 pb-8 text-start leading-[2.25] text-foreground sm:mt-8 sm:px-8 sm:leading-[2.45] md:px-10 lg:px-12"
         dir={chapter.direction}
-        style={{ fontFamily, fontSize: settings.fontSize }}
+        style={readerTextStyle}
       >
         {pageContent.map((page) => (
           <section
-            className={settings.showPageMarkers ? "mb-8 scroll-mt-32 sm:mb-10" : undefined}
+            className={settings.showPageMarkers ? "mb-8 scroll-mt-32 sm:mb-10" : "scroll-mt-32"}
             id={`page-${page.pageNumber}`}
             key={page.id}
-            style={settings.showPageMarkers ? undefined : { display: "contents" }}
           >
             {settings.showPageMarkers && (
               <div className="reader-page-marker my-6 flex items-center gap-3 text-muted-foreground/40 sm:my-8">

@@ -4,3 +4,7 @@ node_modules
 artifacts/ibn-al-qayyim/node_modules
 scripts/node_modules
 artifacts/ibn-al-qayyim/dist
+artifacts/ibn-al-qayyim/public/library-data
+non-used
+.codex
+.agents

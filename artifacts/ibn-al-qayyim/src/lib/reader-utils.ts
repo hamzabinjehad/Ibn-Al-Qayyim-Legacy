@@ -38,23 +38,12 @@ export const FOOTNOTE_REFERENCE_REGEX = new RegExp(
 );
 export const FOOTNOTE_FOCUS_MS = 6000;
 export const HIGHLIGHT_SURFACE_SELECTOR = "[data-reader-highlight-surface]";
-export const MIN_READER_FONT_SIZE = 18;
-export const MAX_READER_FONT_SIZE = 40;
+export const MIN_READER_FONT_SIZE = 12;
+export const MAX_READER_FONT_SIZE = 72;
 
 export function clampReaderFontSize(value: number) {
-  return Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, value));
-}
-
-export function normalizeNumericInput(value: string) {
-  return value
-    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0660))
-    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0));
-}
-
-export function parseReaderFontSize(value: string) {
-  const normalized = normalizeNumericInput(value).replace(/[^\d]/g, "");
-  if (!normalized) return null;
-  return clampReaderFontSize(Number(normalized));
+  if (!Number.isFinite(value)) return MIN_READER_FONT_SIZE;
+  return Math.min(MAX_READER_FONT_SIZE, Math.max(MIN_READER_FONT_SIZE, Math.round(value)));
 }
 
 export function currentScrollY() {

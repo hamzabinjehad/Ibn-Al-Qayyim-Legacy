@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
+  Bold,
   Check,
   Copy,
   Download,
   Globe2,
   ImageDown,
+  Italic,
   Link as LinkIcon,
   MessageCircle,
   Palette,
@@ -13,6 +15,7 @@ import {
   Send,
   Share2,
   Sparkles,
+  Type,
   Twitter,
   X,
 } from "lucide-react";
@@ -31,16 +34,55 @@ type QuotePresetKey = "parchment" | "sage";
 type ShareFormat = "square" | "story";
 type CopiedKind = "text" | "image" | "link";
 
+type ShareSourceDetails = {
+  includeBookTitle: boolean;
+  includeLocation: boolean;
+};
+
 type ShareTextOptions = {
   showSource: boolean;
+  sourceDetails: ShareSourceDetails;
   showSite: boolean;
-  siteLabel: string;
   sourceUrl?: string;
 };
 
 type ShareColors = {
   accent: string;
   background: string;
+};
+
+type QuoteTextMark = {
+  id: string;
+  start: number;
+  end: number;
+  bold?: boolean;
+  italic?: boolean;
+  color?: string;
+  sizeScale?: number;
+};
+
+type QuoteSelection = {
+  start: number;
+  end: number;
+};
+
+type EffectiveTextStyle = {
+  bold: boolean;
+  italic: boolean;
+  color?: string;
+  sizeScale: number;
+};
+
+type StyledTextRun = {
+  text: string;
+  start: number;
+  end: number;
+  style: EffectiveTextStyle;
+};
+
+type StyledTextLine = {
+  runs: StyledTextRun[];
+  width: number;
 };
 
 type QuotePreset = {
@@ -54,7 +96,6 @@ type QuotePreset = {
   muted: string;
   line: string;
   dark?: boolean;
-  templateImageUrl?: string;
 };
 
 const baseQuotePresets: QuotePreset[] = [
@@ -71,26 +112,49 @@ const baseQuotePresets: QuotePreset[] = [
   },
   {
     key: "sage",
-    title: "\u0633\u0643\u064a\u0646\u0629",
-    description: "\u064a\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0635\u0648\u0631\u0629 \u0643\u062e\u0644\u0641\u064a\u0629 \u0648\u064a\u0633\u062a\u0628\u062f\u0644 \u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0646\u0635 \u0628\u0627\u0644\u0627\u0642\u062a\u0628\u0627\u0633",
-    accent: "#26342d",
-    background: "#5b675e",
-    surface: "#5b675e",
-    ink: "#f2f4ee",
-    muted: "#d5dbd2",
-    line: "#26342d",
-    dark: true,
-    templateImageUrl: `${import.meta.env.BASE_URL}quote-templates/sage-template.png`,
+    title: "\u0642\u0627\u0644\u0628 \u0627\u0644\u0627\u0642\u062a\u0628\u0627\u0633",
+    description: "\u062a\u0648\u0632\u064a\u0639 \u0648\u0631\u0642\u064a \u0628\u0627\u0633\u0645 \u0627\u0628\u0646 \u0627\u0644\u0642\u064a\u0645 \u0648\u0627\u0644\u0645\u0635\u062f\u0631 \u0623\u0639\u0644\u0649 \u0627\u0644\u064a\u0633\u0627\u0631 \u0648\u0646\u0635 \u0627\u0644\u0627\u0642\u062a\u0628\u0627\u0633 \u0641\u064a \u0627\u0644\u0648\u0631\u0642\u0629",
+    accent: "#8d7140",
+    background: "#f2ecdf",
+    surface: "#d7c5a8",
+    ink: "#3e2d17",
+    muted: "#6e5a36",
+    line: "#b49a64",
   },
 ];
 
-const accentPalettes = ["#4a3515", "#26342d", "#5f513c", "#6a5f48", "#435047", "#2f332d", "#8f6a34"];
-const backgroundPalettes = ["#efe8d8", "#5b675e", "#667266", "#f4eddc", "#e8dfcc", "#c0c4b2", "#ded1b7"];
+const accentPalettes = ["#4a3515", "#8d7140", "#5f513c", "#6a5f48", "#435047", "#2f332d", "#8f6a34"];
+const backgroundPalettes = ["#efe8d8", "#f2ecdf", "#eadfc8", "#f4eddc", "#e8dfcc", "#c0c4b2", "#ded1b7"];
 
 const formatDimensions: Record<ShareFormat, { width: number; height: number; label: string }> = {
   square: { width: 1080, height: 1080, label: "مربع" },
   story: { width: 1080, height: 1920, label: "قصة" },
 };
+
+// Canvas dimensions are laid out at the logical 1080px size and rendered at 2x for sharper exports.
+const EXPORT_SCALE = 2;
+
+// Canvas text must be measured with the real webfonts; measuring against the fallback font
+// mis-wraps and mis-fits the Arabic text on first open (cold font cache).
+let shareFontsPromise: Promise<void> | null = null;
+
+function ensureShareFontsLoaded() {
+  if (typeof document === "undefined" || !document.fonts?.load) return Promise.resolve();
+  if (!shareFontsPromise) {
+    const sample = "ابن القيم الجوزية رحمه الله";
+    shareFontsPromise = Promise.all(
+      [
+        "400 48px Amiri",
+        "700 48px Amiri",
+        "900 48px Amiri",
+        "italic 700 48px Amiri",
+        "400 48px 'Noto Naskh Arabic'",
+        "700 48px 'Noto Naskh Arabic'",
+      ].map((font) => document.fonts.load(font, sample).catch(() => [])),
+    ).then(() => undefined);
+  }
+  return shareFontsPromise;
+}
 
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText) {
@@ -126,11 +190,6 @@ function hexToRgb(hex: string) {
   };
 }
 
-function colorLuminance(hex: string) {
-  const { r, g, b } = hexToRgb(hex);
-  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-}
-
 function withAlpha(hex: string, alpha: number) {
   const { r, g, b } = hexToRgb(hex);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
@@ -146,6 +205,178 @@ function mixColors(first: string, second: string, amount: number) {
 
 function normalizeQuote(text: string | null | undefined) {
   return (text ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeStyledText(text: string | null | undefined) {
+  return (text ?? "").replace(/\s/g, " ");
+}
+
+function normalizeSelection(selection: QuoteSelection): QuoteSelection | null {
+  const start = Math.min(selection.start, selection.end);
+  const end = Math.max(selection.start, selection.end);
+  return end > start ? { start, end } : null;
+}
+
+function compactTextMarks(marks: QuoteTextMark[], textLength: number) {
+  return marks
+    .map((mark) => ({
+      ...mark,
+      start: Math.max(0, Math.min(mark.start, textLength)),
+      end: Math.max(0, Math.min(mark.end, textLength)),
+    }))
+    .filter((mark) => mark.end > mark.start);
+}
+
+// Runs are drawn separately on canvas, so a style boundary inside a word breaks Arabic
+// letter joining (each fragment shapes in isolation). Snapping marks to whole words keeps
+// every run boundary on whitespace, where no joining occurs.
+function snapMarksToWordBoundaries(text: string, marks: QuoteTextMark[]): QuoteTextMark[] {
+  return marks
+    .map((mark) => {
+      let start = mark.start;
+      let end = mark.end;
+      while (start < end && /\s/.test(text[start]!)) start += 1;
+      while (end > start && /\s/.test(text[end - 1]!)) end -= 1;
+      while (start > 0 && !/\s/.test(text[start - 1]!)) start -= 1;
+      while (end < text.length && !/\s/.test(text[end]!)) end += 1;
+      return { ...mark, start, end };
+    })
+    .filter((mark) => mark.end > mark.start);
+}
+
+function getEffectiveTextStyle(marks: QuoteTextMark[], index: number): EffectiveTextStyle {
+  return marks.reduce<EffectiveTextStyle>(
+    (style, mark) => {
+      if (index < mark.start || index >= mark.end) return style;
+      return {
+        bold: mark.bold ?? style.bold,
+        italic: mark.italic ?? style.italic,
+        color: mark.color ?? style.color,
+        sizeScale: mark.sizeScale ?? style.sizeScale,
+      };
+    },
+    { bold: false, italic: false, sizeScale: 1 },
+  );
+}
+
+function stylesEqual(first: EffectiveTextStyle, second: EffectiveTextStyle) {
+  return (
+    first.bold === second.bold &&
+    first.italic === second.italic &&
+    first.color === second.color &&
+    first.sizeScale === second.sizeScale
+  );
+}
+
+function getTextStyleBoundaries(marks: QuoteTextMark[], start: number, end: number) {
+  const boundaries = new Set([start, end]);
+  marks.forEach((mark) => {
+    if (mark.start > start && mark.start < end) boundaries.add(mark.start);
+    if (mark.end > start && mark.end < end) boundaries.add(mark.end);
+  });
+  return [...boundaries].sort((a, b) => a - b);
+}
+
+function getStyledRunsForRange(text: string, marks: QuoteTextMark[], start: number, end: number): StyledTextRun[] {
+  const boundaries = getTextStyleBoundaries(marks, start, end);
+  const runs: StyledTextRun[] = [];
+
+  for (let index = 0; index < boundaries.length - 1; index += 1) {
+    const runStart = boundaries[index];
+    const runEnd = boundaries[index + 1];
+    const runText = text.slice(runStart, runEnd);
+    if (!runText) continue;
+
+    const style = getEffectiveTextStyle(marks, runStart);
+    const previous = runs.at(-1);
+    if (previous && stylesEqual(previous.style, style)) {
+      previous.text += runText;
+      previous.end = runEnd;
+    } else {
+      runs.push({ text: runText, start: runStart, end: runEnd, style });
+    }
+  }
+
+  return runs;
+}
+
+function getStyledWords(text: string, marks: QuoteTextMark[]) {
+  const words: StyledTextRun[][] = [];
+
+  for (const match of text.matchAll(/\S+\s*/g)) {
+    const start = match.index ?? 0;
+    const end = start + match[0].length;
+    words.push(getStyledRunsForRange(text, marks, start, end));
+  }
+
+  return words;
+}
+
+function textStyleFont(style: EffectiveTextStyle, fontSize: number, fontFamily: string, fallbackWeight: number) {
+  const fontStyle = style.italic ? "italic " : "";
+  const fontWeight = style.bold ? 900 : fallbackWeight;
+  return `${fontStyle}${fontWeight} ${Math.round(fontSize * style.sizeScale)}px ${fontFamily}`;
+}
+
+function measureStyledRuns(
+  ctx: CanvasRenderingContext2D,
+  runs: StyledTextRun[],
+  fontSize: number,
+  fontFamily: string,
+  fallbackWeight: number,
+) {
+  return runs.reduce((width, run) => {
+    ctx.font = textStyleFont(run.style, fontSize, fontFamily, fallbackWeight);
+    return width + ctx.measureText(run.text).width;
+  }, 0);
+}
+
+function wrapStyledText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  marks: QuoteTextMark[],
+  maxWidth: number,
+  fontSize: number,
+  fontFamily: string,
+  fallbackWeight: number,
+): StyledTextLine[] {
+  const normalizedText = normalizeStyledText(text);
+  const snappedMarks = snapMarksToWordBoundaries(normalizedText, compactTextMarks(marks, normalizedText.length));
+  const words = getStyledWords(normalizedText, snappedMarks);
+  const lines: StyledTextLine[] = [];
+  let currentRuns: StyledTextRun[] = [];
+  let currentWidth = 0;
+
+  const pushPiece = (pieceRuns: StyledTextRun[], pieceWidth: number) => {
+    if (currentRuns.length > 0 && currentWidth + pieceWidth > maxWidth) {
+      lines.push({ runs: currentRuns, width: currentWidth });
+      currentRuns = pieceRuns;
+      currentWidth = pieceWidth;
+    } else {
+      currentRuns = [...currentRuns, ...pieceRuns];
+      currentWidth += pieceWidth;
+    }
+  };
+
+  for (const wordRuns of words) {
+    const wordWidth = measureStyledRuns(ctx, wordRuns, fontSize, fontFamily, fallbackWeight);
+    if (wordWidth > maxWidth) {
+      // Last-resort character wrap for a single token wider than the line (e.g. a long URL).
+      for (const run of wordRuns) {
+        let charStart = run.start;
+        for (const char of Array.from(run.text)) {
+          const charRun: StyledTextRun = { text: char, start: charStart, end: charStart + char.length, style: run.style };
+          pushPiece([charRun], measureStyledRuns(ctx, [charRun], fontSize, fontFamily, fallbackWeight));
+          charStart += char.length;
+        }
+      }
+      continue;
+    }
+    pushPiece(wordRuns, wordWidth);
+  }
+
+  if (currentRuns.length > 0) lines.push({ runs: currentRuns, width: currentWidth });
+  return lines;
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -167,9 +398,10 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
-function fitTextToArea(
+function fitStyledTextToArea(
   ctx: CanvasRenderingContext2D,
   text: string,
+  marks: QuoteTextMark[],
   maxWidth: number,
   maxHeight: number,
   startFontSize: number,
@@ -180,25 +412,34 @@ function fitTextToArea(
   let fontSize = startFontSize;
 
   while (fontSize >= minFontSize) {
-    ctx.font = `${weight} ${fontSize}px ${fontFamily}`;
     const lineHeight = fontSize * 1.72;
-    const lines = wrapText(ctx, text, maxWidth);
+    const lines = wrapStyledText(ctx, text, marks, maxWidth, fontSize, fontFamily, weight);
     if (lines.length * lineHeight <= maxHeight) {
       return { lines, fontSize, lineHeight, clipped: false };
     }
     fontSize -= 2;
   }
 
-  ctx.font = `${weight} ${minFontSize}px ${fontFamily}`;
   const lineHeight = minFontSize * 1.72;
   const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight) - 1);
-  const lines = wrapText(ctx, text, maxWidth).slice(0, maxLines);
+  const lines = wrapStyledText(ctx, text, marks, maxWidth, minFontSize, fontFamily, weight).slice(0, maxLines);
   return { lines, fontSize: minFontSize, lineHeight, clipped: true };
 }
 
-function splitTextToImageChunks(
+function sliceTextMarks(marks: QuoteTextMark[], start: number, end: number): QuoteTextMark[] {
+  return marks
+    .map((mark) => ({
+      ...mark,
+      start: Math.max(mark.start, start) - start,
+      end: Math.min(mark.end, end) - start,
+    }))
+    .filter((mark) => mark.end > mark.start);
+}
+
+function splitStyledTextToImageChunks(
   ctx: CanvasRenderingContext2D,
   text: string,
+  marks: QuoteTextMark[],
   maxWidth: number,
   maxHeight: number,
   startFontSize: number,
@@ -206,17 +447,34 @@ function splitTextToImageChunks(
   fontFamily: string,
   weight = 700,
 ) {
-  const fitted = fitTextToArea(ctx, text, maxWidth, maxHeight, startFontSize, minFontSize, fontFamily, weight);
-  if (!fitted.clipped) return [normalizeQuote(text)];
+  const normalizedText = normalizeStyledText(text);
+  const normalizedMarks = snapMarksToWordBoundaries(normalizedText, compactTextMarks(marks, normalizedText.length));
+  const fitted = fitStyledTextToArea(
+    ctx,
+    normalizedText,
+    normalizedMarks,
+    maxWidth,
+    maxHeight,
+    startFontSize,
+    minFontSize,
+    fontFamily,
+    weight,
+  );
+  if (!fitted.clipped) return [{ text: normalizedText, marks: normalizedMarks }];
 
-  ctx.font = `${weight} ${minFontSize}px ${fontFamily}`;
   const lineHeight = minFontSize * 1.72;
   const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight) - 1);
-  const allLines = wrapText(ctx, text, maxWidth);
-  const chunks: string[] = [];
+  const lines = wrapStyledText(ctx, normalizedText, normalizedMarks, maxWidth, minFontSize, fontFamily, weight);
+  const chunks: Array<{ text: string; marks: QuoteTextMark[] }> = [];
 
-  for (let index = 0; index < allLines.length; index += maxLines) {
-    chunks.push(allLines.slice(index, index + maxLines).join(" "));
+  for (let index = 0; index < lines.length; index += maxLines) {
+    const chunkLines = lines.slice(index, index + maxLines);
+    const firstRun = chunkLines[0]?.runs[0];
+    const lastLineRuns = chunkLines.at(-1)?.runs;
+    const lastRun = lastLineRuns?.at(-1);
+    if (!firstRun || !lastRun) continue;
+    const chunkText = normalizedText.slice(firstRun.start, lastRun.end);
+    chunks.push({ text: chunkText, marks: sliceTextMarks(normalizedMarks, firstRun.start, lastRun.end) });
   }
 
   return chunks;
@@ -247,6 +505,34 @@ function drawTextLines(
   });
 }
 
+function drawStyledTextLines(
+  ctx: CanvasRenderingContext2D,
+  lines: StyledTextLine[],
+  x: number,
+  y: number,
+  lineHeight: number,
+  direction: TextDirection,
+  fontSize: number,
+  fontFamily: string,
+  fallbackWeight: number,
+  fallbackColor: string,
+) {
+  const isRtl = direction === "rtl";
+
+  lines.forEach((line, index) => {
+    let cursor = isRtl ? x + line.width / 2 : x - line.width / 2;
+    ctx.textAlign = isRtl ? "right" : "left";
+
+    line.runs.forEach((run) => {
+      ctx.font = textStyleFont(run.style, fontSize, fontFamily, fallbackWeight);
+      ctx.fillStyle = run.style.color ?? fallbackColor;
+      const runWidth = ctx.measureText(run.text).width;
+      ctx.fillText(run.text, cursor, y + index * lineHeight);
+      cursor += isRtl ? -runWidth : runWidth;
+    });
+  });
+}
+
 function textLengthBand(text: string) {
   const length = normalizeQuote(text).length;
   if (length > 760) return "very-long";
@@ -261,141 +547,6 @@ function drawDiamond(ctx: CanvasRenderingContext2D, x: number, y: number, size: 
   ctx.rotate(Math.PI / 4);
   ctx.fillStyle = color;
   ctx.fillRect(-size / 2, -size / 2, size, size);
-  ctx.restore();
-}
-
-function drawPetal(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string, rotation = 0) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rotation);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(0, -size * 0.34, size * 0.21, size * 0.5, 0.72, 0, Math.PI * 2);
-  ctx.ellipse(0, size * 0.34, size * 0.21, size * 0.5, -0.72, 0, Math.PI * 2);
-  ctx.ellipse(-size * 0.34, 0, size * 0.21, size * 0.5, -0.72, 0, Math.PI * 2);
-  ctx.ellipse(size * 0.34, 0, size * 0.21, size * 0.5, 0.72, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawPetalCluster(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) {
-  const gap = size * 1.18;
-  drawPetal(ctx, x - gap, y, size, color, 0.12);
-  drawPetal(ctx, x, y, size, color, 0);
-  drawPetal(ctx, x + gap, y, size, color, -0.12);
-}
-
-function drawFineTexture(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
-  ctx.save();
-  ctx.globalAlpha = preset.dark ? 0.12 : 0.18;
-  ctx.fillStyle = preset.dark ? "#ffffff" : preset.accent;
-
-  for (let i = 0; i < 180; i += 1) {
-    const x = (i * 137) % width;
-    const y = (i * 211) % height;
-    ctx.fillRect(x, y, i % 9 === 0 ? 3 : 1, i % 11 === 0 ? 3 : 1);
-  }
-
-  ctx.globalAlpha = preset.dark ? 0.08 : 0.12;
-  ctx.strokeStyle = preset.dark ? "#ffffff" : preset.line;
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 8; i += 1) {
-    ctx.beginPath();
-    ctx.moveTo(-50, 120 + i * 210);
-    ctx.bezierCurveTo(width * 0.25, 20 + i * 190, width * 0.74, 260 + i * 145, width + 60, 80 + i * 205);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawGeometricBorder(
-  ctx: CanvasRenderingContext2D,
-  preset: QuotePreset,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  inset = 34,
-) {
-  ctx.save();
-  ctx.strokeStyle = withAlpha(preset.line, preset.dark ? 0.62 : 0.78);
-  ctx.lineWidth = 3;
-  roundRect(ctx, x, y, width, height, 18);
-  ctx.stroke();
-
-  ctx.strokeStyle = withAlpha(preset.accent, preset.dark ? 0.48 : 0.38);
-  ctx.lineWidth = 2;
-  roundRect(ctx, x + inset, y + inset, width - inset * 2, height - inset * 2, 8);
-  ctx.stroke();
-
-  const corners = [
-    [x + inset, y + inset],
-    [x + width - inset, y + inset],
-    [x + inset, y + height - inset],
-    [x + width - inset, y + height - inset],
-  ];
-  corners.forEach(([cx, cy]) => drawDiamond(ctx, cx, cy, 18, preset.accent));
-  ctx.restore();
-}
-
-function drawMihrab(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
-  ctx.save();
-  const archWidth = width * 0.74;
-  const archX = (width - archWidth) / 2;
-  const top = height * 0.17;
-  const bottom = height * 0.82;
-  const archHeight = bottom - top;
-
-  ctx.globalAlpha = 0.2;
-  ctx.fillStyle = preset.accent;
-  ctx.beginPath();
-  ctx.moveTo(archX, bottom);
-  ctx.lineTo(archX, top + archHeight * 0.35);
-  ctx.quadraticCurveTo(width / 2, top - 95, archX + archWidth, top + archHeight * 0.35);
-  ctx.lineTo(archX + archWidth, bottom);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = preset.line;
-  ctx.lineWidth = 4;
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawCoverMotif(
-  ctx: CanvasRenderingContext2D,
-  preset: QuotePreset,
-  width: number,
-  height: number,
-  direction: TextDirection,
-) {
-  ctx.save();
-  const bookWidth = width * 0.23;
-  const bookHeight = height * 0.68;
-  const x = direction === "rtl" ? width - bookWidth - width * 0.075 : width * 0.075;
-  const y = height * 0.16;
-
-  ctx.globalAlpha = 0.18;
-  ctx.fillStyle = preset.accent;
-  roundRect(ctx, x, y, bookWidth, bookHeight, 26);
-  ctx.fill();
-
-  ctx.globalAlpha = 0.22;
-  ctx.strokeStyle = preset.line;
-  ctx.lineWidth = 5;
-  roundRect(ctx, x + 22, y + 26, bookWidth - 44, bookHeight - 52, 16);
-  ctx.stroke();
-
-  ctx.globalAlpha = 0.18;
-  ctx.fillStyle = "#ffffff";
-  const stripeX = direction === "rtl" ? x + bookWidth - 46 : x + 32;
-  roundRect(ctx, stripeX, y + 44, 16, bookHeight - 88, 8);
-  ctx.fill();
-
-  ctx.globalAlpha = 0.26;
-  drawDiamond(ctx, x + bookWidth / 2, y + bookHeight * 0.26, 32, preset.accent);
-  drawDiamond(ctx, x + bookWidth / 2, y + bookHeight * 0.74, 22, preset.line);
   ctx.restore();
 }
 
@@ -421,25 +572,18 @@ function drawBrand(
 function drawSource(
   ctx: CanvasRenderingContext2D,
   preset: QuotePreset,
-  bookTitle: string,
-  chapterTitle: string,
-  pageNumber: number | undefined,
+  sourceText: string,
   fontFamily: string,
   x: number,
   y: number,
   maxWidth: number,
   direction: TextDirection,
-  language: LanguageCode,
 ) {
-  const source =
-    pageNumber !== undefined
-      ? `${bookTitle} / ${chapterTitle} / ${pageText(pageNumber, language)}`
-      : `${bookTitle} / ${chapterTitle}`;
   const align = direction === "rtl" ? "right" : "left";
   ctx.textAlign = align;
   ctx.fillStyle = preset.muted;
   ctx.font = `700 27px ${fontFamily}`;
-  const lines = wrapText(ctx, source, maxWidth).slice(0, 2);
+  const lines = wrapText(ctx, sourceText, maxWidth).slice(0, 2);
   drawTextLines(ctx, lines, x, y, 38, align);
 }
 
@@ -455,29 +599,6 @@ function resolvePreset(preset: QuotePreset, colors: ShareColors) {
     line: mixColors(accent, preset.dark ? "#ffffff" : "#2c2118", preset.dark ? 0.08 : 0.2),
     muted: preset.dark ? mixColors(accent, "#ffffff", 0.64) : mixColors(accent, "#2c2118", 0.42),
   };
-}
-
-function drawCardBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
-  const bg = ctx.createLinearGradient(0, 0, width, height);
-  bg.addColorStop(0, mixColors(preset.background, "#ffffff", 0.34));
-  bg.addColorStop(0.56, preset.background);
-  bg.addColorStop(1, mixColors(preset.background, preset.accent, 0.08));
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, width, height);
-
-  const glow = ctx.createRadialGradient(width * 0.38, height * 0.2, 80, width * 0.38, height * 0.2, height * 0.78);
-  glow.addColorStop(0, "rgba(255,255,255,0.46)");
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, width, height);
-
-  const vignette = ctx.createRadialGradient(width / 2, height / 2, width * 0.25, width / 2, height / 2, height * 0.78);
-  vignette.addColorStop(0, "rgba(255,255,255,0)");
-  vignette.addColorStop(1, "rgba(92,55,18,0.12)");
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, width, height);
-
-  drawFineTexture(ctx, preset, width, height);
 }
 
 function drawPaperBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
@@ -513,34 +634,6 @@ function drawPaperBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset,
   ctx.restore();
 }
 
-function drawSageBackground(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number) {
-  ctx.fillStyle = preset.background;
-  ctx.fillRect(0, 0, width, height);
-
-  const centerGlow = ctx.createRadialGradient(width * 0.48, height * 0.42, 120, width * 0.48, height * 0.42, height * 0.74);
-  centerGlow.addColorStop(0, "rgba(255,255,255,0.035)");
-  centerGlow.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = centerGlow;
-  ctx.fillRect(0, 0, width, height);
-
-  const topShade = ctx.createLinearGradient(0, 0, 0, height);
-  topShade.addColorStop(0, "rgba(0,0,0,0.08)");
-  topShade.addColorStop(0.5, "rgba(0,0,0,0)");
-  topShade.addColorStop(1, "rgba(0,0,0,0.07)");
-  ctx.fillStyle = topShade;
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.save();
-  ctx.globalAlpha = 0.08;
-  ctx.fillStyle = "#ffffff";
-  for (let i = 0; i < 190; i += 1) {
-    const x = (i * 181) % width;
-    const y = (i * 97) % height;
-    ctx.fillRect(x, y, 1, 1);
-  }
-  ctx.restore();
-}
-
 function drawMarginalWordmark(
   ctx: CanvasRenderingContext2D,
   preset: QuotePreset,
@@ -570,35 +663,181 @@ function drawMarginalWordmark(
   ctx.restore();
 }
 
-const templateImageCache = new Map<string, Promise<HTMLImageElement>>();
-
-function loadTemplateImage(src: string) {
-  const cached = templateImageCache.get(src);
-  if (cached) return cached;
-
-  const promise = new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Unable to load quote template: ${src}`));
-    image.src = src;
-  });
-  templateImageCache.set(src, promise);
-  return promise;
-}
-
-function drawImagePatch(
+function drawTemplatePill(
   ctx: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  source: { x: number; y: number; width: number; height: number },
-  target: { x: number; y: number; width: number; height: number },
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  fill: string,
 ) {
-  ctx.drawImage(image, source.x, source.y, source.width, source.height, target.x, target.y, target.width, target.height);
+  ctx.save();
+  ctx.shadowColor = "rgba(54, 42, 24, 0.28)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 9;
+  const gradient = ctx.createLinearGradient(x, y, x + width, y);
+  gradient.addColorStop(0, mixColors(fill, "#ffffff", 0.36));
+  gradient.addColorStop(0.55, fill);
+  gradient.addColorStop(1, mixColors(fill, "#8a7448", 0.2));
+  ctx.fillStyle = gradient;
+  roundRect(ctx, x, y, width, height, height / 2);
+  ctx.fill();
+  ctx.restore();
 }
 
-function drawSageTemplateBackground(
+function drawTemplateTexture(ctx: CanvasRenderingContext2D, preset: QuotePreset, x: number, y: number, width: number, height: number) {
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle = withAlpha(preset.muted, 0.7);
+  ctx.lineWidth = 0.9;
+  for (let i = 0; i < 180; i += 1) {
+    const px = x + ((i * 53) % Math.max(1, width));
+    const py = y + ((i * 97) % Math.max(1, height));
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.quadraticCurveTo(px + ((i % 9) - 4) * 3, py + 12, px + ((i % 7) - 3) * 8, py + 24);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawTemplatePaper(
   ctx: CanvasRenderingContext2D,
   preset: QuotePreset,
-  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  ctx.save();
+  ctx.shadowColor = "rgba(68, 52, 28, 0.2)";
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetX = 14;
+  ctx.shadowOffsetY = 12;
+
+  ctx.beginPath();
+  const steps = 18;
+  for (let i = 0; i <= steps; i += 1) {
+    const px = x + (width * i) / steps;
+    const jitter = ((i * 17) % 11) - 5;
+    if (i === 0) ctx.moveTo(px, y + jitter);
+    else ctx.lineTo(px, y + jitter);
+  }
+  for (let i = 1; i <= steps; i += 1) {
+    const py = y + (height * i) / steps;
+    const jitter = ((i * 23) % 13) - 6;
+    ctx.lineTo(x + width + jitter, py);
+  }
+  for (let i = steps; i >= 0; i -= 1) {
+    const px = x + (width * i) / steps;
+    const jitter = ((i * 19) % 15) - 7;
+    ctx.lineTo(px, y + height + jitter);
+  }
+  for (let i = steps; i >= 1; i -= 1) {
+    const py = y + (height * i) / steps;
+    const jitter = ((i * 29) % 15) - 7;
+    ctx.lineTo(x + jitter, py);
+  }
+  ctx.closePath();
+
+  const paper = ctx.createLinearGradient(x, y, x + width, y + height);
+  paper.addColorStop(0, mixColors(preset.surface, "#ffffff", 0.28));
+  paper.addColorStop(0.5, preset.surface);
+  paper.addColorStop(1, mixColors(preset.surface, "#8b7653", 0.12));
+  ctx.fillStyle = paper;
+  ctx.fill();
+  ctx.restore();
+
+  drawTemplateTexture(ctx, preset, x, y, width, height);
+}
+
+function drawTemplatePhoto(ctx: CanvasRenderingContext2D, preset: QuotePreset, x: number, y: number, width: number, height: number) {
+  ctx.save();
+  ctx.translate(x + width / 2, y + height / 2);
+  ctx.rotate((-8 * Math.PI) / 180);
+  ctx.shadowColor = "rgba(37, 31, 22, 0.3)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 12;
+  ctx.fillStyle = "#f6f5f1";
+  ctx.fillRect(-width / 2, -height / 2, width, height);
+  ctx.shadowColor = "transparent";
+
+  const imageX = -width * 0.39;
+  const imageY = -height * 0.38;
+  const imageW = width * 0.78;
+  const imageH = height * 0.64;
+  ctx.fillStyle = "#252726";
+  ctx.fillRect(imageX, imageY, imageW, imageH);
+
+  const windowX = imageX + imageW * 0.29;
+  const windowY = imageY + imageH * 0.08;
+  const windowW = imageW * 0.42;
+  const windowH = imageH * 0.86;
+  ctx.strokeStyle = "#d8d9d4";
+  ctx.lineWidth = Math.max(2, width * 0.012);
+  roundRect(ctx, windowX, windowY, windowW, windowH, windowW * 0.45);
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.82;
+  ctx.strokeStyle = "#f1f1eb";
+  ctx.lineWidth = Math.max(1, width * 0.006);
+  for (let i = 1; i < 4; i += 1) {
+    const lx = windowX + (windowW * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(lx, windowY + windowH * 0.08);
+    ctx.lineTo(lx, windowY + windowH * 0.94);
+    ctx.stroke();
+  }
+  for (let i = 1; i < 5; i += 1) {
+    const ly = windowY + (windowH * i) / 5;
+    ctx.beginPath();
+    ctx.moveTo(windowX + windowW * 0.06, ly);
+    ctx.lineTo(windowX + windowW * 0.94, ly);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = preset.accent;
+  for (let i = 0; i < 16; i += 1) {
+    ctx.fillRect(imageX + ((i * 37) % imageW), imageY + ((i * 53) % imageH), 2, 2);
+  }
+  ctx.restore();
+}
+
+function drawTemplateHeaderText(
+  ctx: CanvasRenderingContext2D,
+  preset: QuotePreset,
+  authorName: string,
+  sourceText: string,
+  fontFamily: string,
+  direction: TextDirection,
+  position: {
+    x: (value: number) => number;
+    y: (value: number) => number;
+    size: (value: number) => number;
+  },
+) {
+  const align: CanvasTextAlign = direction === "rtl" ? "right" : "left";
+  const firstX = direction === "rtl" ? position.x(505) : position.x(155);
+  const secondX = direction === "rtl" ? position.x(292) : position.x(155);
+
+  ctx.save();
+  ctx.textAlign = align;
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = preset.ink;
+  ctx.font = `700 ${position.size(27)}px ${fontFamily}`;
+  ctx.fillText(authorName, firstX, position.y(188), position.size(360));
+
+  ctx.fillStyle = preset.muted;
+  ctx.font = `700 ${position.size(20)}px ${fontFamily}`;
+  const sourceLines = wrapText(ctx, sourceText, position.size(145)).slice(0, 1);
+  ctx.fillText(sourceLines[0] ?? "", secondX, position.y(258), position.size(150));
+  ctx.restore();
+}
+
+function drawWindowQuoteTemplate(
+  ctx: CanvasRenderingContext2D,
+  preset: QuotePreset,
   width: number,
   height: number,
   format: ShareFormat,
@@ -608,53 +847,32 @@ function drawSageTemplateBackground(
 
   const templateSize = format === "story" ? width : Math.min(width, height);
   const templateX = (width - templateSize) / 2;
-  const templateY = format === "story" ? (height - templateSize) / 2 : (height - templateSize) / 2;
-  ctx.drawImage(image, templateX, templateY, templateSize, templateSize);
+  const templateY = (height - templateSize) / 2;
+  const unit = templateSize / 1254;
+  const sx = (value: number) => templateX + value * unit;
+  const sy = (value: number) => templateY + value * unit;
+  const ss = (value: number) => value * unit;
 
-  const sx = image.naturalWidth / 1600;
-  const sy = image.naturalHeight / 1600;
-  const tx = (value: number) => templateX + (value / 1600) * templateSize;
-  const ty = (value: number) => templateY + (value / 1600) * templateSize;
-  const tw = (value: number) => (value / 1600) * templateSize;
-  const th = (value: number) => (value / 1600) * templateSize;
-  const sourcePatch = { x: 120 * sx, y: 110 * sy, width: 1360 * sx, height: 420 * sy };
+  const glow = ctx.createRadialGradient(width * 0.52, height * 0.36, ss(70), width * 0.52, height * 0.36, ss(690));
+  glow.addColorStop(0, "rgba(255,255,255,0.56)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, width, height);
+  drawTemplateTexture(ctx, preset, templateX, templateY, templateSize, templateSize);
 
-  drawImagePatch(ctx, image, sourcePatch, { x: tx(140), y: ty(470), width: tw(1320), height: th(660) });
-  drawImagePatch(ctx, image, sourcePatch, { x: tx(120), y: ty(1300), width: tw(1360), height: th(220) });
+  const pillBase = mixColors(preset.background, "#ffffff", 0.4);
+  drawTemplatePill(ctx, sx(126), sy(166), ss(410), ss(45), mixColors(preset.accent, pillBase, 0.5));
+  drawTemplatePill(ctx, sx(126), sy(236), ss(188), ss(45), mixColors(preset.accent, pillBase, 0.58));
+  drawTemplatePaper(ctx, { ...preset, surface: mixColors(preset.background, "#ffffff", 0.34) }, sx(258), sy(262), ss(822), ss(826));
+  drawTemplatePhoto(ctx, preset, sx(118), sy(636), ss(398), ss(438));
 
-  ctx.fillStyle = withAlpha(preset.background, 0.22);
-  ctx.fillRect(tx(140), ty(470), tw(1320), th(660));
-  ctx.fillRect(tx(120), ty(1300), tw(1360), th(220));
-
-  return { x: templateX, y: templateY, size: templateSize };
-}
-
-function drawSideOrnament(ctx: CanvasRenderingContext2D, preset: QuotePreset, width: number, height: number, direction: TextDirection) {
-  ctx.save();
-  const side = direction === "rtl" ? width + 12 : -12;
-  const sign = direction === "rtl" ? -1 : 1;
-  ctx.translate(side, height * 0.55);
-  ctx.scale(sign, 1);
-  ctx.strokeStyle = withAlpha(preset.accent, 0.92);
-  ctx.lineWidth = Math.max(18, width * 0.022);
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  for (let i = -2; i <= 2; i += 1) {
-    ctx.beginPath();
-    ctx.moveTo(0, i * height * 0.16);
-    ctx.bezierCurveTo(-width * 0.1, i * height * 0.1, -width * 0.04, i * height * 0.02, -width * 0.12, i * height * -0.06);
-    ctx.bezierCurveTo(-width * 0.18, i * height * -0.12, -width * 0.04, i * height * -0.16, -width * 0.09, i * height * -0.24);
-    ctx.stroke();
-  }
-
-  ctx.lineWidth = Math.max(9, width * 0.011);
-  for (let i = -3; i <= 3; i += 1) {
-    ctx.beginPath();
-    ctx.arc(-width * 0.045, i * height * 0.14, width * 0.028, 0.2 * Math.PI, 1.62 * Math.PI);
-    ctx.stroke();
-  }
-  ctx.restore();
+  return {
+    x: sx,
+    y: sy,
+    size: ss,
+    sourceArea: { x: sx(126), y: sy(166), width: ss(410), height: ss(115) },
+    quoteArea: { x: sx(404), y: sy(392), width: ss(570), height: ss(520) },
+  };
 }
 
 function drawPaperSideOrnament(
@@ -746,11 +964,11 @@ function getShareCardTextMetrics(input: {
   const isStory = input.format === "story";
 
   if (input.isTemplatePreset) {
-    const quoteWidth = input.width * (isStory ? 0.74 : 0.7);
-    const quoteMaxH = input.height * (isStory ? (input.showSource ? 0.52 : 0.6) : input.showSource ? 0.46 : 0.56);
-    const quoteStart = input.height * (isStory ? (band === "short" ? 0.3 : 0.22) : band === "short" ? 0.36 : 0.27);
-    const startFontSize = isStory ? (band === "short" ? 72 : band === "medium" ? 63 : 54) : band === "short" ? 60 : 52;
-    const minFontSize = isStory ? 36 : 32;
+    const quoteWidth = input.width * 0.45;
+    const quoteMaxH = input.width * 0.41;
+    const quoteStart = input.height * (isStory ? 0.42 : 0.31);
+    const startFontSize = isStory ? (band === "short" ? 62 : band === "medium" ? 54 : 47) : band === "short" ? 48 : 42;
+    const minFontSize = isStory ? 31 : 28;
     return { quoteMaxH, quoteStart, quoteWidth, startFontSize, minFontSize };
   }
 
@@ -762,33 +980,15 @@ function getShareCardTextMetrics(input: {
   return { quoteMaxH, quoteStart, quoteWidth, startFontSize, minFontSize };
 }
 
-function createCoverPreset(coverColor: string | undefined): QuotePreset {
-  const cover = sanitizeColor(coverColor, "#2f7a67");
-  const isLight = colorLuminance(cover) > 0.72;
-  const background = isLight ? "#24362f" : mixColors(cover, "#12100d", 0.58);
-  const accent = isLight ? "#d0aa65" : mixColors(cover, "#f1d28a", 0.45);
-
-  return {
-    key: "parchment",
-    title: "غلاف الكتاب",
-    description: "يربط البطاقة بلون الكتاب ومصدر الاقتباس",
-    accent,
-    background,
-    surface: mixColors(background, "#ffffff", 0.08),
-    ink: "#fff7e6",
-    muted: mixColors(accent, "#ffffff", 0.38),
-    line: mixColors(accent, "#ffffff", 0.12),
-    dark: true,
-  };
-}
-
 type GenerateImageInput = {
   brandSubtitle: string;
   brandTitle: string;
   text: string;
+  textMarks: QuoteTextMark[];
   bookTitle: string;
   chapterTitle: string;
   pageNumber?: number;
+  sourceDetails: ShareSourceDetails;
   preset: QuotePreset;
   colors: ShareColors;
   direction: TextDirection;
@@ -802,9 +1002,11 @@ async function generateImageForPreset({
   brandSubtitle,
   brandTitle,
   text,
+  textMarks,
   bookTitle,
   chapterTitle,
   pageNumber,
+  sourceDetails,
   preset,
   colors,
   direction,
@@ -815,46 +1017,44 @@ async function generateImageForPreset({
 }: GenerateImageInput) {
   const { width, height } = formatDimensions[format];
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = width * EXPORT_SCALE;
+  canvas.height = height * EXPORT_SCALE;
   const ctx = canvas.getContext("2d");
   if (!ctx) return "";
+  ctx.scale(EXPORT_SCALE, EXPORT_SCALE);
 
   const isRtl = direction === "rtl";
   const fontFamily = isRtl ? "'Amiri', 'Noto Naskh Arabic', serif" : "Georgia, 'Times New Roman', serif";
   const resolvedPreset = resolvePreset(preset, colors);
   const siteTitle = normalizeQuote(brandTitle);
   const shouldShowSite = showSite && siteTitle.length > 0;
+  const sourceText = buildSourceText(bookTitle, chapterTitle, language, pageNumber, sourceDetails);
 
   if (resolvedPreset.key === "sage") {
-    const { quoteMaxH, quoteStart, quoteWidth, startFontSize, minFontSize } = getShareCardTextMetrics({
-      format,
-      height,
-      width,
-      isTemplatePreset: true,
-      showSource,
-      shouldShowSite,
-      text,
-    });
-    const textX = width / 2;
+    const templateLayout = drawWindowQuoteTemplate(ctx, resolvedPreset, width, height, format);
+    const headerSourceText = normalizeQuote(sourceText) || normalizeQuote(chapterTitle) || normalizeQuote(bookTitle);
+    drawTemplateHeaderText(
+      ctx,
+      resolvedPreset,
+      templateAuthorName(language),
+      headerSourceText,
+      fontFamily,
+      direction,
+      templateLayout,
+    );
+
+    const quoteWidth = templateLayout.quoteArea.width;
+    const quoteMaxH = templateLayout.quoteArea.height;
+    const textX = templateLayout.quoteArea.x + templateLayout.quoteArea.width / 2;
     const quoteWeight = 700;
     const band = textLengthBand(text);
+    const startFontSize = format === "story" ? (band === "short" ? 62 : band === "medium" ? 54 : 47) : band === "short" ? 48 : 42;
+    const minFontSize = format === "story" ? 31 : 28;
 
-    drawSageBackground(ctx, resolvedPreset, width, height);
-    ctx.save();
-    ctx.globalAlpha = 0.48;
-    drawPetalCluster(
-      ctx,
-      direction === "rtl" ? width * 0.8 : width * 0.2,
-      height * (format === "story" ? (band === "short" ? 0.18 : 0.14) : band === "short" ? 0.23 : 0.18),
-      format === "story" ? 42 : 34,
-      withAlpha(resolvedPreset.accent, 0.72),
-    );
-    ctx.restore();
-
-    const { lines, fontSize, lineHeight } = fitTextToArea(
+    const { lines, fontSize, lineHeight } = fitStyledTextToArea(
       ctx,
       text,
+      textMarks,
       quoteWidth,
       quoteMaxH,
       startFontSize,
@@ -863,34 +1063,14 @@ async function generateImageForPreset({
       quoteWeight,
     );
     const usedHeight = lines.length * lineHeight;
-    const quoteY = quoteStart + Math.max(0, (quoteMaxH - usedHeight) / 2);
+    const quoteY = templateLayout.quoteArea.y + Math.max(0, (quoteMaxH - usedHeight) / 2);
 
     ctx.direction = direction;
     ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = resolvedPreset.ink;
-    ctx.font = `${quoteWeight} ${fontSize}px ${fontFamily}`;
-    ctx.shadowColor = "rgba(0,0,0,0.08)";
+    ctx.shadowColor = "rgba(255,255,255,0.34)";
     ctx.shadowBlur = 1;
-    drawTextLines(ctx, lines, textX, quoteY, lineHeight, "center");
+    drawStyledTextLines(ctx, lines, textX, quoteY, lineHeight, direction, fontSize, fontFamily, quoteWeight, resolvedPreset.ink);
     ctx.shadowBlur = 0;
-
-    if (showSource) {
-      drawSource(
-        ctx,
-        resolvedPreset,
-        bookTitle,
-        chapterTitle,
-        pageNumber,
-        fontFamily,
-        textX,
-        height - (format === "story" ? 285 : 178),
-        width * 0.64,
-        direction,
-        language,
-      );
-    }
-
-    drawBottomSignature(ctx, resolvedPreset, width, height, direction, fontFamily, siteTitle || defaultBrandTitle(language), format);
     return canvas.toDataURL("image/png");
   }
 
@@ -917,9 +1097,10 @@ async function generateImageForPreset({
 
   const textX = isRtl ? width * 0.57 : width * 0.43;
   const quoteWeight = 700;
-  const { lines, fontSize, lineHeight } = fitTextToArea(
+  const { lines, fontSize, lineHeight } = fitStyledTextToArea(
     ctx,
     text,
+    textMarks,
     quoteWidth,
     quoteMaxH,
     startFontSize,
@@ -930,9 +1111,7 @@ async function generateImageForPreset({
   const usedHeight = lines.length * lineHeight;
   const quoteY = quoteStart + Math.max(0, (quoteMaxH - usedHeight) / 2);
 
-  ctx.fillStyle = resolvedPreset.ink;
-  ctx.font = `${quoteWeight} ${fontSize}px ${fontFamily}`;
-  drawTextLines(ctx, lines, textX, quoteY, lineHeight, "center");
+  drawStyledTextLines(ctx, lines, textX, quoteY, lineHeight, direction, fontSize, fontFamily, quoteWeight, resolvedPreset.ink);
 
   ctx.strokeStyle = withAlpha(resolvedPreset.accent, 0.62);
   ctx.lineWidth = 3;
@@ -946,15 +1125,12 @@ async function generateImageForPreset({
     drawSource(
       ctx,
       resolvedPreset,
-      bookTitle,
-      chapterTitle,
-      pageNumber,
+      sourceText,
       fontFamily,
       sourceX,
       height - (format === "story" ? 220 : 138),
       width * 0.55,
       isRtl ? "ltr" : direction,
-      language,
     );
   }
 
@@ -962,6 +1138,8 @@ async function generateImageForPreset({
   return canvas.toDataURL("image/png");
 }
 async function generateImagesForPreset(input: GenerateImageInput) {
+  await ensureShareFontsLoaded();
+
   const { width, height } = formatDimensions[input.format];
   const measurementCanvas = document.createElement("canvas");
   measurementCanvas.width = width;
@@ -983,9 +1161,10 @@ async function generateImagesForPreset(input: GenerateImageInput) {
     text: input.text,
   });
   const quoteWeight = 700;
-  const chunks = splitTextToImageChunks(
+  const chunks = splitStyledTextToImageChunks(
     ctx,
     input.text,
+    input.textMarks,
     quoteWidth,
     quoteMaxH,
     startFontSize,
@@ -994,7 +1173,9 @@ async function generateImagesForPreset(input: GenerateImageInput) {
     quoteWeight,
   );
 
-  const images = await Promise.all(chunks.map((chunk) => generateImageForPreset({ ...input, text: chunk })));
+  const images = await Promise.all(
+    chunks.map((chunk) => generateImageForPreset({ ...input, text: chunk.text, textMarks: chunk.marks })),
+  );
   return images.filter(Boolean);
 }
 
@@ -1009,23 +1190,41 @@ function buildShareText(
   chapterTitle: string,
   language: LanguageCode,
   pageNumber?: number,
-  options: ShareTextOptions = { showSource: true, showSite: false, siteLabel: "" },
+  options: ShareTextOptions = {
+    showSource: true,
+    sourceDetails: { includeBookTitle: true, includeLocation: true },
+    showSite: false,
+  },
 ) {
-  const page = pageNumber !== undefined ? ` / ${pageText(pageNumber, language)}` : "";
   const details: string[] = [];
-  const siteLabel = normalizeQuote(options.siteLabel);
 
   if (options.showSource) {
+    const sourceText = buildSourceText(bookTitle, chapterTitle, language, pageNumber, options.sourceDetails);
     details.push(`- ${translateAttribution(language)}`);
-    details.push(`${bookTitle} / ${chapterTitle}${page}`);
+    if (sourceText) details.push(sourceText);
   }
 
   if (options.showSite) {
-    if (siteLabel) details.push(siteLabel);
     if (options.sourceUrl) details.push(options.sourceUrl);
   }
 
   return [normalizeQuote(text), details.join("\n")].filter(Boolean).join("\n\n");
+}
+
+function buildSourceText(
+  bookTitle: string,
+  chapterTitle: string,
+  language: LanguageCode,
+  pageNumber: number | undefined,
+  sourceDetails: ShareSourceDetails,
+) {
+  const location = pageNumber !== undefined ? pageText(pageNumber, language) : normalizeQuote(chapterTitle);
+  const parts: string[] = [];
+
+  if (sourceDetails.includeBookTitle) parts.push(bookTitle);
+  if (sourceDetails.includeLocation && location) parts.push(location);
+
+  return parts.join(" / ");
 }
 
 function buildXShareUrl(text: string, sourceUrl?: string) {
@@ -1050,6 +1249,12 @@ function translateAttribution(language: LanguageCode) {
   return "ابن القيم الجوزية رحمه الله";
 }
 
+function templateAuthorName(language: LanguageCode) {
+  if (language === "de") return "Ibn al-Qayyim";
+  if (language === "en") return "Ibn al-Qayyim";
+  return "\u0627\u0628\u0646 \u0627\u0644\u0642\u064a\u0645";
+}
+
 function defaultBrandTitle(language: LanguageCode) {
   if (language === "de") return "Ibn al-Qayyim";
   if (language === "en") return "Ibn al-Qayyim";
@@ -1058,7 +1263,6 @@ function defaultBrandTitle(language: LanguageCode) {
 
 export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNumber, onClose }: Props) {
   const { direction, language, t } = useUiTranslations();
-  const defaultSiteLabel = t("موروث ابن القيم");
   const siteSubtitleLabel = t("موقع الاقتباس");
   const quotePresets = baseQuotePresets;
   const initialPreset = quotePresets[0];
@@ -1067,11 +1271,15 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
   const [activePreset, setActivePreset] = useState<QuotePresetKey>("parchment");
   const [format, setFormat] = useState<ShareFormat>("square");
   const [showSource, setShowSource] = useState(true);
+  const [includeBookTitle, setIncludeBookTitle] = useState(true);
+  const [includeSourceLocation, setIncludeSourceLocation] = useState(true);
   const [showSite, setShowSite] = useState(false);
   const [includeLink, setIncludeLink] = useState(true);
   const [currentUrl, setCurrentUrl] = useState("");
-  const [siteLabel, setSiteLabel] = useState(defaultSiteLabel);
   const [editableText, setEditableText] = useState(text);
+  const [textMarks, setTextMarks] = useState<QuoteTextMark[]>([]);
+  const [textSelection, setTextSelection] = useState<QuoteSelection>({ start: 0, end: 0 });
+  const [selectedColor, setSelectedColor] = useState(initialAccent);
   const [colors, setColors] = useState<ShareColors>({
     accent: initialAccent,
     background: initialPreset.background,
@@ -1084,14 +1292,30 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
 
   const activePresetConfig = quotePresets.find((preset) => preset.key === activePreset) ?? quotePresets[0];
   const imageCount = imageDataUrls.length;
+  const hasSourceLocation = pageNumber !== undefined || normalizeQuote(chapterTitle).length > 0;
   const sourceUrl = showSite && includeLink && currentUrl ? currentUrl : undefined;
+  const sourceDetails = useMemo(
+    () => ({
+      includeBookTitle,
+      includeLocation: includeSourceLocation && hasSourceLocation,
+    }),
+    [hasSourceLocation, includeBookTitle, includeSourceLocation],
+  );
   const shareTextOptions = useMemo(
-    () => ({ showSource, showSite, siteLabel, sourceUrl }),
-    [showSource, showSite, siteLabel, sourceUrl],
+    () => ({ showSource, sourceDetails, showSite, sourceUrl }),
+    [showSource, sourceDetails, showSite, sourceUrl],
   );
   const nativeShareTextOptions = useMemo(
-    () => ({ showSource, showSite, siteLabel }),
-    [showSource, showSite, siteLabel],
+    () => ({ showSource, sourceDetails, showSite }),
+    [showSource, sourceDetails, showSite],
+  );
+  const sourcePreviewText = useMemo(
+    () => buildSourceText(bookTitle, chapterTitle, language, pageNumber, sourceDetails),
+    [bookTitle, chapterTitle, language, pageNumber, sourceDetails],
+  );
+  const sitePreviewText = useMemo(
+    () => sourceUrl ?? "",
+    [sourceUrl],
   );
   const nativeShareText = useMemo(
     () => buildShareText(editableText, bookTitle, chapterTitle, language, pageNumber, nativeShareTextOptions),
@@ -1113,11 +1337,9 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
 
   useEffect(() => {
     setEditableText(text);
+    setTextMarks([]);
+    setTextSelection({ start: 0, end: 0 });
   }, [text]);
-
-  useEffect(() => {
-    setSiteLabel(defaultSiteLabel);
-  }, [defaultSiteLabel]);
 
   useEffect(() => {
     setCurrentUrl(window.location.href);
@@ -1135,17 +1357,19 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
 
     generateImagesForPreset({
         brandSubtitle: siteSubtitleLabel,
-        brandTitle: siteLabel,
+        brandTitle: "",
         text: editableText,
+        textMarks,
         bookTitle,
         chapterTitle,
         pageNumber,
+        sourceDetails,
         preset: activePresetConfig,
         colors,
         direction,
         format,
         language,
-        showSource,
+        showSource: showSource && Boolean(sourcePreviewText),
         showSite,
       })
       .then((images) => {
@@ -1168,18 +1392,65 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
     format,
     language,
     pageNumber,
+    sourceDetails,
+    sourcePreviewText,
     showSite,
     showSource,
-    siteLabel,
     siteSubtitleLabel,
+    textMarks,
   ]);
 
   const selectPreset = (preset: QuotePreset) => {
     setActivePreset(preset.key);
+    setSelectedColor(preset.accent);
     setColors({
       accent: preset.accent,
       background: preset.background,
     });
+  };
+
+  const selectedRange = normalizeSelection(textSelection);
+  const selectedText = selectedRange ? editableText.slice(selectedRange.start, selectedRange.end).trim() : "";
+  const hasTextSelection = Boolean(selectedRange && selectedText);
+
+  const handleTextChange = (nextText: string) => {
+    setEditableText(nextText);
+    setTextMarks((current) => compactTextMarks(current, nextText.length));
+  };
+
+  const updateTextSelection = (target: HTMLTextAreaElement) => {
+    setTextSelection({ start: target.selectionStart, end: target.selectionEnd });
+  };
+
+  const applyTextMark = (mark: Omit<QuoteTextMark, "id" | "start" | "end">) => {
+    if (!selectedRange || !hasTextSelection) return;
+    setTextMarks((current) =>
+      compactTextMarks(
+        [
+          ...current,
+          {
+            id: `${Date.now()}-${current.length}`,
+            start: selectedRange.start,
+            end: selectedRange.end,
+            ...mark,
+          },
+        ],
+        editableText.length,
+      ),
+    );
+  };
+
+  const clearSelectedTextMarks = () => {
+    if (!selectedRange || !hasTextSelection) return;
+    setTextMarks((current) =>
+      current.filter((mark) => mark.end <= selectedRange.start || mark.start >= selectedRange.end),
+    );
+  };
+
+  const resetQuoteText = () => {
+    setEditableText(text);
+    setTextMarks([]);
+    setTextSelection({ start: 0, end: 0 });
   };
 
   const flashCopied = (kind: CopiedKind) => {
@@ -1440,8 +1711,8 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                 </div>
                 <button
                   className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
-                  disabled={editableText === text}
-                  onClick={() => setEditableText(text)}
+                  disabled={editableText === text && textMarks.length === 0}
+                  onClick={resetQuoteText}
                   type="button"
                 >
                   {t("استعادة النص الأصلي")}
@@ -1451,9 +1722,87 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                 aria-label={t("نص المشاركة")}
                 className="min-h-32 w-full resize-y rounded-md border border-border bg-muted/30 px-3 py-2 font-serif text-sm leading-7 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/35 focus:bg-background focus:ring-1 focus:ring-ring"
                 dir={direction}
-                onChange={(event) => setEditableText(event.target.value)}
+                onBlur={(event) => updateTextSelection(event.currentTarget)}
+                onChange={(event) => handleTextChange(event.target.value)}
+                onKeyUp={(event) => updateTextSelection(event.currentTarget)}
+                onMouseUp={(event) => updateTextSelection(event.currentTarget)}
+                onSelect={(event) => updateTextSelection(event.currentTarget)}
                 value={editableText}
               />
+              <div className="mt-3 rounded-md border border-border bg-muted/25 p-2">
+                <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span className="truncate">
+                    {hasTextSelection ? t("النص المحدد: {text}", { text: selectedText }) : t("حدد كلمة أو عبارة من النص")}
+                  </span>
+                  {textMarks.length > 0 ? (
+                    <button
+                      className="shrink-0 font-semibold transition-colors hover:text-foreground"
+                      onClick={() => setTextMarks([])}
+                      type="button"
+                    >
+                      {t("مسح التنسيق")}
+                    </button>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+                    disabled={!hasTextSelection}
+                    onClick={() => applyTextMark({ bold: true })}
+                    title={t("تغميق النص المحدد")}
+                    type="button"
+                  >
+                    <Bold className="h-4 w-4" />
+                    B
+                  </button>
+                  <button
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold italic transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+                    disabled={!hasTextSelection}
+                    onClick={() => applyTextMark({ italic: true })}
+                    title={t("جعل النص المحدد مائلا")}
+                    type="button"
+                  >
+                    <Italic className="h-4 w-4" />
+                    I
+                  </button>
+                  <button
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+                    disabled={!hasTextSelection}
+                    onClick={() => applyTextMark({ sizeScale: 1.24 })}
+                    title={t("تكبير النص المحدد")}
+                    type="button"
+                  >
+                    <Type className="h-4 w-4" />
+                    {t("كبير")}
+                  </button>
+                  <label
+                    aria-disabled={!hasTextSelection}
+                    className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-2 text-sm font-semibold transition hover:bg-muted aria-disabled:cursor-not-allowed aria-disabled:opacity-45"
+                  >
+                    <span className="h-5 w-5 rounded-full border border-border" style={{ backgroundColor: selectedColor }} />
+                    <span>{t("لون")}</span>
+                    <input
+                      aria-label={t("لون النص المحدد")}
+                      className="sr-only"
+                      disabled={!hasTextSelection}
+                      onChange={(event) => {
+                        setSelectedColor(event.target.value);
+                        applyTextMark({ color: event.target.value });
+                      }}
+                      type="color"
+                      value={selectedColor}
+                    />
+                  </label>
+                  <button
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45"
+                    disabled={!hasTextSelection}
+                    onClick={clearSelectedTextMarks}
+                    type="button"
+                  >
+                    {t("إزالة تنسيق المحدد")}
+                  </button>
+                </div>
+              </div>
             </section>
 
             <section className="mt-5">
@@ -1516,6 +1865,32 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                     type="checkbox"
                   />
                 </label>
+                {showSource ? (
+                  <div className="rounded-md border border-border bg-muted/30 p-3">
+                    <p className="mb-2 px-1 text-xs font-semibold text-muted-foreground">{t("تفاصيل المصدر")}</p>
+                    <div className="grid gap-2">
+                      <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm">
+                        <span className="font-semibold text-foreground">{t("إضافة اسم الكتاب")}</span>
+                        <input
+                          checked={includeBookTitle}
+                          className="h-4 w-4 accent-foreground"
+                          onChange={(event) => setIncludeBookTitle(event.target.checked)}
+                          type="checkbox"
+                        />
+                      </label>
+                      <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+                        <span className="font-semibold text-foreground">{t("إضافة عنوان الصفحة أو القسم أو الفصل")}</span>
+                        <input
+                          checked={includeSourceLocation && hasSourceLocation}
+                          className="h-4 w-4 accent-foreground"
+                          disabled={!hasSourceLocation}
+                          onChange={(event) => setIncludeSourceLocation(event.target.checked)}
+                          type="checkbox"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
                 <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
                   <span className="flex min-w-0 items-center gap-2 font-semibold text-foreground">
                     <Globe2 className="h-4 w-4 text-muted-foreground" />
@@ -1530,17 +1905,8 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
                 </label>
                 {showSite ? (
                   <div className="rounded-md border border-border bg-muted/30 p-3">
-                    <label className="block text-xs font-semibold text-muted-foreground" htmlFor="quote-share-site-label">
-                      {t("اسم الموقع")}
-                    </label>
-                    <input
-                      id="quote-share-site-label"
-                      className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/35 focus:ring-1 focus:ring-ring"
-                      dir={direction}
-                      onChange={(event) => setSiteLabel(event.target.value)}
-                      value={siteLabel}
-                    />
-                    <label className="mt-3 flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm">
+                    <p className="mb-2 px-1 text-xs font-semibold text-muted-foreground">{t("تفاصيل الموقع")}</p>
+                    <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm">
                       <span className="font-semibold text-foreground">{t("إرفاق رابط القراءة")}</span>
                       <input
                         checked={includeLink && Boolean(currentUrl)}
@@ -1579,17 +1945,15 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
             </section>
 
             <section className="mt-5 rounded-md border border-border bg-muted/40 p-4">
-              <p className="line-clamp-4 font-serif text-base leading-8 text-foreground">“{normalizeQuote(editableText)}”</p>
+              <QuoteTextPreview direction={direction} marks={textMarks} text={editableText} />
               {showSource ? (
                 <p className="mt-3 text-xs leading-6 text-muted-foreground">
-                  {chapterTitle}
-                  {pageNumber !== undefined ? ` / ${pageText(pageNumber, language)}` : ""}
+                  {sourcePreviewText}
                 </p>
               ) : null}
-              {showSite && normalizeQuote(siteLabel) ? (
+              {showSite && sitePreviewText ? (
                 <p className="mt-2 truncate text-xs leading-6 text-muted-foreground">
-                  {normalizeQuote(siteLabel)}
-                  {sourceUrl ? ` / ${sourceUrl}` : ""}
+                  {sitePreviewText}
                 </p>
               ) : null}
             </section>
@@ -1621,6 +1985,44 @@ export default function QuoteShareModal({ text, bookTitle, chapterTitle, pageNum
         </aside>
       </div>
     </div>
+  );
+}
+
+function QuoteTextPreview({
+  direction,
+  marks,
+  text,
+}: {
+  direction: TextDirection;
+  marks: QuoteTextMark[];
+  text: string;
+}) {
+  const normalizedText = normalizeStyledText(text);
+  const runs = getStyledRunsForRange(
+    normalizedText,
+    snapMarksToWordBoundaries(normalizedText, compactTextMarks(marks, normalizedText.length)),
+    0,
+    normalizedText.length,
+  );
+
+  return (
+    <p className="line-clamp-4 font-serif text-base leading-8 text-foreground" dir={direction}>
+      <span>“</span>
+      {runs.map((run) => (
+        <span
+          key={`${run.start}-${run.end}-${run.text}`}
+          style={{
+            color: run.style.color,
+            fontSize: run.style.sizeScale > 1 ? `${run.style.sizeScale}em` : undefined,
+            fontStyle: run.style.italic ? "italic" : undefined,
+            fontWeight: run.style.bold ? 900 : undefined,
+          }}
+        >
+          {run.text}
+        </span>
+      ))}
+      <span>”</span>
+    </p>
   );
 }
 

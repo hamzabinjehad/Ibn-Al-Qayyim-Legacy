@@ -1,4 +1,4 @@
-import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   Copy,
@@ -21,6 +21,7 @@ import {
   clampReaderFontSize,
   displayFootnoteMarker,
   isPositionedHighlight,
+  MAX_READER_FONT_SIZE,
   MIN_READER_FONT_SIZE,
   type PageFootnote,
 } from "@/lib/reader-utils";
@@ -204,9 +205,8 @@ export function ReaderToolbar({
     };
   }, []);
 
-  const stepFontSize = (delta: number, event?: MouseEvent<HTMLButtonElement>) => {
-    const multiplier = event?.shiftKey ? 2 : 1;
-    setSettings((c) => ({ ...c, fontSize: clampReaderFontSize(c.fontSize + delta * multiplier) }));
+  const stepFontSize = (delta: number) => {
+    setSettings((c) => ({ ...c, fontSize: clampReaderFontSize(c.fontSize + delta) }));
   };
 
   return (
@@ -232,29 +232,30 @@ export function ReaderToolbar({
 
         {/* TOC */}
         <BarBtn aria-label={t("المحتويات")} onClick={onToc}>
-          <ListTree className="h-[1.05rem] w-[1.05rem]" />
+          <ListTree className="h-[1.05rem] w-[1.05rem]" strokeWidth={2} />
         </BarBtn>
 
         <span className="mx-0.5 h-5 w-px bg-foreground/12" aria-hidden="true" />
 
         {/* Font size: small أ baseline-aligned with large أ */}
         <button
+          onClick={() => stepFontSize(-1)}
           disabled={settings.fontSize <= MIN_READER_FONT_SIZE}
-          onClick={(event) => stepFontSize(-2, event)}
           title={t("تصغير الخط")}
-          className="inline-flex h-10 w-8 items-end justify-center pb-[0.45rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-35"
+          className="inline-flex h-10 w-8 items-end justify-center pb-[0.28rem] text-foreground/65 transition-all duration-150 hover:text-foreground active:scale-90 disabled:pointer-events-none disabled:opacity-30"
           aria-label={t("تصغير الخط")}
           type="button"
         >
-          <span className="select-none font-bold leading-none" style={{ fontSize: "0.65rem" }} aria-hidden="true">أ</span>
+          <span className="select-none font-bold leading-none" style={{ fontSize: "1.05rem" }} aria-hidden="true">أ</span>
         </button>
-        <span className="w-6 select-none text-center text-[0.65rem] font-semibold tabular-nums text-foreground/45">
+        <span className="w-8 select-none text-center text-[0.65rem] font-semibold tabular-nums text-foreground/45">
           {settings.fontSize}
         </span>
         <button
-          onClick={(event) => stepFontSize(2, event)}
+          onClick={() => stepFontSize(1)}
+          disabled={settings.fontSize >= MAX_READER_FONT_SIZE}
           title={t("تكبير الخط")}
-          className="inline-flex h-10 w-8 items-end justify-center pb-[0.15rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90"
+          className="inline-flex h-10 w-8 items-end justify-center pb-[0.15rem] text-foreground/55 transition-all duration-150 hover:text-foreground active:scale-90 disabled:pointer-events-none disabled:opacity-30"
           aria-label={t("تكبير الخط")}
           type="button"
         >
@@ -318,7 +319,7 @@ export function ReaderToolbar({
           active={settings.showFootnotes}
           onClick={() => setSettings((c) => ({ ...c, showFootnotes: !c.showFootnotes }))}
         >
-          <MessageSquareText className="h-[1.05rem] w-[1.05rem]" />
+          <MessageSquareText className="h-[1.05rem] w-[1.05rem]" strokeWidth={2} />
         </BarBtn>
 
         {/* Page markers */}
@@ -327,7 +328,7 @@ export function ReaderToolbar({
           active={settings.showPageMarkers}
           onClick={() => setSettings((c) => ({ ...c, showPageMarkers: !c.showPageMarkers }))}
         >
-          <SeparatorHorizontal className="h-[1.05rem] w-[1.05rem]" />
+          <SeparatorHorizontal className="h-[1.05rem] w-[1.05rem]" strokeWidth={2} />
         </BarBtn>
 
         <span className="mx-0.5 h-5 w-px bg-foreground/12" aria-hidden="true" />
@@ -339,8 +340,8 @@ export function ReaderToolbar({
           onClick={onToggleFocus}
         >
           {isFocusMode
-            ? <Minimize2 className="h-[1.05rem] w-[1.05rem]" />
-            : <Maximize2 className="h-[1.05rem] w-[1.05rem]" />
+            ? <Minimize2 className="h-[1.05rem] w-[1.05rem]" strokeWidth={2} />
+            : <Maximize2 className="h-[1.05rem] w-[1.05rem]" strokeWidth={2} />
           }
         </BarBtn>
       </div>
